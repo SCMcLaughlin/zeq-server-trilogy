@@ -65,6 +65,7 @@ static int db_thread_exec(DbThread* db, sqlite3* sqlite, const char* sql)
 
 static void db_thread_execute_writes(DbThread* db, DbInst* inst, uint32_t count)
 {
+    uint64_t timer = clock_microseconds();
     sqlite3* sqlite = inst->db;
     ZPacket* writes = inst->writes;
     uint32_t i;
@@ -78,6 +79,9 @@ static void db_thread_execute_writes(DbThread* db, DbInst* inst, uint32_t count)
     }
     
     db_thread_exec(db, sqlite, "COMMIT");
+    
+    timer = clock_microseconds() - timer;
+    log_writef(db->logQueue, db->logId, "Executed TRANSACTION containing %u writes in %llu microseconds", count, timer);
     
     inst->writeCount = 0;
 }
@@ -142,21 +146,22 @@ static DbInst* db_thread_get_inst(DbThread* db, int dbId)
     return NULL;
 }
 
-static void db_thread_destruct_zpacket(ZPacket* zpacket)
+static void db_thread_destruct_zpacket(DbThread* db, ZPacket* zpacket)
 {
     int zop = zpacket->db.zQuery.zop;
     
     switch (zop)
     {
     case ZOP_DB_QueryLoginCredentials:
-        dbr_destruct(zpacket, zop);
+        dbr_destruct(db, zpacket, zop);
         break;
     
     case ZOP_DB_QueryLoginNewAccount:
-        dbw_destruct(zpacket, zop);
+        dbw_destruct(db, zpacket, zop);
         break;
     
     default:
+        log_writef(db->logQueue, db->logId, "WARNING: db_thread_destruct_zpacket: received unexpected zop: %s", enum2str_zop(zop));
         break;
     }
 }
@@ -210,7 +215,7 @@ static void db_thread_queue_query(DbThread* db, ZPacket* zpacket, int zop, int i
 error:
     /* Inform the sender of this query that it could not be processed */
     db_thread_reply_error_only(db, zpacket);
-    db_thread_destruct_zpacket(zpacket);
+    db_thread_destruct_zpacket(db, zpacket);
 }
 
 static bool db_thread_create_database(DbThread* db, DbInst* inst, ZPacket* zpacket)
@@ -329,7 +334,7 @@ finish:
     zpacket->db.zOpen.schemaPath = sbuf_drop(zpacket->db.zOpen.schemaPath);
 }
 
-static ZPacket* db_thread_free_zpacket_array(ZPacket* array, uint32_t count)
+static ZPacket* db_thread_free_zpacket_array(DbThread* db, ZPacket* array, uint32_t count)
 {
     if (array)
     {
@@ -337,7 +342,7 @@ static ZPacket* db_thread_free_zpacket_array(ZPacket* array, uint32_t count)
         
         for (i = 0; i < count; i++)
         {
-            db_thread_destruct_zpacket(&array[i]);
+            db_thread_destruct_zpacket(db, &array[i]);
         }
         
         free(array);
@@ -346,13 +351,13 @@ static ZPacket* db_thread_free_zpacket_array(ZPacket* array, uint32_t count)
     return NULL;
 }
 
-static void db_thread_free_inst(DbInst* inst)
+static void db_thread_free_inst(DbThread* db, DbInst* inst)
 {
     sqlite3_close_v2(inst->db);
     inst->dbId = 0;
     inst->db = NULL;
-    inst->writes = db_thread_free_zpacket_array(inst->writes, inst->writeCount);
-    inst->reads = db_thread_free_zpacket_array(inst->reads, inst->readCount);
+    inst->writes = db_thread_free_zpacket_array(db, inst->writes, inst->writeCount);
+    inst->reads = db_thread_free_zpacket_array(db, inst->reads, inst->readCount);
     inst->writeCount = 0;
     inst->readCount = 0;
 }
@@ -370,7 +375,7 @@ static void db_thread_close_database(DbThread* db, ZPacket* zpacket)
         
         if (inst->dbId == dbId)
         {
-            db_thread_free_inst(inst);
+            db_thread_free_inst(db, inst);
             
             /* Swap and pop */
             n--;
@@ -476,28 +481,31 @@ fail_alloc:
     return NULL;
 }
 
-static DbInst* db_free_insts(DbInst* insts, uint32_t count)
+static void db_free_insts(DbThread* db)
 {
+    DbInst* insts = db->insts;
+    uint32_t count = db->instCount;
+    
     if (insts)
     {
         uint32_t i;
         
         for (i = 0; i < count; i++)
         {
-            db_thread_free_inst(&insts[i]);
+            db_thread_free_inst(db, &insts[i]);
         }
         
         free(insts);
+        db->insts = NULL;
+        db->instCount = 0;
     }
-    
-    return NULL;
 }
 
 DbThread* db_destroy(DbThread* db)
 {
     if (db)
     {
-        db->insts = db_free_insts(db->insts, db->instCount);
+        db_free_insts(db);
         db->queryQueue = ringbuf_destroy(db->queryQueue);
 
         log_close_file(db->logQueue, db->logId);

@@ -8,6 +8,6 @@
 #include <sqlite3.h>
 
 void dbw_dispatch(DbThread* db, sqlite3* sqlite, ZPacket* zpacket);
-void dbw_destruct(ZPacket* zpacket, int zop);
+void dbw_destruct(DbThread* db, ZPacket* zpacket, int zop);
 
 #endif/*DB_WRITE_H*/

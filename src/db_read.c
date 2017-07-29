@@ -16,7 +16,7 @@ static void dbr_login_credentials(DbThread* db, sqlite3* sqlite, ZPacket* zpacke
     reply.db.zResult.rLoginCredentials.loginId = -1;
     
     run = db_prepare_literal(db, sqlite, &stmt,
-        "SELECT rowid, password, salt FROM login WHERE username = ? LIMIT 1");
+        "SELECT id, password_hash, salt FROM account WHERE name = ? LIMIT 1");
     
     if (run)
     {
@@ -75,15 +75,17 @@ void dbr_dispatch(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
         break;
     
     default:
-        return;
+        log_writef(db_get_log_queue(db), db_get_log_id(db), "WARNING: dbr_dispatch: received unexpected zop: %s", enum2str_zop(zop));
+        goto destruct;
     }
     
     timer = clock_microseconds() - timer;
     log_writef(db_get_log_queue(db), db_get_log_id(db), "Executed READ query %s in %llu microseconds", enum2str_zop(zop), timer);
-    dbr_destruct(zpacket, zop);
+destruct:
+    dbr_destruct(db, zpacket, zop);
 }
 
-void dbr_destruct(ZPacket* zpacket, int zop)
+void dbr_destruct(DbThread* db, ZPacket* zpacket, int zop)
 {
     switch (zop)
     {
@@ -92,6 +94,7 @@ void dbr_destruct(ZPacket* zpacket, int zop)
         break;
     
     default:
+        log_writef(db_get_log_queue(db), db_get_log_id(db), "WARNING: dbr_destruct: received unexpected zop: %s", enum2str_zop(zop));
         break;
     }
 }
