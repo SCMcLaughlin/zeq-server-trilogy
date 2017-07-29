@@ -1,23 +1,9 @@
 
-CREATE TABLE login (
-    username    TEXT PRIMARY KEY,
-    password    BLOB,
-    salt        BLOB
-);
-
--- If we are connected to two separate login servers, we need to make sure that
--- an account from login server A with an id of 1 and name "abc" is treated as
--- separate from an account from login server B with an id of 1 and name "xyz".
--- To do this, we make sure to use both the id number AND the account name,
--- rather than just the id number.
-CREATE TABLE account_id (
-    id      INT,
-    name    TEXT,
-    PRIMARY KEY (id, name)
-);
-
 CREATE TABLE account (
-    id                  INT     PRIMARY KEY,
+    id                  INTEGER PRIMARY KEY,
+    name                TEXT,
+    password_hash       BLOB,
+    salt                BLOB,
     recent_char_name    TEXT,
     recent_ip_address   TEXT,
     status              INT     DEFAULT 0,
@@ -26,6 +12,8 @@ CREATE TABLE account (
     suspended_until     INT     DEFAULT 0,
     creation_time       DATE    DEFAULT 0
 );
+
+CREATE INDEX idx_account_name ON account (name);
 
 CREATE TRIGGER trigger_account_creation_time AFTER INSERT ON account
 BEGIN
