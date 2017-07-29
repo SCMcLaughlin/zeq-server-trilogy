@@ -13,7 +13,6 @@
 #define LOG_THREAD_SHUTDOWN_TIMEOUT_MS 5000
 
 /*fixme: todo:
-    * Add log file continuation (open existing) with messages saying when the log was opened or closed
     * Add log file archiving and compression past a specific byte size (using libarchive)
 */
 
@@ -85,6 +84,10 @@ static void log_thread_write(LogThread* log, LogMsg* packet)
         if (sbuf)
         {
             written += fwrite(sbuf_data(sbuf), sizeof(char), sbuf_length(sbuf), fp);
+            
+        #ifdef ZEQ_LOG_DUMP_ALL_TO_STDOUT
+            fprintf(stdout, "[%2d] %s\n", logId, sbuf_str(sbuf));
+        #endif
         }
 
         fputc('\n', fp);
@@ -199,6 +202,10 @@ static void log_thread_proc(void* ptr)
         default:
             break;
         }
+        
+    #ifdef ZEQ_LOG_DUMP_ALL_TO_STDOUT
+        fflush(stdout);
+    #endif
     }
 
 terminate:
