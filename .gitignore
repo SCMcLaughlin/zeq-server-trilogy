@@ -1,0 +1,11 @@
+*
+!bin
+!build
+!codegen
+!src
+!win32
+!Makefile
+!*.sln
+!*.vcxproj*
+!README.md
+!.gitignore
