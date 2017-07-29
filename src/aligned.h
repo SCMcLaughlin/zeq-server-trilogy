@@ -3,8 +3,6 @@
 #define ALIGNED_H
 
 #include "define.h"
-/*#include "random.h"
-#include "eqp_string.h"*/
 
 typedef struct {
     uint32_t    cursor;

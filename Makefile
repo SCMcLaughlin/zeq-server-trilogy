@@ -7,8 +7,8 @@ CINCLUDE= -Isrc/
 CDEF=
 
 #ifdef debug
-CFLAGS+= -O0 -g -Wno-format -fno-omit-frame-pointer
-CDEF+= -DDEBUG
+#CFLAGS+= -O0 -g -Wno-format -fno-omit-frame-pointer
+#CDEF+= -DDEBUG
 CINCLUDE+= -I/usr/include/lua5.1/
 #else
 #CFLAGS+= -DNDEBUG
@@ -73,20 +73,25 @@ RM= rm -f
 
 default all: main-build
 
+amalg: main-build-amalg
+
 pre-build:
 	$(E) "Generating code..."
 	$(Q)luajit codegen/enum2str.lua
     
 main-build: pre-build
 	$(Q)$(MAKE) --no-print-directory zeq-server-trilogy
-
-amalg: amalg-zeq-server-trilogy
+    
+pre-build-amalg: pre-build
+	$(E) "Generating amalgamated source file..."
+	$(Q)luajit codegen/amalg.lua "codegen/amalg-zeq-server-trilogy.c" $(_OBJECTS)
+    
+main-build-amalg: pre-build-amalg
+	$(Q)$(MAKE) --no-print-directory amalg-zeq-server-trilogy
 
 amalg-zeq-server-trilogy:
-	$(E) "Generating amalgamated source file"
-	$(Q)luajit amalg/amalg.lua "amalg/amalg-zeq-server-trilogy.c" $(_OBJECTS)
-	$(E) "Building amalg/amalg-zeq-client.c"
-	$(Q)$(CC) -o bin/zeq-client amalg/amalg-zeq-server-trilogy.c $(CDEF) $(COPT) $(CWARN) $(CWARNIGNORE) $(CFLAGS) $(CINCLUDE) $(LSTATIC) $(LDYNAMIC) $(LFLAGS)
+	$(E) "\e[0;32mCC     codegen/amalg-zeq-server-trilogy.c\e(B\e[m"
+	$(Q)$(CC) -o bin/zeq-server-trilogy codegen/amalg-zeq-server-trilogy.c $(CDEF) $(COPT) $(CWARN) $(CWARNIGNORE) $(CFLAGS) $(CINCLUDE) $(LSTATIC) $(LDYNAMIC) $(LFLAGS)
 
 zeq-server-trilogy: bin/zeq-server-trilogy
 
