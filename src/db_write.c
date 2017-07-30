@@ -27,9 +27,9 @@ static void dbw_login_new_account(DbThread* db, sqlite3* sqlite, ZPacket* zpacke
     {
         StaticBuffer* acctName = zpacket->db.zQuery.qLoginNewAccount.accountName;
         
-        if (db_bind_string_sbuf(db, sqlite, 0, acctName) &&
-            db_bind_blob(db, sqlite, 1, zpacket->db.zQuery.qLoginNewAccount.passwordHash, LOGIN_CRYPTO_HASH_SIZE) &&
-            db_bind_blob(db, sqlite, 2, zpacket->db.zQuery.qLoginNewAccount.salt, LOGIN_CRYPTO_SALT_SIZE))
+        if (db_bind_string_sbuf(db, stmt, 0, acctName) &&
+            db_bind_blob(db, stmt, 1, zpacket->db.zQuery.qLoginNewAccount.passwordHash, LOGIN_CRYPTO_HASH_SIZE) &&
+            db_bind_blob(db, stmt, 2, zpacket->db.zQuery.qLoginNewAccount.salt, LOGIN_CRYPTO_SALT_SIZE))
         {
             int rc = db_write(db, stmt);
             
