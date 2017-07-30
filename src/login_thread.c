@@ -14,6 +14,7 @@
 #include "zpacket.h"
 #include "enum_login_opcode.h"
 #include "enum_zop.h"
+#include "enum2str.h"
 
 #define LOGIN_THREAD_UDP_PORT 5998
 #define LOGIN_THREAD_LOG_PATH "log/login_thread.txt"
@@ -180,17 +181,39 @@ static int login_thread_handle_op_credentials(LoginThread* login, LoginClient* l
 static void login_thread_handle_db_login_credentials(LoginThread* login, ZPacket* zpacket)
 {
     LoginClient* loginc = (LoginClient*)zpacket->db.zResult.rLoginCredentials.client;
-    int64_t loginId = zpacket->db.zResult.rLoginCredentials.loginId;
-    
-    if (zpacket->db.zResult.hadError || loginId < 0)
-    {
-        return;
-    }
+    int rc;
     
     if (!login_thread_is_client_valid(login, loginc))
     {
+        log_write_literal(login->logQueue, login->logId, "WARNING: login_thread_handle_db_login_credentials: received result for LoginClient that no longer exists");
         return;
     }
+    
+    if (zpacket->db.zResult.hadError)
+    {
+        log_write_literal(login->logQueue, login->logId, "WARNING: login_thread_handle_db_login_credentials: database reported error");
+        goto drop_client;
+    }
+    
+    if (zpacket->db.zResult.rLoginCredentials.acctId < 0)
+    {
+        //fixme: check acct auto-create
+        loginc_schedule_packet(loginc, login->toClientQueue, login->packetErrBadCredentials);
+        goto drop_client;
+    }
+    
+    rc = loginc_handle_db_credentials(loginc, zpacket, login->toClientQueue, login->packetErrBadCredentials);
+    if (rc) 
+    {
+        if (rc != ERR_Mismatch)
+            log_writef(login->logQueue, login->logId, "login_thread_handle_db_login_credentials: successful client login could not be processed: %s", enum2str_err(rc));
+        goto drop_client;
+    }
+    
+    return;
+    
+drop_client:
+    login_thread_drop_client(login, loginc);
 }
 
 static void login_thread_handle_packet(LoginThread* login, ZPacket* zpacket)

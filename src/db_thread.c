@@ -316,6 +316,9 @@ static void db_thread_open_database(DbThread* db, ZPacket* zpacket)
     else
     {
         log_writef(db->logQueue, db->logId, "Opened database file \"%s\"", sbuf_str(zpacket->db.zOpen.path));
+        
+        /* Update statistics to improve query performance */
+        db_thread_exec(db, inst->db, "ANALYZE");
     }
     
     goto finish;

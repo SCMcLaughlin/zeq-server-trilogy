@@ -13,7 +13,7 @@ static void dbr_login_credentials(DbThread* db, sqlite3* sqlite, ZPacket* zpacke
     reply.db.zResult.queryId = zpacket->db.zQuery.queryId;
     reply.db.zResult.hadError = true;
     reply.db.zResult.rLoginCredentials.client = zpacket->db.zQuery.qLoginCredentials.client;
-    reply.db.zResult.rLoginCredentials.loginId = -1;
+    reply.db.zResult.rLoginCredentials.acctId = -1;
     
     run = db_prepare_literal(db, sqlite, &stmt,
         "SELECT id, password_hash, salt FROM account WHERE name = ? LIMIT 1");
@@ -26,7 +26,7 @@ static void dbr_login_credentials(DbThread* db, sqlite3* sqlite, ZPacket* zpacke
         {
             const byte* passhash;
             const byte* salt;
-            int64_t loginId;
+            int64_t acctId;
             int passlen;
             int saltlen;
             int rc;
@@ -36,15 +36,15 @@ static void dbr_login_credentials(DbThread* db, sqlite3* sqlite, ZPacket* zpacke
             switch (rc)
             {
             case SQLITE_ROW:
-                loginId = db_fetch_int64(stmt, 0);
+                acctId = db_fetch_int64(stmt, 0);
                 passhash = db_fetch_blob(stmt, 1, &passlen);
                 salt = db_fetch_blob(stmt, 2, &saltlen);
             
-                if (loginId < 0 || !passhash || !salt || passlen != LOGIN_CRYPTO_HASH_SIZE || saltlen != LOGIN_CRYPTO_SALT_SIZE)
+                if (acctId < 0 || !passhash || !salt || passlen != LOGIN_CRYPTO_HASH_SIZE || saltlen != LOGIN_CRYPTO_SALT_SIZE)
                     break;
                 
                 reply.db.zResult.hadError = false;
-                reply.db.zResult.rLoginCredentials.loginId = loginId;
+                reply.db.zResult.rLoginCredentials.acctId = acctId;
                 memcpy(reply.db.zResult.rLoginCredentials.passwordHash, passhash, LOGIN_CRYPTO_HASH_SIZE);
                 memcpy(reply.db.zResult.rLoginCredentials.salt, salt, LOGIN_CRYPTO_SALT_SIZE);
                 break;

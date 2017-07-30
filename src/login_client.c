@@ -1,12 +1,14 @@
 
 #include "login_client.h"
 #include "define_netcode.h"
+#include "aligned.h"
 #include "buffer.h"
 #include "login_packet_struct.h"
 #include "udp_zpacket.h"
 #include "util_ipv4.h"
 #include "util_random.h"
 #include "util_str.h"
+#include "enum_login_opcode.h"
 #include "enum_zop.h"
 
 struct LoginClient {
@@ -145,6 +147,49 @@ invalid_decrypted:
     memset(decrypt, 0, sizeof(decrypt));
 invalid:
     return rc;
+}
+
+int loginc_handle_db_credentials(LoginClient* loginc, ZPacket* zpacket, RingBuf* toClientQueue, TlgPacket* errPacket)
+{
+    byte hash[LOGIN_CRYPTO_HASH_SIZE];
+    StaticBuffer* password;
+    TlgPacket* packet;
+    int64_t acctId;
+    Aligned a;
+    byte* salt;
+    
+    if (loginc->authState != LOGIN_AUTH_ProcessingCredentials)
+        goto cred_err;
+        
+    password = loginc->passwordTemp;
+    salt = zpacket->db.zResult.rLoginCredentials.salt;
+    
+    /* Check if the password hash matches */
+    login_crypto_hash(sbuf_str(password), sbuf_length(password), salt, LOGIN_CRYPTO_SALT_SIZE, hash);
+    
+    if (memcmp(hash, zpacket->db.zResult.rLoginCredentials.passwordHash, LOGIN_CRYPTO_HASH_SIZE) != 0)
+    {
+    cred_err:
+        loginc_schedule_packet(loginc, toClientQueue, errPacket);
+        return ERR_Mismatch;
+    }
+    
+    /* Successful login, send our response */
+    packet = packet_create_type(OP_LOGIN_Session, PSLogin_Session);
+    if (!packet) return ERR_OutOfMemory;
+    
+    acctId = zpacket->db.zResult.rLoginCredentials.acctId;
+    loginc->authState = LOGIN_AUTH_Authorized;
+    
+    aligned_init(&a, packet_data(packet), packet_length(packet));
+    /* sessionId */
+    aligned_write_snprintf_and_advance_by(&a, sizeof_field(PSLogin_Session, sessionId), "LS#%i", acctId);
+    /* "unused" */
+    aligned_write_literal_null_terminated(&a, "unused");
+    /* unknown */
+    aligned_write_uint32(&a, 4);
+
+    return loginc_schedule_packet(loginc, toClientQueue, packet);
 }
 
 int loginc_handle_op_banner(LoginClient* loginc, RingBuf* toClientQueue, TlgPacket* packet)

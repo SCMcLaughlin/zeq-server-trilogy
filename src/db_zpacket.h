@@ -28,7 +28,7 @@ typedef struct {
 
 typedef struct {
     void*   client;
-    int64_t loginId;
+    int64_t acctId;
     byte    passwordHash[LOGIN_CRYPTO_HASH_SIZE];
     byte    salt[LOGIN_CRYPTO_SALT_SIZE];
 } DBR_LoginCredentials;

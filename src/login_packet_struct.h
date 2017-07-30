@@ -11,6 +11,12 @@ typedef struct {
     char    password[20];
 } PSLogin_Credentials;
 
+typedef struct {
+    char        sessionId[10];
+    char        unused[7];
+    uint32_t    unknown;
+} PSLogin_Session;
+
 #pragma pack()
 
 #endif/*LOGIN_PACKET_STRUCT_H*/
