@@ -10,6 +10,7 @@
 #include "login_crypto.h"
 #include "tlg_packet.h"
 #include "util_alloc.h"
+#include "util_random.h"
 #include "util_thread.h"
 #include "zpacket.h"
 #include "enum_login_opcode.h"
@@ -178,10 +179,52 @@ static int login_thread_handle_op_credentials(LoginThread* login, LoginClient* l
     return rc;
 }
 
+static bool login_thread_account_auto_create(LoginThread* login, LoginClient* loginc)
+{
+#ifdef ZEQ_LOGIN_DISABLE_ACCOUNT_AUTO_CREATE
+    (void)login;
+    (void)loginc;
+    return false;
+#else
+    StaticBuffer* accountName = loginc_get_account_name(loginc);
+    StaticBuffer* password = loginc_get_password(loginc);
+    ZPacket zpacket;
+    int rc;
+    
+    zpacket.db.zQuery.qLoginNewAccount.client = loginc;
+    zpacket.db.zQuery.qLoginNewAccount.accountName = accountName;
+    
+    random_bytes(zpacket.db.zQuery.qLoginNewAccount.salt, LOGIN_CRYPTO_SALT_SIZE);
+    login_crypto_hash(sbuf_str(password), sbuf_length(password), zpacket.db.zQuery.qLoginNewAccount.salt,
+        LOGIN_CRYPTO_SALT_SIZE, zpacket.db.zQuery.qLoginNewAccount.passwordHash);
+    
+    loginc_clear_password(loginc);
+    sbuf_grab(accountName);
+    
+    rc = db_queue_query(login->dbQueue, login->dbId, &zpacket);
+    
+    if (rc)
+    {
+        sbuf_drop(accountName);
+        return false;
+    }
+    
+    return true;
+#endif
+}
+
 static void login_thread_handle_db_login_credentials(LoginThread* login, ZPacket* zpacket)
 {
-    LoginClient* loginc = (LoginClient*)zpacket->db.zResult.rLoginCredentials.client;
+    LoginClient* loginc;
     int rc;
+    
+    if (zpacket->db.zResult.hadErrorUnprocessed)
+    {
+        log_write_literal(login->logQueue, login->logId, "WARNING: login_thread_handle_db_login_credentials: database reported error, query unprocessed");
+        return;
+    }
+    
+    loginc = (LoginClient*)zpacket->db.zResult.rLoginCredentials.client;
     
     if (!login_thread_is_client_valid(login, loginc))
     {
@@ -197,7 +240,10 @@ static void login_thread_handle_db_login_credentials(LoginThread* login, ZPacket
     
     if (zpacket->db.zResult.rLoginCredentials.acctId < 0)
     {
-        //fixme: check acct auto-create
+        /* Try to auto-create an account with these credentials */
+        if (login_thread_account_auto_create(login, loginc))
+            return;
+        
         loginc_schedule_packet(loginc, login->toClientQueue, login->packetErrBadCredentials);
         goto drop_client;
     }

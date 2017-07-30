@@ -18,6 +18,7 @@ int loginc_schedule_packet(LoginClient* loginc, RingBuf* toClientQueue, TlgPacke
 int loginc_handle_op_version(LoginClient* loginc, RingBuf* toClientQueue, TlgPacket* packet);
 int loginc_handle_op_credentials(LoginClient* loginc, ToServerPacket* packet);
 int loginc_handle_db_credentials(LoginClient* loginc, ZPacket* zpacket, RingBuf* toClientQueue, TlgPacket* errPacket);
+int loginc_send_session_packet(LoginClient* loginc, RingBuf* toClientQueue, int64_t acctId);
 int loginc_handle_op_banner(LoginClient* loginc, RingBuf* toClientQueue, TlgPacket* packet);
 
 IpAddr loginc_get_ip_addr(LoginClient* loginc);

@@ -42,6 +42,7 @@ static void db_thread_reply_error_only(DbThread* db, ZPacket* zpacket)
     memset(&reply, 0, sizeof(reply));
     reply.db.zResult.queryId = zpacket->db.zQuery.queryId;
     reply.db.zResult.hadError = true;
+    reply.db.zResult.hadErrorUnprocessed = true;
     
     db_reply(db, zpacket, &reply);
 }
@@ -628,6 +629,34 @@ int db_read(DbThread* db, sqlite3_stmt* stmt)
             return SQLITE_ERROR;
         }
     }
+}
+
+int db_write(DbThread* db, sqlite3_stmt* stmt)
+{
+    for (;;)
+    {
+        int rc = sqlite3_step(stmt);
+        
+        switch (rc)
+        {
+        case SQLITE_BUSY:
+        case SQLITE_LOCKED:
+            continue;
+        
+        case SQLITE_DONE:
+            return rc;
+        
+        case SQLITE_ROW:
+            log_write_literal(db->logQueue, db->logId, "db_write: sqlite3_step() returned SQLITE_ROW, indicating data was SELECTed; is this a misconfigured READ query?");
+            goto error;
+        
+        default:
+            log_writef(db->logQueue, db->logId, "db_write: sqlite3_step() failed, reason: \"%s\"", sqlite3_errstr(rc));
+            goto error;
+        }
+    }
+error:
+    return SQLITE_ERROR;
 }
 
 bool db_bind_int(DbThread* db, sqlite3_stmt* stmt, int col, int val)

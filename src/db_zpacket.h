@@ -15,12 +15,20 @@ typedef struct  {
 } DBQ_LoginCredentials;
 
 typedef struct {
+    void*           client;
+    StaticBuffer*   accountName;
+    byte            passwordHash[LOGIN_CRYPTO_HASH_SIZE];
+    byte            salt[LOGIN_CRYPTO_SALT_SIZE];
+} DBQ_LoginNewAccount;
+
+typedef struct {
     int         dbId;
     int         queryId;    /* User-supplied tracking value, not used internally by the DB system */
     int         zop;
     RingBuf*    replyQueue;
     union {
         DBQ_LoginCredentials    qLoginCredentials;
+        DBQ_LoginNewAccount     qLoginNewAccount;
     };
 } DB_ZQuery;
 
@@ -34,10 +42,17 @@ typedef struct {
 } DBR_LoginCredentials;
 
 typedef struct {
+    void*   client;
+    int64_t acctId;
+} DBR_LoginNewAccount;
+
+typedef struct {
     int         queryId;    /* User-supplied tracking value, not used internally by the DB system */
     bool        hadError;
+    bool        hadErrorUnprocessed;
     union {
         DBR_LoginCredentials    rLoginCredentials;
+        DBR_LoginNewAccount     rLoginNewAccount;
     };
 } DB_ZResult;
 

@@ -15,7 +15,7 @@ struct LoginClient {
     int8_t          authState;
     bool            isLocal;
     IpAddr          ipAddress;
-    uint32_t        accountId;
+    int64_t         accountId;
     StaticBuffer*   accountName;
     StaticBuffer*   passwordTemp;
 };
@@ -153,9 +153,6 @@ int loginc_handle_db_credentials(LoginClient* loginc, ZPacket* zpacket, RingBuf*
 {
     byte hash[LOGIN_CRYPTO_HASH_SIZE];
     StaticBuffer* password;
-    TlgPacket* packet;
-    int64_t acctId;
-    Aligned a;
     byte* salt;
     
     if (loginc->authState != LOGIN_AUTH_ProcessingCredentials)
@@ -175,10 +172,19 @@ int loginc_handle_db_credentials(LoginClient* loginc, ZPacket* zpacket, RingBuf*
     }
     
     /* Successful login, send our response */
+    loginc_clear_password(loginc);
+    return loginc_send_session_packet(loginc, toClientQueue, zpacket->db.zResult.rLoginCredentials.acctId);
+}
+
+int loginc_send_session_packet(LoginClient* loginc, RingBuf* toClientQueue, int64_t acctId)
+{
+    TlgPacket* packet;
+    Aligned a;
+    
     packet = packet_create_type(OP_LOGIN_Session, PSLogin_Session);
     if (!packet) return ERR_OutOfMemory;
     
-    acctId = zpacket->db.zResult.rLoginCredentials.acctId;
+    loginc->accountId = acctId;
     loginc->authState = LOGIN_AUTH_Authorized;
     
     aligned_init(&a, packet_data(packet), packet_length(packet));

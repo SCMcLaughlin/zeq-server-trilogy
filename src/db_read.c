@@ -1,5 +1,6 @@
 
 #include "db_read.h"
+#include "login_crypto.h"
 #include "util_clock.h"
 #include "enum_zop.h"
 #include "enum2str.h"
@@ -12,6 +13,7 @@ static void dbr_login_credentials(DbThread* db, sqlite3* sqlite, ZPacket* zpacke
     
     reply.db.zResult.queryId = zpacket->db.zQuery.queryId;
     reply.db.zResult.hadError = true;
+    reply.db.zResult.hadErrorUnprocessed = false;
     reply.db.zResult.rLoginCredentials.client = zpacket->db.zQuery.qLoginCredentials.client;
     reply.db.zResult.rLoginCredentials.acctId = -1;
     
