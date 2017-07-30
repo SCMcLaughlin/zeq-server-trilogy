@@ -351,7 +351,7 @@ static void udp_thread_process_socket_writes(UdpThread* udp)
     
     for (i = 0; i < count; i++)
     {
-        if ((clientFlags[i] & UDP_FLAG_ReadyToSend) == 0)
+        if (bit_get(clientFlags[i], UDP_FLAG_ReadyToSend) == 0)
             continue;
         
         bit_unset(clientFlags[i], UDP_FLAG_ReadyToSend);
