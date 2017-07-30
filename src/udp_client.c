@@ -23,6 +23,30 @@ void udpc_init(UdpClient* udpc, sock_t sock, uint32_t ip, uint16_t port, RingBuf
     ack_init(&udpc->ackMgr);
 }
 
+static void udpc_report_disconnect(UdpClient* udpc, int zop)
+{
+    ZPacket zpacket;
+    int rc;
+    
+    zpacket.udp.zClientDisconnect.clientObject = udpc->clientObject;
+    rc = ringbuf_push(udpc->toServerQueue, zop, &zpacket);
+    
+    if (rc)
+    {
+        log_writef(udpc->logQueue, udpc->logId, "udpc_report_disconnect: ringbuf_push() failed for zop %s with error %s", enum2str_zop(zop), enum2str_err(rc));
+    }
+}
+
+void udpc_deinit(UdpClient* udpc)
+{
+    ack_deinit(&udpc->ackMgr);
+}
+
+void udpc_linkdead(UdpClient* udpc)
+{
+    udpc_report_disconnect(udpc, ZOP_UDP_ClientLinkdead);
+}
+
 bool udpc_send_disconnect(UdpClient* udpc)
 {
     typedef struct {
@@ -38,6 +62,8 @@ bool udpc_send_disconnect(UdpClient* udpc)
     dis.header = TLG_PACKET_IsClosing | TLG_PACKET_IsClosing2;
     dis.seq = ack_get_next_seq_to_send_and_increment(&udpc->ackMgr);
     dis.crc = crc_calc32_network(&dis, sizeof(dis));
+    
+    udpc_report_disconnect(udpc, ZOP_UDP_ClientDisconnect);
     
     return udpc_send_immediate(udpc, &dis, sizeof(dis));
 }
@@ -94,7 +120,6 @@ bool udpc_recv_protocol(UdpClient* udpc, byte* data, uint32_t len, bool suppress
 {
     Aligned a;
     uint16_t header;
-    /*uint16_t seq;*/
     uint16_t opcode = 0;
     uint16_t ackRequest = 0;
     uint16_t fragCount = 0;
@@ -117,7 +142,6 @@ bool udpc_recv_protocol(UdpClient* udpc, byte* data, uint32_t len, bool suppress
         The CRC accounts for 4, so we know we have at least 6 remaining.
     */
     header = aligned_read_uint16(&a);
-    /*seq = aligned_read_uint16(&a);*/
     aligned_advance_by_sizeof(&a, uint16_t); /* sequence */
 
     if (header & TLG_PACKET_HasAckResponse)

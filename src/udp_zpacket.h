@@ -36,12 +36,18 @@ typedef struct {
     TlgPacket*  packet;
 } UDP_ZToClientPacket;
 
+typedef struct {
+    void*   clientObject;
+} UDP_ZClientDisconnect;
+
 typedef union {
-    UDP_ZOpenPort       zOpenPort;
-    UDP_ZNewClient      zNewClient;
-    UDP_ZToClientPacket zDropClient;
-    UDP_ZToServerPacket zToServerPacket;
-    UDP_ZToClientPacket zToClientPacket;
+    UDP_ZOpenPort           zOpenPort;
+    UDP_ZNewClient          zNewClient;
+    UDP_ZToClientPacket     zDropClient;
+    UDP_ZToServerPacket     zToServerPacket;
+    UDP_ZToClientPacket     zToClientPacket;
+    UDP_ZClientDisconnect   zClientDisconnect;
+    UDP_ZClientDisconnect   zClientLinkdead;
 } UDP_ZPacket;
 
 #endif/*UDP_ZPACKET_H*/

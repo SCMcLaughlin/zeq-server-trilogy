@@ -158,7 +158,7 @@ int timer_stop(TimerPool* pool, Timer* timer)
     {
         timer->poolIndex = TIMER_POOL_INVALID_INDEX;
         /* The 63rd bit (counting from 0) is the 'dead' flag bit */
-        pool->triggerTimes[index] |= 1ULL << 63;
+        bit_set64(pool->triggerTimes[index], 63);
         rc = ERR_None;
     }
     else

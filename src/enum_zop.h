@@ -13,6 +13,8 @@ enum ZOP
     ZOP_UDP_ToServerPacket,
     ZOP_UDP_ToClientPacketScheduled,
     ZOP_UDP_ToClientPacketImmediate,
+    ZOP_UDP_ClientDisconnect,
+    ZOP_UDP_ClientLinkdead,
     /* Log thread */
     ZOP_LOG_Write,
     ZOP_LOG_OpenFile,

@@ -20,7 +20,9 @@ typedef struct UdpClient {
 } UdpClient;
 
 void udpc_init(UdpClient* udpc, sock_t sock, uint32_t ip, uint16_t port, RingBuf* toServerQueue, RingBuf* logQueue, int logId);
+void udpc_deinit(UdpClient* udpc);
 
+void udpc_linkdead(UdpClient* udpc);
 bool udpc_send_disconnect(UdpClient* udpc);
 void udpc_recv_packet(UdpClient* udpc, Aligned* a, uint16_t opcode);
 void udpc_recv_packet_no_copy(UdpClient* udpc, Aligned* a, uint16_t opcode);

@@ -12,6 +12,13 @@
 #define UDP_THREAD_BUFFER_SIZE 1024
 #define UDP_THREAD_MINIMUM_MEANINGFUL_PACKET_SIZE 10
 #define UDP_THREAD_LOG_PATH "log/udp_thread.txt"
+#define UDP_THREAD_LINKDEAD_TIMEOUT_MS 15000
+
+enum UdpClientFlag
+{
+    UDP_FLAG_ReadyToSend,
+    UDP_FLAG_Dead,
+};
 
 typedef struct {
     sock_t      sock;
@@ -25,7 +32,7 @@ struct UdpThread {
     UdpSocket*  sockets;
     IpAddr*     clientAddresses;
     UdpClient*  clients;
-    bool*       clientsReadyToSend;  /*fixme: make this 1 bit per client instead of 1 byte?*/
+    uint8_t*    clientFlags;
     uint64_t*   clientRecvTimestamps;
     RingBuf*    udpQueue;
     RingBuf*    statusQueue;
@@ -145,18 +152,18 @@ static void udp_thread_handle_client_packet(UdpThread* udp, ZPacket* cmd, bool a
     if (client)
     {
         udpc_schedule_packet(client, cmd->udp.zToClientPacket.packet, ackRequest);
-        udp->clientsReadyToSend[index] = true;
+        bit_set(udp->clientFlags[index], UDP_FLAG_ReadyToSend);
     }
 }
 
 static void udp_thread_handle_drop_client(UdpThread* udp, ZPacket* cmd)
 {
-    UdpClient* client = udp_thread_get_client_by_ip(udp, cmd->udp.zToClientPacket.ipAddress.ip, cmd->udp.zToClientPacket.ipAddress.port, NULL);
+    uint32_t index;
+    UdpClient* client = udp_thread_get_client_by_ip(udp, cmd->udp.zToClientPacket.ipAddress.ip, cmd->udp.zToClientPacket.ipAddress.port, &index);
     
     if (client)
     {
-        udpc_send_disconnect(client);
-        /*fixme: flag the client for removal*/
+        bit_set(udp->clientFlags[index], UDP_FLAG_Dead);
     }
 }
 
@@ -215,15 +222,15 @@ static void udp_thread_new_client(UdpThread* udp, uint32_t clientSize, UdpClient
         UdpClient* clients;
         IpAddr* clientAddresses;
         uint64_t* clientRecvTimestamps;
-        bool* clientsReadyToSend;
+        uint8_t* clientFlags;
 
         clients = realloc_array_type(udp->clients, cap, UdpClient);
         if (!clients) goto oom;
         udp->clients = clients;
         
-        clientsReadyToSend = realloc_array_type(udp->clientsReadyToSend, cap, bool);
-        if (!clientsReadyToSend) goto oom;
-        udp->clientsReadyToSend = clientsReadyToSend;
+        clientFlags = realloc_array_type(udp->clientFlags, cap, uint8_t);
+        if (!clientFlags) goto oom;
+        udp->clientFlags = clientFlags;
 
         clientAddresses = realloc_array_type(udp->clientAddresses, cap, IpAddr);
         if (!clientAddresses) goto oom;
@@ -246,7 +253,7 @@ static void udp_thread_new_client(UdpThread* udp, uint32_t clientSize, UdpClient
     udp->clientCount = index + 1;
     udp->clients[index] = *toCopy;
     udp->clients[index].clientObject = clientObject;
-    udp->clientsReadyToSend[index] = false;
+    udp->clientFlags[index] = 0;
     udp->clientAddresses[index] = zpacket.udp.zNewClient.ipAddress;
     udp->clientRecvTimestamps[index] = clock_milliseconds();
     return;
@@ -338,18 +345,70 @@ static void udp_thread_process_socket_reads(UdpThread* udp)
 static void udp_thread_process_socket_writes(UdpThread* udp)
 {
     UdpClient* clients = udp->clients;
-    bool* clientsReadyToSend = udp->clientsReadyToSend;
+    uint8_t* clientFlags = udp->clientFlags;
     uint32_t count = udp->clientCount;
     uint32_t i;
     
     for (i = 0; i < count; i++)
     {
-        if (!clientsReadyToSend[i])
+        if ((clientFlags[i] & UDP_FLAG_ReadyToSend) == 0)
             continue;
         
-        clientsReadyToSend[i] = false;
+        bit_unset(clientFlags[i], UDP_FLAG_ReadyToSend);
         udpc_send_queued_packets(&clients[i]);
     }
+}
+
+static void udp_thread_check_client_timeouts(UdpThread* udp)
+{
+    UdpClient* clients = udp->clients;
+    uint8_t* clientFlags = udp->clientFlags;
+    uint64_t* clientRecvTimestamps = udp->clientRecvTimestamps;
+    uint32_t count = udp->clientCount;
+    uint64_t time = clock_milliseconds();
+    uint32_t i;
+    
+    for (i = 0; i < count; i++)
+    {
+        if ((time - clientRecvTimestamps[i]) >= UDP_THREAD_LINKDEAD_TIMEOUT_MS)
+        {
+            bit_set(clientFlags[i], UDP_FLAG_Dead);
+            udpc_linkdead(&clients[i]);
+        }
+    }
+}
+
+static void udp_thread_cleanup_dead_clients(UdpThread* udp)
+{
+    IpAddr* clientAddresses = udp->clientAddresses;
+    UdpClient* clients = udp->clients;
+    uint8_t* clientFlags = udp->clientFlags;
+    uint64_t* clientRecvTimestamps = udp->clientRecvTimestamps;
+    uint32_t count = udp->clientCount;
+    uint32_t i = 0;
+    
+    while (i < count)
+    {
+        if (bit_get(clientFlags[i], UDP_FLAG_Dead))
+        {
+            UdpClient* client = &clients[i];
+            
+            udpc_send_disconnect(client);
+            udpc_deinit(client);
+            
+            /* Pop and swap */
+            count--;
+            clients[i] = clients[count];
+            clientFlags[i] = clientFlags[count];
+            clientAddresses[i] = clientAddresses[count];
+            clientRecvTimestamps[i] = clientRecvTimestamps[count];
+            continue;
+        }
+        
+        i++;
+    }
+    
+    udp->clientCount = count;
 }
 
 static void udp_thread_proc(void* ptr)
@@ -363,6 +422,9 @@ static void udp_thread_proc(void* ptr)
 
         udp_thread_process_socket_reads(udp);
         udp_thread_process_socket_writes(udp);
+        
+        udp_thread_check_client_timeouts(udp);
+        udp_thread_cleanup_dead_clients(udp);
 
         clock_sleep(25);
     }
@@ -380,7 +442,7 @@ UdpThread* udp_create(LogThread* log)
     udp->sockets = NULL;
     udp->clientAddresses = NULL;
     udp->clients = NULL;
-    udp->clientsReadyToSend = NULL;
+    udp->clientFlags = NULL;
     udp->clientRecvTimestamps = NULL;
     udp->udpQueue = NULL;
     udp->statusQueue = NULL;
@@ -403,13 +465,57 @@ fail_alloc:
     return NULL;
 }
 
+static void udp_free_clients(UdpThread* udp)
+{
+    UdpClient* clients = udp->clients;
+    
+    if (clients)
+    {
+        uint32_t count = udp->clientCount;
+        uint32_t i;
+        
+        for (i = 0; i < count; i++)
+        {
+            udpc_deinit(&clients[i]);
+        }
+        
+        free(clients);
+        udp->clients = NULL;
+        udp->clientCount = 0;
+    }
+}
+
+static void udp_free_sockets(UdpThread* udp)
+{
+    UdpSocket* sockets = udp->sockets;
+    
+    if (sockets)
+    {
+        uint32_t count = udp->sockCount;
+        uint32_t i;
+        
+        for (i = 0; i < count; i++)
+        {
+            UdpSocket* usock = &sockets[i];
+            
+            closesocket(usock->sock);
+            usock->sock = INVALID_SOCKET;
+        }
+        
+        free(sockets);
+        udp->sockets = NULL;
+        udp->sockCount = 0;
+    }
+}
+
 UdpThread* udp_destroy(UdpThread* udp)
 {
     if (udp)
     {
-        //fixme: todo: free sockets and clients properly
+        udp_free_sockets(udp);
+        udp_free_clients(udp);
         free_if_exists(udp->clientAddresses);
-        free_if_exists(udp->clientsReadyToSend);
+        free_if_exists(udp->clientFlags);
         free_if_exists(udp->clientRecvTimestamps);
         ringbuf_destroy_if_exists(udp->udpQueue);
         ringbuf_destroy_if_exists(udp->statusQueue);

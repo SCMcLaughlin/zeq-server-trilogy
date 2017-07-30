@@ -68,6 +68,8 @@ const char* enum2str_zop(int e)
     case ZOP_UDP_ToServerPacket: ret = "ZOP_UDP_ToServerPacket"; break;
     case ZOP_UDP_ToClientPacketScheduled: ret = "ZOP_UDP_ToClientPacketScheduled"; break;
     case ZOP_UDP_ToClientPacketImmediate: ret = "ZOP_UDP_ToClientPacketImmediate"; break;
+    case ZOP_UDP_ClientDisconnect: ret = "ZOP_UDP_ClientDisconnect"; break;
+    case ZOP_UDP_ClientLinkdead: ret = "ZOP_UDP_ClientLinkdead"; break;
     case ZOP_LOG_Write: ret = "ZOP_LOG_Write"; break;
     case ZOP_LOG_OpenFile: ret = "ZOP_LOG_OpenFile"; break;
     case ZOP_LOG_CloseFile: ret = "ZOP_LOG_CloseFile"; break;

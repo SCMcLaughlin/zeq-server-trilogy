@@ -12,6 +12,10 @@
 #define bit_rotate(x, n) (((x)<<(n)) | ((x)>>(-(int)(n)&(8*sizeof(x)-1))))
 #define bit_get(val, n) (val & (1 << n))
 #define bit_get64(val, n) (val & (1ULL << (n)))
+#define bit_set(val, n) ((val) |= (1 << (n)))
+#define bit_set64(val, n) ((val) |= (1ULL << (n)))
+#define bit_unset(val, n) ((val) &= ~(1 << (n)))
+#define bit_unset64(val, n) ((val) &= ~(1ULL << (n)))
 
 uint32_t bit_next_pow2_u32(uint32_t n);
 
