@@ -210,7 +210,7 @@ static int udp_thread_new_client(UdpThread* udp, uint32_t clientSize, UdpClient*
     void* clientObject = alloc_bytes(clientSize);
     ZPacket zpacket;
     uint32_t index;
-    uint32_t ip;
+    uint32_t ip = toCopy->ipAddr.ip;
 
     if (!clientObject) goto oom;
 
@@ -252,6 +252,9 @@ static int udp_thread_new_client(UdpThread* udp, uint32_t clientSize, UdpClient*
         goto queue_fail;
     }
     
+    log_writef(udp->logQueue, udp->logId, "New UDP client connection from %u.%u.%u.%u:%u",
+        (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, toCopy->ipAddr.port);
+    
     udp->clientCount = index + 1;
     udp->clients[index] = *toCopy;
     udp->clientFlags[index] = 0;
@@ -259,7 +262,6 @@ static int udp_thread_new_client(UdpThread* udp, uint32_t clientSize, UdpClient*
     udp->clientRecvTimestamps[index] = clock_milliseconds();
     return (int)index;
 oom:
-    ip = toCopy->ipAddr.ip;
     log_writef(udp->logQueue, udp->logId, "udp_thread_new_client: out of memory while allocating client from %u.%u.%u.%u:%u",
         (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, toCopy->ipAddr.port);
 

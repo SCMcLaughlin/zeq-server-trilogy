@@ -44,6 +44,12 @@ void udpc_deinit(UdpClient* udpc)
 
 void udpc_linkdead(UdpClient* udpc)
 {
+    uint32_t ip = udpc->ipAddr.ip;
+    uint16_t port = udpc->ipAddr.port;
+    
+    log_writef(udpc->logQueue, udpc->logId, "UDP client from %u.%u.%u.%u:%u is LINKDEAD",
+        (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, port);
+    
     udpc_report_disconnect(udpc, ZOP_UDP_ClientLinkdead);
 }
 
@@ -56,12 +62,17 @@ bool udpc_send_disconnect(UdpClient* udpc)
     } PS_Disconnect;
     
     PS_Disconnect dis;
+    uint32_t ip = udpc->ipAddr.ip;
+    uint16_t port = udpc->ipAddr.port;
     
     assert(sizeof(dis) == 8);
     
     dis.header = TLG_PACKET_IsClosing | TLG_PACKET_IsClosing2;
     dis.seq = ack_get_next_seq_to_send_and_increment(&udpc->ackMgr);
     dis.crc = crc_calc32_network(&dis, sizeof(dis));
+    
+    log_writef(udpc->logQueue, udpc->logId, "Disconnecting UDP client from %u.%u.%u.%u:%u",
+        (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, port);
     
     udpc_report_disconnect(udpc, ZOP_UDP_ClientDisconnect);
     

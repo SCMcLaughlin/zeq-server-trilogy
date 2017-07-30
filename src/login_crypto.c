@@ -34,8 +34,6 @@ uint32_t login_crypto_process(const void* input, uint32_t length, void* output, 
     if (rem)
         length += 8 - rem;
     
-    printf("crypto_length: %u\n", length); fflush(stdout);
-    
     DES_ncbc_encrypt((const byte*)input, (byte*)output, length, &s_keySchedule, &iv, isEncrypt);
     
     return length;
