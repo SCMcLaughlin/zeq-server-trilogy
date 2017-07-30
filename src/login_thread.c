@@ -38,52 +38,68 @@ typedef struct {
     int8_t          rank;
     bool            isLocal; /* Relative to the machine running zeq-trilogy-server */
     int             playerCount;
-    uint32_t        nameLength;
-    uint32_t        remoteLength;
-    uint32_t        localLength;
     StaticBuffer*   name;
     StaticBuffer*   remoteIpAddr;
     StaticBuffer*   localIpAddr;
 } LoginServer;
 
+typedef struct {
+    bool        isLocal;
+    uint32_t    nameLength;
+    uint32_t    remoteLength;
+    uint32_t    localLength;
+} LoginServerLengths;
+
 struct LoginThread {
-    uint32_t        clientCount;
-    uint32_t        serverCount;
-    int             nextQueryId;
-    atomic32_t      nextServerId;
-    int             dbId;
-    int             logId;
-    LoginClient**   clients;
-    LoginServer*    servers;
-    StaticBuffer*   bannerMsg;
-    StaticBuffer*   loopbackAddr;
-    RingBuf*        loginQueue;
-    RingBuf*        toClientQueue;
-    RingBuf*        dbQueue;
-    RingBuf*        logQueue;
+    uint32_t            clientCount;
+    uint32_t            serverCount;
+    int                 nextQueryId;
+    atomic32_t          nextServerId;
+    int                 dbId;
+    int                 logId;
+    LoginClient**       clients;
+    LoginServer*        servers;
+    LoginServerLengths* serverLengths;
+    StaticBuffer*       bannerMsg;
+    StaticBuffer*       loopbackAddr;
+    RingBuf*            loginQueue;
+    RingBuf*            toClientQueue;
+    RingBuf*            dbQueue;
+    RingBuf*            logQueue;
     /* Cached packets that are more or less static for all clients */
-    TlgPacket*      packetVersion;
-    TlgPacket*      packetBanner;
-    TlgPacket*      packetErrBadCredentials;
-    TlgPacket*      packetErrSuspended;
-    TlgPacket*      packetErrBanned;
+    TlgPacket*          packetVersion;
+    TlgPacket*          packetBanner;
+    TlgPacket*          packetErrBadCredentials;
+    TlgPacket*          packetErrSuspended;
+    TlgPacket*          packetErrBanned;
 };
 
 static void login_thread_handle_new_server(LoginThread* login, ZPacket* zpacket)
 {
     LoginServer* server;
+    LoginServerLengths* lengths;
     uint32_t index = login->serverCount;
     
     if (bit_is_pow2_or_zero(index))
     {
         uint32_t cap = (index == 0) ? 1 : index * 2;
-        LoginServer* servers = realloc_array_type(login->servers, cap, LoginServer);
+        LoginServer* servers;
+        LoginServerLengths* lengths;
         
-        /*fixme: log and/or report the error?*/
+        servers = realloc_array_type(login->servers, cap, LoginServer);
         if (!servers) goto error;
-        
         login->servers = servers;
+        
+        lengths = realloc_array_type(login->serverLengths, cap, LoginServerLengths);
+        if (!lengths) goto error;
+        login->serverLengths = lengths;
     }
+    
+    lengths = &login->serverLengths[index];
+    lengths->isLocal = zpacket->login.zNewServer.isLocal;
+    lengths->nameLength = sbuf_length(zpacket->login.zNewServer.serverName);
+    lengths->remoteLength = sbuf_length(zpacket->login.zNewServer.remoteIpAddr);
+    lengths->localLength = sbuf_length(zpacket->login.zNewServer.localIpAddr);
     
     server = &login->servers[index];
     login->serverCount = index + 1;
@@ -93,9 +109,6 @@ static void login_thread_handle_new_server(LoginThread* login, ZPacket* zpacket)
     server->rank = zpacket->login.zNewServer.rank;
     server->isLocal = zpacket->login.zNewServer.isLocal;
     server->playerCount = 0;
-    server->nameLength = sbuf_length(zpacket->login.zNewServer.serverName);
-    server->remoteLength = sbuf_length(zpacket->login.zNewServer.remoteIpAddr);
-    server->localLength = sbuf_length(zpacket->login.zNewServer.localIpAddr);
     server->name = zpacket->login.zNewServer.serverName;
     server->remoteIpAddr = zpacket->login.zNewServer.remoteIpAddr;
     server->localIpAddr = zpacket->login.zNewServer.localIpAddr;
@@ -375,7 +388,7 @@ drop_client:
 
 uint32_t login_thread_calc_server_list_length(LoginThread* login, bool isLocal)
 {
-    LoginServer* servers = login->servers;
+    LoginServerLengths* serverLengths = login->serverLengths;
     uint32_t count = login->serverCount;
     uint32_t length;
     uint32_t i;
@@ -384,10 +397,10 @@ uint32_t login_thread_calc_server_list_length(LoginThread* login, bool isLocal)
     
     for (i = 0; i < count; i++)
     {
-        LoginServer* server = &servers[i];
+        LoginServerLengths* lengths = &serverLengths[i];
         
-        length += (isLocal && server->isLocal) ? server->localLength : server->remoteLength;
-        length += server->nameLength;
+        length += (isLocal && lengths->isLocal) ? lengths->localLength : lengths->remoteLength;
+        length += lengths->nameLength;
         length += sizeof(PSLogin_ServerFooter);
     }
     
@@ -707,6 +720,7 @@ static void login_free_clients(LoginThread* login)
 static void login_free_servers(LoginThread* login)
 {
     LoginServer* servers = login->servers;
+    LoginServerLengths* lengths = login->serverLengths;
     
     if (servers)
     {
@@ -724,6 +738,12 @@ static void login_free_servers(LoginThread* login)
         
         free(servers);
         login->servers = NULL;
+    }
+    
+    if (lengths)
+    {
+        free(lengths);
+        login->serverLengths = NULL;
     }
 }
 
