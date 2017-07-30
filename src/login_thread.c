@@ -309,7 +309,6 @@ drop_client:
 
 static void login_thread_handle_packet(LoginThread* login, ZPacket* zpacket)
 {
-    RingBuf* toClientQueue = login->toClientQueue;
     LoginClient* loginc = (LoginClient*)zpacket->udp.zToServerPacket.clientObject;
     byte* data = zpacket->udp.zToServerPacket.data;
     int rc = ERR_None;
@@ -317,7 +316,7 @@ static void login_thread_handle_packet(LoginThread* login, ZPacket* zpacket)
     switch (zpacket->udp.zToServerPacket.opcode)
     {
     case OP_LOGIN_Version:
-        rc = loginc_handle_op_version(loginc, toClientQueue, login->packetVersion);
+        rc = loginc_handle_op_version(loginc, login->toClientQueue, login->packetVersion);
         break;
 
     case OP_LOGIN_Credentials:
@@ -325,7 +324,7 @@ static void login_thread_handle_packet(LoginThread* login, ZPacket* zpacket)
         break;
 
     case OP_LOGIN_Banner:
-        rc = loginc_handle_op_banner(loginc, toClientQueue, login->packetBanner);
+        rc = loginc_handle_op_banner(loginc, login->toClientQueue, login->packetBanner);
         break;
 
     case OP_LOGIN_ServerList:
@@ -338,6 +337,7 @@ static void login_thread_handle_packet(LoginThread* login, ZPacket* zpacket)
         break;
 
     default:
+        log_writef(login->logQueue, login->logId, "WARNING: login_thread_handle_packet: received unexpected login opcode: %04x", zpacket->udp.zToServerPacket.opcode);
         break;
     }
     
@@ -393,6 +393,7 @@ static void login_thread_proc(void* ptr)
             break;
         
         default:
+            log_writef(login->logQueue, login->logId, "WARNING: login_thread_proc: received unexpected zop: %s", enum2str_zop(zop));
             break;
         }
     }

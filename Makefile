@@ -41,6 +41,7 @@ _OBJECTS=               \
  util_ipv4              \
  util_random            \
  util_semaphore_posix   \
+ util_socket_lib        \
  util_str               \
  util_thread_posix
 
