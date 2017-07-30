@@ -36,6 +36,7 @@ struct CompleteHeader {
 struct TlgPacket {
     uint16_t    opcode;
     uint16_t    fragCount;
+    bool        isFragmentized;
     uint32_t    dataLength;
     atomic32_t  refCount;
     byte        data[0];
@@ -79,6 +80,7 @@ TlgPacket* packet_create(uint16_t opcode, uint32_t length)
 
     packet->opcode = opcode;
     packet->fragCount = fragCount;
+    packet->isFragmentized = false;
     packet->dataLength = length;
     atomic32_set(&packet->refCount, 0);
 
@@ -132,14 +134,20 @@ uint32_t packet_frag_count(TlgPacket* packet)
 
 void packet_fragmentize(TlgPacket* packet)
 {
-    uint16_t n = packet->fragCount;
+    uint16_t n;
     uint32_t dataLength;
     uint32_t dst;
     uint32_t src;
     uint16_t i;
     uint32_t j;
     byte* data;
+    
+    if (packet->isFragmentized)
+        return;
+    
+    packet->isFragmentized = true;
 
+    n = packet->fragCount;
     if (n == 0) return;
 
     dataLength = packet->dataLength;

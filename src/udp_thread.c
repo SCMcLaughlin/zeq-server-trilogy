@@ -1,6 +1,5 @@
 
 #include "udp_thread.h"
-#include "define_netcode.h"
 #include "bit.h"
 #include "udp_client.h"
 #include "util_alloc.h"
@@ -381,4 +380,20 @@ int udp_open_port(UdpThread* udp, uint16_t port, uint32_t clientSize, RingBuf* t
     cmd.udp.zOpenPort.toClientQueue = toClientQueue;
 
     return ringbuf_push(udp->commandQueue, ZOP_UDP_OpenPort, &cmd);
+}
+
+int udp_schedule_packet(RingBuf* toClientQueue, IpAddr ipAddr, TlgPacket* packet)
+{
+    ZPacket cmd;
+    int rc;
+
+    cmd.udp.zToClientPacket.ipAddress = ipAddr;
+    cmd.udp.zToClientPacket.packet = packet;
+    
+    packet_fragmentize(packet);
+    packet_grab(packet);
+    rc = ringbuf_push(toClientQueue, ZOP_UDP_ToClientPacketScheduled, &cmd);
+    if (rc) packet_drop(packet);
+
+    return rc;
 }

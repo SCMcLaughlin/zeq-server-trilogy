@@ -8,12 +8,15 @@
 #include "ringbuf.h"
 #include "login_client.h"
 #include "login_crypto.h"
+#include "login_packet_struct.h"
 #include "tlg_packet.h"
 #include "util_alloc.h"
 #include "util_random.h"
 #include "util_thread.h"
 #include "zpacket.h"
 #include "enum_login_opcode.h"
+#include "enum_login_server_rank.h"
+#include "enum_login_server_status.h"
 #include "enum_zop.h"
 #include "enum2str.h"
 
@@ -24,15 +27,34 @@
 #define LOGIN_THREAD_SUSPENDED_STRING "Error: Your account has been suspended from the selected server"
 #define LOGIN_THREAD_BANNED_STRING "Error: Your account has been banned from the selected server"
 #define LOGIN_THREAD_DEFAULT_BANNER_MESSAGE "Welcome to ZEQ!"
+#define LOGIN_THREAD_MAX_SERVER_COUNT 255
+#define LOGIN_THREAD_SERVER_DOWN -1
+#define LOGIN_THREAD_SERVER_LOCKED -2
+
+typedef struct {
+    int             serverId;
+    int8_t          status;
+    int8_t          rank;
+    bool            isLocal; /* Relative to the machine running zeq-trilogy-server */
+    int             playerCount;
+    uint32_t        nameLength;
+    uint32_t        remoteLength;
+    uint32_t        localLength;
+    StaticBuffer*   name;
+    StaticBuffer*   remoteIpAddr;
+    StaticBuffer*   localIpAddr;
+} LoginServer;
 
 struct LoginThread {
     uint32_t        clientCount;
+    uint32_t        serverCount;
     int             nextQueryId;
     int             dbId;
     int             logId;
     LoginClient**   clients;
+    LoginServer*    servers;
     StaticBuffer*   bannerMsg;
-    RingBuf*        toServerQueue;
+    RingBuf*        loginQueue;
     RingBuf*        toClientQueue;
     RingBuf*        dbQueue;
     RingBuf*        logQueue;
@@ -162,7 +184,7 @@ static int login_thread_handle_op_credentials(LoginThread* login, LoginClient* l
         
         zpacket.db.zQuery.dbId = login->dbId;
         zpacket.db.zQuery.queryId = login->nextQueryId++;
-        zpacket.db.zQuery.replyQueue = login->toServerQueue;
+        zpacket.db.zQuery.replyQueue = login->loginQueue;
         zpacket.db.zQuery.qLoginCredentials.client = loginc;
         zpacket.db.zQuery.qLoginCredentials.accountName = acctName;
         
@@ -191,6 +213,9 @@ static bool login_thread_account_auto_create(LoginThread* login, LoginClient* lo
     ZPacket zpacket;
     int rc;
     
+    zpacket.db.zQuery.dbId = login->dbId;
+    zpacket.db.zQuery.queryId = login->nextQueryId++;
+    zpacket.db.zQuery.replyQueue = login->loginQueue;
     zpacket.db.zQuery.qLoginNewAccount.client = loginc;
     zpacket.db.zQuery.qLoginNewAccount.accountName = accountName;
     
@@ -307,6 +332,110 @@ drop_client:
     login_thread_drop_client(login, loginc);
 }
 
+uint32_t login_thread_calc_server_list_length(LoginThread* login, bool isLocal)
+{
+    LoginServer* servers = login->servers;
+    uint32_t count = login->serverCount;
+    uint32_t length;
+    uint32_t i;
+    
+    length = sizeof(PSLogin_ServerListHeader) + sizeof(PSLogin_ServerListFooter);
+    
+    for (i = 0; i < count; i++)
+    {
+        LoginServer* server = &servers[i];
+        
+        length += (isLocal && server->isLocal) ? server->localLength : server->remoteLength;
+        length += server->nameLength;
+        length += sizeof(PSLogin_ServerFooter);
+    }
+    
+    return length;
+}
+
+static void login_thread_write_server_list(LoginThread* login, bool isLocal, TlgPacket* packet)
+{
+    LoginServer* servers = login->servers;
+    uint32_t count = login->serverCount;
+    Aligned a;
+    uint32_t i;
+    
+    aligned_init(&a, packet_data(packet), packet_length(packet));
+    
+    /* PSLogin_ServerListHeader */
+    /* serverCount */
+    aligned_write_uint8(&a, count);
+    /* unknown (2 bytes) */
+    aligned_write_zeroes(&a, sizeof(byte) * 2);
+    /* showNumPlayers */
+    aligned_write_uint8(&a, 0xff); /* Show actual numbers rather than just "UP" */
+    
+    /* Server entries */
+    for (i = 0; i < count; i++)
+    {
+        LoginServer* server = &servers[i];
+        int playerCount;
+        
+        switch (server->status)
+        {
+        case LOGIN_SERVER_STATUS_Down:
+            playerCount = LOGIN_THREAD_SERVER_DOWN;
+            break;
+        
+        case LOGIN_SERVER_STATUS_Locked:
+            playerCount = LOGIN_THREAD_SERVER_LOCKED;
+            break;
+        
+        default:
+            playerCount = server->playerCount;
+            break;
+        }
+        
+        /* Variable-length strings */
+        /* server name */
+        aligned_write_sbuf_null_terminated(&a, server->name);
+        /* ip address */
+        aligned_write_sbuf_null_terminated(&a, (isLocal && server->isLocal) ? server->localIpAddr : server->remoteIpAddr);
+    
+        /* PSLogin_ServerFooter */
+        /* isGreenName */
+        aligned_write_bool(&a, (server->rank != LOGIN_SERVER_RANK_Standard));
+        /* playerCount */
+        aligned_write_int32(&a, playerCount);
+    }
+    
+    /* PSLogin_ServerListFooter */
+    /* admin */
+    aligned_write_uint8(&a, 0);
+    /* zeroesA (8 bytes) */
+    aligned_write_zeroes(&a, sizeof(byte) * 8);
+    /* kunark */
+    aligned_write_uint8(&a, 1);
+    /* velious */
+    aligned_write_uint8(&a, 1);
+    /* zeroesB (12 bytes) */
+    aligned_write_zeroes(&a, sizeof(byte) * 12);
+}
+
+int login_thread_handle_op_server_list(LoginThread* login, LoginClient* loginc)
+{
+    TlgPacket* packet;
+    uint32_t length;
+    bool isLocal;
+    
+    if (!loginc_is_authorized(loginc))
+        return ERR_Invalid;
+    
+    isLocal = loginc_is_local(loginc);
+    length = login_thread_calc_server_list_length(login, isLocal);
+    packet = packet_create(OP_LOGIN_ServerList, length);
+    if (!packet) return ERR_OutOfMemory;
+    
+    login_thread_write_server_list(login, isLocal, packet);
+    
+    return loginc_schedule_packet(loginc, login->toClientQueue, packet);
+}
+
 static void login_thread_handle_packet(LoginThread* login, ZPacket* zpacket)
 {
     LoginClient* loginc = (LoginClient*)zpacket->udp.zToServerPacket.clientObject;
@@ -328,6 +457,7 @@ static void login_thread_handle_packet(LoginThread* login, ZPacket* zpacket)
         break;
 
     case OP_LOGIN_ServerList:
+        rc = login_thread_handle_op_server_list(login, loginc);
         break;
 
     case OP_LOGIN_ServerStatusRequest:
@@ -358,7 +488,7 @@ static void login_thread_handle_packet(LoginThread* login, ZPacket* zpacket)
 static void login_thread_proc(void* ptr)
 {
     LoginThread* login = (LoginThread*)ptr;
-    RingBuf* toServerQueue = login->toServerQueue;
+    RingBuf* loginQueue = login->loginQueue;
     ZPacket zpacket;
     int zop;
     int rc;
@@ -366,7 +496,7 @@ static void login_thread_proc(void* ptr)
     for (;;)
     {
         /* The login thread is purely packet-driven, always blocks until something needs to be done */
-        rc = ringbuf_wait_for_packet(toServerQueue, &zop, &zpacket);
+        rc = ringbuf_wait_for_packet(loginQueue, &zop, &zpacket);
         
         if (rc)
         {
@@ -459,7 +589,7 @@ LoginThread* login_create(LogThread* log, RingBuf* dbQueue, int dbId)
     login->dbId = dbId;
     login->clients = NULL;
     login->bannerMsg = NULL;
-    login->toServerQueue = NULL;
+    login->loginQueue = NULL;
     login->toClientQueue = NULL;
     login->dbQueue = dbQueue;
     login->logQueue = log_get_queue(log);
@@ -473,8 +603,8 @@ LoginThread* login_create(LogThread* log, RingBuf* dbQueue, int dbId)
     rc = log_open_file_literal(log, &login->logId, LOGIN_THREAD_LOG_PATH);
     if (rc) goto fail;
 
-    login->toServerQueue = ringbuf_create_type(ZPacket, 1024);
-    if (!login->toServerQueue) goto fail;
+    login->loginQueue = ringbuf_create_type(ZPacket, 1024);
+    if (!login->loginQueue) goto fail;
 
     login->toClientQueue = ringbuf_create_type(ZPacket, 1024);
     if (!login->toClientQueue) goto fail;

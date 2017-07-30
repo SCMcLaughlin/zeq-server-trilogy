@@ -55,7 +55,7 @@ for i = 1, #filenames do
         
         local i = #func
         
-        func[i + 1] = "    default: ret = NULL; break;"
+        func[i + 1] = '    default: ret = "UNKNOWN"; break;'
         func[i + 2] = "    }"
         func[i + 3] = "    return ret;"
         func[i + 4] = "}"

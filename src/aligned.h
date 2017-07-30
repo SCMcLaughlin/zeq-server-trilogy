@@ -68,7 +68,7 @@ void aligned_write_uint64(Aligned* a, uint64_t v);
 #define aligned_write_int64(a, v) (aligned_write_uint64((a), (uint64_t)(v)))
 void aligned_write_float(Aligned* a, float v);
 void aligned_write_buffer(Aligned* a, const void* data, uint32_t len);
-/*#define aligned_write_string_null_terminated(a, str) aligned_write_buffer((a), string_data(str), (string_length(str) + 1))*/
+#define aligned_write_sbuf_null_terminated(a, str) aligned_write_buffer((a), sbuf_data(str), (sbuf_length(str) + 1))
 #define aligned_write_literal_null_terminated(a, str) aligned_write_buffer((a), str, sizeof(str))
 void aligned_write_random(Aligned* a, int bytes);
 void aligned_write_zeroes(Aligned* a, uint32_t count);

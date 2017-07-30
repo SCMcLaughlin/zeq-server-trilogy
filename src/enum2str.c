@@ -1,8 +1,23 @@
 
 #include "enum2str.h"
+#include "enum_login_server_rank.h"
 #include "enum_login_opcode.h"
 #include "enum_zop.h"
 #include "enum_err.h"
+#include "enum_login_server_status.h"
+
+const char* enum2str_login_server_rank(int e)
+{
+    const char* ret;
+    switch (e)
+    {
+    case LOGIN_SERVER_RANK_Standard: ret = "LOGIN_SERVER_RANK_Standard"; break;
+    case LOGIN_SERVER_RANK_Preferred: ret = "LOGIN_SERVER_RANK_Preferred"; break;
+    case LOGIN_SERVER_RANK_Legends: ret = "LOGIN_SERVER_RANK_Legends"; break;
+    default: ret = "UNKNOWN"; break;
+    }
+    return ret;
+}
 
 const char* enum2str_login_opcode(int e)
 {
@@ -20,7 +35,7 @@ const char* enum2str_login_opcode(int e)
     case OP_LOGIN_ServerStatusAccept: ret = "OP_LOGIN_ServerStatusAccept"; break;
     case OP_LOGIN_Banner: ret = "OP_LOGIN_Banner"; break;
     case OP_LOGIN_Version: ret = "OP_LOGIN_Version"; break;
-    default: ret = NULL; break;
+    default: ret = "UNKNOWN"; break;
     }
     return ret;
 }
@@ -48,7 +63,7 @@ const char* enum2str_zop(int e)
     case ZOP_DB_QueryLoginCredentials: ret = "ZOP_DB_QueryLoginCredentials"; break;
     case ZOP_DB_QueryLoginNewAccount: ret = "ZOP_DB_QueryLoginNewAccount"; break;
     case ZOP_COUNT: ret = "ZOP_COUNT"; break;
-    default: ret = NULL; break;
+    default: ret = "UNKNOWN"; break;
     }
     return ret;
 }
@@ -83,7 +98,20 @@ const char* enum2str_err(int e)
     case ERR_NoResource: ret = "ERR_NoResource"; break;
     case ERR_Mismatch: ret = "ERR_Mismatch"; break;
     case ERR_COUNT: ret = "ERR_COUNT"; break;
-    default: ret = NULL; break;
+    default: ret = "UNKNOWN"; break;
+    }
+    return ret;
+}
+
+const char* enum2str_login_server_status(int e)
+{
+    const char* ret;
+    switch (e)
+    {
+    case LOGIN_SERVER_STATUS_Up: ret = "LOGIN_SERVER_STATUS_Up"; break;
+    case LOGIN_SERVER_STATUS_Down: ret = "LOGIN_SERVER_STATUS_Down"; break;
+    case LOGIN_SERVER_STATUS_Locked: ret = "LOGIN_SERVER_STATUS_Locked"; break;
+    default: ret = "UNKNOWN"; break;
     }
     return ret;
 }

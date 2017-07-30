@@ -4,6 +4,7 @@
 #include "aligned.h"
 #include "buffer.h"
 #include "login_packet_struct.h"
+#include "udp_thread.h"
 #include "udp_zpacket.h"
 #include "util_ipv4.h"
 #include "util_random.h"
@@ -61,17 +62,7 @@ uint32_t loginc_sizeof()
 
 int loginc_schedule_packet(LoginClient* loginc, RingBuf* toClientQueue, TlgPacket* packet)
 {
-    ZPacket cmd;
-    int rc;
-
-    cmd.udp.zToClientPacket.ipAddress = loginc->ipAddress;
-    cmd.udp.zToClientPacket.packet = packet;
-
-    packet_grab(packet);
-    rc = ringbuf_push(toClientQueue, ZOP_UDP_ToClientPacketScheduled, &cmd);
-    if (rc) packet_drop(packet);
-
-    return rc;
+    return udp_schedule_packet(toClientQueue, loginc->ipAddress, packet);
 }
 
 int loginc_handle_op_version(LoginClient* loginc, RingBuf* toClientQueue, TlgPacket* packet)
@@ -219,6 +210,16 @@ uint32_t loginc_get_ip(LoginClient* loginc)
 uint16_t loginc_get_port(LoginClient* loginc)
 {
     return loginc->ipAddress.port;
+}
+
+bool loginc_is_authorized(LoginClient* loginc)
+{
+    return loginc->authState == LOGIN_AUTH_Authorized;
+}
+
+bool loginc_is_local(LoginClient* loginc)
+{
+    return loginc->isLocal;
 }
 
 StaticBuffer* loginc_get_account_name(LoginClient* loginc)
