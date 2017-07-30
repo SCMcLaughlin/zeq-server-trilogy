@@ -17,7 +17,6 @@ typedef struct {
     uint16_t    port;
     uint32_t    clientSize;
     RingBuf*    toServerQueue;
-    RingBuf*    toClientQueue;
 } UDP_ZOpenPort;
 
 typedef struct {

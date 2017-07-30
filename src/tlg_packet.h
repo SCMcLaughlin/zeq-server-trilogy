@@ -4,6 +4,9 @@
 
 #include "define.h"
 
+#define TLG_PACKET_HEADER_SIZE (sizeof(uint16_t) * 9)
+#define TLG_PACKET_DATA_OFFSET TLG_PACKET_HEADER_SIZE
+#define TLG_PACKET_DATA_SPACE 512
 #define TLG_PACKET_CRC_SIZE sizeof(uint32_t)
 
 typedef struct TlgPacket TlgPacket;
@@ -41,6 +44,7 @@ uint32_t packet_length(TlgPacket* packet);
 uint32_t packet_buffer_raw_length(TlgPacket* packet);
 uint32_t packet_frag_count(TlgPacket* packet);
 
+bool packet_already_fragmentized(TlgPacket* packet);
 void packet_fragmentize(TlgPacket* packet);
 
 #endif/*TLG_PACKET_H*/

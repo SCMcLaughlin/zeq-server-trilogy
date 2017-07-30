@@ -7,6 +7,7 @@
 #include "util_thread.h"
 #include "zpacket.h"
 #include "enum_zop.h"
+#include "enum2str.h"
 
 #define UDP_THREAD_BUFFER_SIZE 1024
 #define UDP_THREAD_MINIMUM_MEANINGFUL_PACKET_SIZE 10
@@ -16,7 +17,6 @@ typedef struct {
     sock_t      sock;
     uint32_t    clientSize;
     RingBuf*    toServerQueueDefault;
-    RingBuf*    toClientQueue;
 } UdpSocket;
 
 struct UdpThread {
@@ -25,8 +25,9 @@ struct UdpThread {
     UdpSocket*  sockets;
     IpAddr*     clientAddresses;
     UdpClient*  clients;
+    bool*       clientsReadyToSend;  /*fixme: make this 1 bit per client instead of 1 byte?*/
     uint64_t*   clientRecvTimestamps;
-    RingBuf*    commandQueue;
+    RingBuf*    udpQueue;
     RingBuf*    statusQueue;
     RingBuf*    logQueue;
     int         logId;
@@ -110,12 +111,58 @@ static void udp_thread_open_port(UdpThread* udp, ZPacket* cmd)
     usock->sock = sock;
     usock->clientSize = cmd->udp.zOpenPort.clientSize;
     usock->toServerQueueDefault = cmd->udp.zOpenPort.toServerQueue;
-    usock->toClientQueue = cmd->udp.zOpenPort.toClientQueue;
+}
+
+static UdpClient* udp_thread_get_client_by_ip(UdpThread* udp, uint32_t ip, uint16_t port, uint32_t* cliIndex)
+{
+    UdpClient* clients = udp->clients;
+    IpAddr* addresses = udp->clientAddresses;
+    uint32_t n = udp->clientCount;
+    uint32_t i;
+    
+    /*fixme: consider replacing with a 64bit hash lookup (benchmarking needed to determine if it would be worth it at typical client counts)*/
+    for (i = 0; i < n; i++)
+    {
+        IpAddr* addr = &addresses[i];
+        
+        if (addr->ip != ip || addr->port != port)
+            continue;
+        
+        if (cliIndex)
+            *cliIndex = i;
+        
+        return &clients[i];
+    }
+    
+    return NULL;
+}
+
+static void udp_thread_handle_client_packet(UdpThread* udp, ZPacket* cmd, bool ackRequest)
+{
+    uint32_t index;
+    UdpClient* client = udp_thread_get_client_by_ip(udp, cmd->udp.zToClientPacket.ipAddress.ip, cmd->udp.zToClientPacket.ipAddress.port, &index);
+    
+    if (client)
+    {
+        udpc_schedule_packet(client, cmd->udp.zToClientPacket.packet, ackRequest);
+        udp->clientsReadyToSend[index] = true;
+    }
+}
+
+static void udp_thread_handle_drop_client(UdpThread* udp, ZPacket* cmd)
+{
+    UdpClient* client = udp_thread_get_client_by_ip(udp, cmd->udp.zToClientPacket.ipAddress.ip, cmd->udp.zToClientPacket.ipAddress.port, NULL);
+    
+    if (client)
+    {
+        udpc_send_disconnect(client);
+        /*fixme: flag the client for removal*/
+    }
 }
 
 static bool udp_thread_process_commands(UdpThread* udp)
 {
-    RingBuf* cmdQueue = udp->commandQueue;
+    RingBuf* cmdQueue = udp->udpQueue;
     ZPacket cmd;
     int zop;
     int rc;
@@ -133,8 +180,17 @@ static bool udp_thread_process_commands(UdpThread* udp)
         case ZOP_UDP_OpenPort:
             udp_thread_open_port(udp, &cmd);
             break;
+        
+        case ZOP_UDP_ToClientPacketScheduled:
+            udp_thread_handle_client_packet(udp, &cmd, true);
+            break;
+        
+        case ZOP_UDP_DropClient:
+            udp_thread_handle_drop_client(udp, &cmd);
+            break;
 
         default:
+            log_writef(udp->logQueue, udp->logId, "WARNING: udp_thread_process_commands: received unexpected zop: %s", enum2str_zop(zop));
             break;
         }
     }
@@ -159,10 +215,15 @@ static void udp_thread_new_client(UdpThread* udp, uint32_t clientSize, UdpClient
         UdpClient* clients;
         IpAddr* clientAddresses;
         uint64_t* clientRecvTimestamps;
+        bool* clientsReadyToSend;
 
         clients = realloc_array_type(udp->clients, cap, UdpClient);
         if (!clients) goto oom;
         udp->clients = clients;
+        
+        clientsReadyToSend = realloc_array_type(udp->clientsReadyToSend, cap, bool);
+        if (!clientsReadyToSend) goto oom;
+        udp->clientsReadyToSend = clientsReadyToSend;
 
         clientAddresses = realloc_array_type(udp->clientAddresses, cap, IpAddr);
         if (!clientAddresses) goto oom;
@@ -185,6 +246,7 @@ static void udp_thread_new_client(UdpThread* udp, uint32_t clientSize, UdpClient
     udp->clientCount = index + 1;
     udp->clients[index] = *toCopy;
     udp->clients[index].clientObject = clientObject;
+    udp->clientsReadyToSend[index] = false;
     udp->clientAddresses[index] = zpacket.udp.zNewClient.ipAddress;
     udp->clientRecvTimestamps[index] = clock_milliseconds();
     return;
@@ -212,9 +274,8 @@ static void udp_thread_process_socket_reads(UdpThread* udp)
         
         for (;;)
         {
-            IpAddr* addrArray;
             UdpClient* client;
-            uint32_t ip, port, cliIndex, m;
+            uint32_t ip, port, cliIndex;
             int len;
             
             len = recvfrom(sock, (char*)buffer, UDP_THREAD_BUFFER_SIZE, 0, (struct sockaddr*)&raddr, &addrlen);
@@ -241,33 +302,23 @@ static void udp_thread_process_socket_reads(UdpThread* udp)
             /* Determine if we already know about this client connection */
             ip = raddr.sin_addr.s_addr;
             port = raddr.sin_port;
-            client = NULL;
-            addrArray = udp->clientAddresses;
-            m = udp->clientCount;
+            client = udp_thread_get_client_by_ip(udp, ip, port, &cliIndex);
             
-            for (cliIndex = 0; cliIndex < m; cliIndex++)
+            if (client)
             {
-                IpAddr* addr = &addrArray[cliIndex];
-                
-                /*fixme: consider replacing with a 64bit hash lookup (benchmarking needed to determine if it would be worth it at typical client counts)*/
-                if (addr->ip == ip && addr->port == port)
+                if (udpc_recv_protocol(client, buffer, (uint32_t)len, false))
                 {
-                    client = &udp->clients[cliIndex];
-
-                    if (udpc_recv_protocol(client, buffer, (uint32_t)len, false))
-                    {
-                        udp->clientRecvTimestamps[cliIndex] = clock_milliseconds();
-                    }
-
-                    goto next_packet;
+                    udp->clientRecvTimestamps[cliIndex] = clock_milliseconds();
                 }
+                
+                continue;
             }
 
             /* Scope for temporary on-stack UdpClient */
             {
                 UdpClient newClient;
 
-                udpc_init(&newClient, sock, ip, port, sockets[i].toServerQueueDefault, udp->logQueue);
+                udpc_init(&newClient, sock, ip, port, sockets[i].toServerQueueDefault, udp->logQueue, udp->logId);
 
                 /* This will return true if the packet seems valid and is not flagged as session-terminating */
                 if (udpc_recv_protocol(&newClient, buffer, (uint32_t)len, true))
@@ -280,15 +331,25 @@ static void udp_thread_process_socket_reads(UdpThread* udp)
                     udpc_recv_protocol(&newClient, buffer, (uint32_t)len, false);
                 }
             }
-
-        next_packet:;
         }
     }
 }
 
 static void udp_thread_process_socket_writes(UdpThread* udp)
 {
-
+    UdpClient* clients = udp->clients;
+    bool* clientsReadyToSend = udp->clientsReadyToSend;
+    uint32_t count = udp->clientCount;
+    uint32_t i;
+    
+    for (i = 0; i < count; i++)
+    {
+        if (!clientsReadyToSend[i])
+            continue;
+        
+        clientsReadyToSend[i] = false;
+        udpc_send_queued_packets(&clients[i]);
+    }
 }
 
 static void udp_thread_proc(void* ptr)
@@ -319,19 +380,17 @@ UdpThread* udp_create(LogThread* log)
     udp->sockets = NULL;
     udp->clientAddresses = NULL;
     udp->clients = NULL;
+    udp->clientsReadyToSend = NULL;
     udp->clientRecvTimestamps = NULL;
-    udp->commandQueue = NULL;
+    udp->udpQueue = NULL;
     udp->statusQueue = NULL;
     udp->logQueue = log_get_queue(log);
 
     rc = log_open_file_literal(log, &udp->logId, UDP_THREAD_LOG_PATH);
     if (rc) goto fail;
 
-    udp->commandQueue = ringbuf_create_type(ZPacket, 8);
-    if (!udp->commandQueue) goto fail;
-
-    udp->statusQueue = ringbuf_create_no_content(256);
-    if (!udp->statusQueue) goto fail;
+    udp->udpQueue = ringbuf_create_type(ZPacket, 1024);
+    if (!udp->udpQueue) goto fail;
 
     rc = thread_start(udp_thread_proc, udp);
     if (rc) goto fail;
@@ -350,8 +409,9 @@ UdpThread* udp_destroy(UdpThread* udp)
     {
         //fixme: todo: free sockets and clients properly
         free_if_exists(udp->clientAddresses);
+        free_if_exists(udp->clientsReadyToSend);
         free_if_exists(udp->clientRecvTimestamps);
-        ringbuf_destroy_if_exists(udp->commandQueue);
+        ringbuf_destroy_if_exists(udp->udpQueue);
         ringbuf_destroy_if_exists(udp->statusQueue);
         log_close_file(udp->logQueue, udp->logId);
         free(udp);
@@ -362,24 +422,23 @@ UdpThread* udp_destroy(UdpThread* udp)
 
 int udp_trigger_shutdown(UdpThread* udp)
 {
-    if (udp->commandQueue)
+    if (udp->udpQueue)
     {
-        return ringbuf_push(udp->commandQueue, ZOP_UDP_TerminateThread, NULL);
+        return ringbuf_push(udp->udpQueue, ZOP_UDP_TerminateThread, NULL);
     }
 
     return ERR_None;
 }
 
-int udp_open_port(UdpThread* udp, uint16_t port, uint32_t clientSize, RingBuf* toServerQueue, RingBuf* toClientQueue)
+int udp_open_port(UdpThread* udp, uint16_t port, uint32_t clientSize, RingBuf* toServerQueue)
 {
     ZPacket cmd;
 
     cmd.udp.zOpenPort.port = port;
     cmd.udp.zOpenPort.clientSize = clientSize;
     cmd.udp.zOpenPort.toServerQueue = toServerQueue;
-    cmd.udp.zOpenPort.toClientQueue = toClientQueue;
 
-    return ringbuf_push(udp->commandQueue, ZOP_UDP_OpenPort, &cmd);
+    return ringbuf_push(udp->udpQueue, ZOP_UDP_OpenPort, &cmd);
 }
 
 int udp_schedule_packet(RingBuf* toClientQueue, IpAddr ipAddr, TlgPacket* packet)
@@ -390,7 +449,9 @@ int udp_schedule_packet(RingBuf* toClientQueue, IpAddr ipAddr, TlgPacket* packet
     cmd.udp.zToClientPacket.ipAddress = ipAddr;
     cmd.udp.zToClientPacket.packet = packet;
     
-    packet_fragmentize(packet);
+    if (!packet_already_fragmentized(packet))
+        packet_fragmentize(packet);
+    
     packet_grab(packet);
     rc = ringbuf_push(toClientQueue, ZOP_UDP_ToClientPacketScheduled, &cmd);
     if (rc) packet_drop(packet);

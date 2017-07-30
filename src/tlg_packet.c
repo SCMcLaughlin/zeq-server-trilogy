@@ -11,10 +11,6 @@
 # pragma warning(disable: 4200)
 #endif
 
-#define TLG_PACKET_HEADER_SIZE (sizeof(uint16_t) * 9)
-#define TLG_PACKET_DATA_OFFSET TLG_PACKET_HEADER_SIZE
-#define TLG_PACKET_DATA_SPACE 512
-
 /*
 The full packet header looks something like this. We work backwards from the opcode;
 all fields are filled in at the protocol level, just before sending-time
@@ -132,6 +128,11 @@ uint32_t packet_frag_count(TlgPacket* packet)
     return packet->fragCount;
 }
 
+bool packet_already_fragmentized(TlgPacket* packet)
+{
+    return packet->isFragmentized;
+}
+
 void packet_fragmentize(TlgPacket* packet)
 {
     uint16_t n;
@@ -141,9 +142,6 @@ void packet_fragmentize(TlgPacket* packet)
     uint16_t i;
     uint32_t j;
     byte* data;
-    
-    if (packet->isFragmentized)
-        return;
     
     packet->isFragmentized = true;
 

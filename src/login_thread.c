@@ -64,7 +64,7 @@ struct LoginThread {
     StaticBuffer*       bannerMsg;
     StaticBuffer*       loopbackAddr;
     RingBuf*            loginQueue;
-    RingBuf*            toClientQueue;
+    RingBuf*            udpQueue;
     RingBuf*            dbQueue;
     RingBuf*            logQueue;
     /* Cached packets that are more or less static for all clients */
@@ -174,7 +174,7 @@ static LoginClient* login_thread_drop_client(LoginThread* login, LoginClient* lo
     cmd.udp.zDropClient.ipAddress = loginc_get_ip_addr(loginc);
     cmd.udp.zDropClient.packet = NULL;
     
-    rc = ringbuf_push(login->toClientQueue, ZOP_UDP_DropClient, &cmd);
+    rc = ringbuf_push(login->udpQueue, ZOP_UDP_DropClient, &cmd);
     
     if (rc)
     {
@@ -231,7 +231,7 @@ static int login_thread_handle_op_credentials(LoginThread* login, LoginClient* l
     }
     else if (rc)
     {
-        loginc_schedule_packet(loginc, login->toClientQueue, login->packetErrBadCredentials);
+        loginc_schedule_packet(loginc, login->udpQueue, login->packetErrBadCredentials);
     }
     else
     {
@@ -340,11 +340,11 @@ static void login_thread_handle_db_login_credentials(LoginThread* login, ZPacket
         if (login_thread_account_auto_create(login, loginc))
             return;
         
-        loginc_schedule_packet(loginc, login->toClientQueue, login->packetErrBadCredentials);
+        loginc_schedule_packet(loginc, login->udpQueue, login->packetErrBadCredentials);
         goto drop_client;
     }
     
-    rc = loginc_handle_db_credentials(loginc, zpacket, login->toClientQueue, login->packetErrBadCredentials);
+    rc = loginc_handle_db_credentials(loginc, zpacket, login->udpQueue, login->packetErrBadCredentials);
     if (rc) 
     {
         if (rc != ERR_Mismatch)
@@ -375,7 +375,7 @@ static void login_thread_handle_db_new_account(LoginThread* login, ZPacket* zpac
         break;
     }
     
-    rc = loginc_send_session_packet(loginc, login->toClientQueue, zpacket->db.zResult.rLoginNewAccount.acctId);
+    rc = loginc_send_session_packet(loginc, login->udpQueue, zpacket->db.zResult.rLoginNewAccount.acctId);
     if (rc)
     {
         log_writef(login->logQueue, login->logId, "login_thread_handle_db_new_account: successfully created new account, but session packet could not be sent: %s", enum2str_err(rc));
@@ -489,13 +489,13 @@ static int login_thread_handle_op_server_list(LoginThread* login, LoginClient* l
     
     login_thread_write_server_list(login, isLocal, packet);
     
-    return loginc_schedule_packet(loginc, login->toClientQueue, packet);
+    return loginc_schedule_packet(loginc, login->udpQueue, packet);
 }
 
 static int login_thread_handle_op_server_status_request(LoginThread* login, LoginClient* loginc, ZPacket* zpacket)
 {
     const char* ipAddress = (const char*)zpacket->udp.zToServerPacket.data;
-    RingBuf* toClientQueue;
+    RingBuf* udpQueue;
     uint32_t length = zpacket->udp.zToServerPacket.length;
     int status;
     int rc;
@@ -513,20 +513,20 @@ static int login_thread_handle_op_server_status_request(LoginThread* login, Logi
     */
     
     status = loginc_account_status(loginc);
-    toClientQueue = login->toClientQueue;
+    udpQueue = login->udpQueue;
     
     switch (status)
     {
     case ACCT_STATUS_Banned:
-        rc = loginc_schedule_packet(loginc, toClientQueue, login->packetErrBanned);
+        rc = loginc_schedule_packet(loginc, udpQueue, login->packetErrBanned);
         break;
     
     case ACCT_STATUS_Suspended:
-        rc = loginc_schedule_packet(loginc, toClientQueue, login->packetErrSuspended);
+        rc = loginc_schedule_packet(loginc, udpQueue, login->packetErrSuspended);
         break;
     
     default:
-        rc = loginc_schedule_packet(loginc, toClientQueue, login->packetLoginAccepted);
+        rc = loginc_schedule_packet(loginc, udpQueue, login->packetLoginAccepted);
         break;
     }
     
@@ -558,7 +558,7 @@ static int login_thread_handle_op_session_key(LoginThread* login, LoginClient* l
     
     /*fixme: inform the MainThread about this login with this session key */
     
-    return loginc_schedule_packet(loginc, login->toClientQueue, packet);
+    return loginc_schedule_packet(loginc, login->udpQueue, packet);
 }
 
 static void login_thread_handle_packet(LoginThread* login, ZPacket* zpacket)
@@ -570,7 +570,7 @@ static void login_thread_handle_packet(LoginThread* login, ZPacket* zpacket)
     switch (zpacket->udp.zToServerPacket.opcode)
     {
     case OP_LOGIN_Version:
-        rc = loginc_handle_op_version(loginc, login->toClientQueue, login->packetVersion);
+        rc = loginc_handle_op_version(loginc, login->udpQueue, login->packetVersion);
         break;
 
     case OP_LOGIN_Credentials:
@@ -578,7 +578,7 @@ static void login_thread_handle_packet(LoginThread* login, ZPacket* zpacket)
         break;
 
     case OP_LOGIN_Banner:
-        rc = loginc_handle_op_banner(loginc, login->toClientQueue, login->packetBanner);
+        rc = loginc_handle_op_banner(loginc, login->udpQueue, login->packetBanner);
         break;
 
     case OP_LOGIN_ServerList:
@@ -722,7 +722,7 @@ fail:
     return ERR_OutOfMemory;
 }
 
-LoginThread* login_create(LogThread* log, RingBuf* dbQueue, int dbId)
+LoginThread* login_create(LogThread* log, RingBuf* dbQueue, int dbId, RingBuf* udpQueue)
 {
     LoginThread* login = alloc_type(LoginThread);
     int rc;
@@ -739,7 +739,7 @@ LoginThread* login_create(LogThread* log, RingBuf* dbQueue, int dbId)
     login->bannerMsg = NULL;
     login->loopbackAddr = NULL;
     login->loginQueue = NULL;
-    login->toClientQueue = NULL;
+    login->udpQueue = udpQueue;
     login->dbQueue = dbQueue;
     login->logQueue = log_get_queue(log);
 
@@ -755,9 +755,6 @@ LoginThread* login_create(LogThread* log, RingBuf* dbQueue, int dbId)
 
     login->loginQueue = ringbuf_create_type(ZPacket, 1024);
     if (!login->loginQueue) goto fail;
-
-    login->toClientQueue = ringbuf_create_type(ZPacket, 1024);
-    if (!login->toClientQueue) goto fail;
     
     login->loopbackAddr = sbuf_create_from_literal("127.0.0.1");
     if (!login->loopbackAddr) goto fail;
@@ -799,7 +796,6 @@ static void login_free_clients(LoginThread* login)
 static void login_free_servers(LoginThread* login)
 {
     LoginServer* servers = login->servers;
-    LoginServerLengths* lengths = login->serverLengths;
     
     if (servers)
     {
@@ -818,12 +814,6 @@ static void login_free_servers(LoginThread* login)
         free(servers);
         login->servers = NULL;
     }
-    
-    if (lengths)
-    {
-        free(lengths);
-        login->serverLengths = NULL;
-    }
 }
 
 LoginThread* login_destroy(LoginThread* login)
@@ -832,6 +822,7 @@ LoginThread* login_destroy(LoginThread* login)
     {
         login_free_clients(login);
         login_free_servers(login);
+        free_if_exists(login->serverLengths);
         
         login->bannerMsg = sbuf_drop(login->bannerMsg);
         login->loopbackAddr = sbuf_drop(login->loopbackAddr);

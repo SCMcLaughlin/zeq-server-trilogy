@@ -2,19 +2,84 @@
 #include "udp_client.h"
 #include "aligned.h"
 #include "crc.h"
+#include "log_thread.h"
 #include "tlg_packet.h"
+#include "util_alloc.h"
+#include "zpacket.h"
+#include "enum_zop.h"
+#include "enum2str.h"
 
-void udpc_init(UdpClient* udpc, sock_t sock, uint32_t ip, uint16_t port, RingBuf* toServerQueue, RingBuf* logQueue)
+void udpc_init(UdpClient* udpc, sock_t sock, uint32_t ip, uint16_t port, RingBuf* toServerQueue, RingBuf* logQueue, int logId)
 {
     udpc->sock = sock;
     udpc->ipAddr.ip = ip;
     udpc->ipAddr.port = port;
     udpc->accountId = 0;
+    udpc->logId = logId;
     udpc->clientObject = NULL;
     udpc->toServerQueue = toServerQueue;
     udpc->logQueue = logQueue;
 
     ack_init(&udpc->ackMgr);
+}
+
+bool udpc_send_disconnect(UdpClient* udpc)
+{
+    typedef struct {
+        uint16_t    header;
+        uint16_t    seq;
+        uint32_t    crc;
+    } PS_Disconnect;
+    
+    PS_Disconnect dis;
+    
+    assert(sizeof(dis) == 8);
+    
+    dis.header = TLG_PACKET_IsClosing | TLG_PACKET_IsClosing2;
+    dis.seq = ack_get_next_seq_to_send_and_increment(&udpc->ackMgr);
+    dis.crc = crc_calc32_network(&dis, sizeof(dis));
+    
+    return udpc_send_immediate(udpc, &dis, sizeof(dis));
+}
+
+static void udpc_recv_packet(UdpClient* udpc, Aligned* a, uint16_t opcode)
+{
+    ZPacket zpacket;
+    byte* data;
+    uint32_t length;
+    int rc;
+    
+    length = aligned_remaining_data(a);
+    
+    if (length)
+    {
+        data = alloc_bytes(length);
+        
+        if (!data)
+        {
+            log_writef(udpc->logQueue, udpc->logId, "udpc_recv_packet: allocation failed for packet data with length %u", length);
+            return;
+        }
+        
+        memcpy(data, aligned_current(a), length);
+    }
+    else
+    {
+        data = NULL;
+    }
+    
+    zpacket.udp.zToServerPacket.opcode = opcode;
+    zpacket.udp.zToServerPacket.length = length;
+    zpacket.udp.zToServerPacket.clientObject = udpc->clientObject;
+    zpacket.udp.zToServerPacket.data = data;
+    
+    rc = ringbuf_push(udpc->toServerQueue, ZOP_UDP_ToServerPacket, &zpacket);
+    
+    if (rc)
+    {
+        log_writef(udpc->logQueue, udpc->logId, "udpc_recv_packet: ringbuf_push() failed, error: %s", enum2str_err(rc));
+        if (data) free(data);
+    }
 }
 
 bool udpc_recv_protocol(UdpClient* udpc, byte* data, uint32_t len, bool suppressSend)
@@ -150,7 +215,7 @@ bool udpc_recv_protocol(UdpClient* udpc, byte* data, uint32_t len, bool suppress
         else if (opcode)
         {
             /* Unsequenced, can be sent on immediately */
-            //udpc_recv_packet(udpc, &a, opcode);
+            udpc_recv_packet(udpc, &a, opcode);
         }
     }
 
@@ -158,6 +223,11 @@ bool udpc_recv_protocol(UdpClient* udpc, byte* data, uint32_t len, bool suppress
 
 oob:
     return false;
+}
+
+void udpc_schedule_packet(UdpClient* udpc, TlgPacket* packet, bool hasAckRequest)
+{
+    ack_schedule_packet(&udpc->ackMgr, packet, hasAckRequest);
 }
 
 bool udpc_send_immediate(UdpClient* udpc, const void* data, uint32_t len)
@@ -170,7 +240,12 @@ bool udpc_send_immediate(UdpClient* udpc, const void* data, uint32_t len)
     return (0 != sendto(udpc->sock, (const char*)data, len, 0, (struct sockaddr*)&addr, sizeof(addr)));
 }
 
-bool udpc_send_pure_ack(UdpClient* udpc, uint16_t ack)
+void udpc_send_queued_packets(UdpClient* udpc)
+{
+    ack_send_queued_packets(udpc);
+}
+
+bool udpc_send_pure_ack(UdpClient* udpc, uint16_t ackNetworkByteOrder)
 {
     byte buf[10];
     Aligned a;
@@ -179,7 +254,7 @@ bool udpc_send_pure_ack(UdpClient* udpc, uint16_t ack)
 
     aligned_write_uint16(&a, TLG_PACKET_HasAckResponse);
     aligned_write_uint16(&a, to_network_uint16(udpc->ackMgr.toClient.nextSeqToSend++));
-    aligned_write_uint16(&a, ack);
+    aligned_write_uint16(&a, ackNetworkByteOrder);
     aligned_write_uint32(&a, crc_calc32_network(buf, sizeof(buf) - sizeof(uint32_t)));
 
     return udpc_send_immediate(udpc, buf, sizeof(buf));
