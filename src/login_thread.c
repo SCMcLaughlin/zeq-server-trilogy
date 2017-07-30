@@ -45,9 +45,9 @@ typedef struct {
 
 typedef struct {
     bool        isLocal;
-    uint32_t    nameLength;
-    uint32_t    remoteLength;
-    uint32_t    localLength;
+    uint16_t    nameLength;
+    uint16_t    remoteLength;
+    uint16_t    localLength;
 } LoginServerLengths;
 
 struct LoginThread {
@@ -799,6 +799,12 @@ int login_add_server(LoginThread* login, int* outServerId, const char* name, con
     if (!zpacket.login.zNewServer.serverName || !zpacket.login.zNewServer.remoteIpAddr || !zpacket.login.zNewServer.localIpAddr)
     {
         rc = ERR_OutOfMemory;
+        goto error;
+    }
+    
+    if (sbuf_length(zpacket.login.zNewServer.serverName) > USHRT_MAX || sbuf_length(zpacket.login.zNewServer.remoteIpAddr) > USHRT_MAX || sbuf_length(zpacket.login.zNewServer.localIpAddr) > USHRT_MAX)
+    {
+        rc = ERR_OutOfBounds;
         goto error;
     }
     
