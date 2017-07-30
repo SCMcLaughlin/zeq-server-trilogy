@@ -24,6 +24,11 @@ enum ZOP
     ZOP_DB_CloseDatabase,
     ZOP_DB_QueryLoginCredentials,
     ZOP_DB_QueryLoginNewAccount,
+    /* Login thread */
+    ZOP_LOGIN_NewServer,
+    ZOP_LOGIN_RemoveServer,
+    ZOP_LOGIN_UpdateServerPlayerCount,
+    ZOP_LOGIN_UpdateServerStatus,
     ZOP_COUNT
 };
 

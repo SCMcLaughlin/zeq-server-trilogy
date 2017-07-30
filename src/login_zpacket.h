@@ -5,6 +5,7 @@
 typedef struct {
     int8_t          initialStatus;
     int8_t          rank;
+    bool            isLocal;
     int             serverId;
     StaticBuffer*   serverName;
     StaticBuffer*   remoteIpAddr;

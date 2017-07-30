@@ -11,6 +11,7 @@
 #include "login_packet_struct.h"
 #include "tlg_packet.h"
 #include "util_alloc.h"
+#include "util_atomic.h"
 #include "util_random.h"
 #include "util_thread.h"
 #include "zpacket.h"
@@ -49,11 +50,13 @@ struct LoginThread {
     uint32_t        clientCount;
     uint32_t        serverCount;
     int             nextQueryId;
+    atomic32_t      nextServerId;
     int             dbId;
     int             logId;
     LoginClient**   clients;
     LoginServer*    servers;
     StaticBuffer*   bannerMsg;
+    StaticBuffer*   loopbackAddr;
     RingBuf*        loginQueue;
     RingBuf*        toClientQueue;
     RingBuf*        dbQueue;
@@ -65,6 +68,44 @@ struct LoginThread {
     TlgPacket*      packetErrSuspended;
     TlgPacket*      packetErrBanned;
 };
+
+static void login_thread_handle_new_server(LoginThread* login, ZPacket* zpacket)
+{
+    LoginServer* server;
+    uint32_t index = login->serverCount;
+    
+    if (bit_is_pow2_or_zero(index))
+    {
+        uint32_t cap = (index == 0) ? 1 : index * 2;
+        LoginServer* servers = realloc_array_type(login->servers, cap, LoginServer);
+        
+        /*fixme: log and/or report the error?*/
+        if (!servers) goto error;
+        
+        login->servers = servers;
+    }
+    
+    server = &login->servers[index];
+    login->serverCount = index + 1;
+    
+    server->serverId = zpacket->login.zNewServer.serverId;
+    server->status = zpacket->login.zNewServer.initialStatus;
+    server->rank = zpacket->login.zNewServer.rank;
+    server->isLocal = zpacket->login.zNewServer.isLocal;
+    server->playerCount = 0;
+    server->nameLength = sbuf_length(zpacket->login.zNewServer.serverName);
+    server->remoteLength = sbuf_length(zpacket->login.zNewServer.remoteIpAddr);
+    server->localLength = sbuf_length(zpacket->login.zNewServer.localIpAddr);
+    server->name = zpacket->login.zNewServer.serverName;
+    server->remoteIpAddr = zpacket->login.zNewServer.remoteIpAddr;
+    server->localIpAddr = zpacket->login.zNewServer.localIpAddr;
+    return;
+    
+error:
+    sbuf_drop(zpacket->login.zNewServer.serverName);
+    sbuf_drop(zpacket->login.zNewServer.remoteIpAddr);
+    sbuf_drop(zpacket->login.zNewServer.localIpAddr);
+}
 
 static bool login_thread_is_client_valid(LoginThread* login, LoginClient* loginc)
 {
@@ -522,6 +563,19 @@ static void login_thread_proc(void* ptr)
             login_thread_handle_db_new_account(login, &zpacket);
             break;
         
+        case ZOP_LOGIN_NewServer:
+            login_thread_handle_new_server(login, &zpacket);
+            break;
+        
+        case ZOP_LOGIN_RemoveServer:
+            break;
+        
+        case ZOP_LOGIN_UpdateServerPlayerCount:
+            break;
+        
+        case ZOP_LOGIN_UpdateServerStatus:
+            break;
+        
         default:
             log_writef(login->logQueue, login->logId, "WARNING: login_thread_proc: received unexpected zop: %s", enum2str_zop(zop));
             break;
@@ -585,10 +639,14 @@ LoginThread* login_create(LogThread* log, RingBuf* dbQueue, int dbId)
     if (!login) goto fail_alloc;
 
     login->clientCount = 0;
+    login->serverCount = 0;
     login->nextQueryId = 1;
+    atomic32_set(&login->nextServerId, 1);
     login->dbId = dbId;
     login->clients = NULL;
+    login->servers = NULL;
     login->bannerMsg = NULL;
+    login->loopbackAddr = NULL;
     login->loginQueue = NULL;
     login->toClientQueue = NULL;
     login->dbQueue = dbQueue;
@@ -608,6 +666,10 @@ LoginThread* login_create(LogThread* log, RingBuf* dbQueue, int dbId)
 
     login->toClientQueue = ringbuf_create_type(ZPacket, 1024);
     if (!login->toClientQueue) goto fail;
+    
+    login->loopbackAddr = sbuf_create_from_literal("127.0.0.1");
+    if (!login->loopbackAddr) goto fail;
+    sbuf_grab(login->loopbackAddr);
 
     rc = login_create_cached_packets(login);
     if (rc) goto fail;
@@ -623,27 +685,57 @@ fail_alloc:
     return NULL;
 }
 
+static void login_free_clients(LoginThread* login)
+{
+    LoginClient** clients = login->clients;
+        
+    if (clients)
+    {
+        uint32_t n = login->clientCount;
+        uint32_t i;
+        
+        for (i = 0; i < n; i++)
+        {
+            clients[i] = loginc_destroy(clients[i]);
+        }
+        
+        free(clients);
+        login->clients = NULL;
+    }
+}
+
+static void login_free_servers(LoginThread* login)
+{
+    LoginServer* servers = login->servers;
+    
+    if (servers)
+    {
+        uint32_t count = login->serverCount;
+        uint32_t i;
+        
+        for (i = 0; i < count; i++)
+        {
+            LoginServer* server = &servers[i];
+            
+            server->name = sbuf_drop(server->name);
+            server->remoteIpAddr = sbuf_drop(server->remoteIpAddr);
+            server->localIpAddr = sbuf_drop(server->localIpAddr);
+        }
+        
+        free(servers);
+        login->servers = NULL;
+    }
+}
+
 LoginThread* login_destroy(LoginThread* login)
 {
     if (login)
     {
-        LoginClient** clients = login->clients;
-        
-        if (clients)
-        {
-            uint32_t n = login->clientCount;
-            uint32_t i;
-            
-            for (i = 0; i < n; i++)
-            {
-                clients[i] = loginc_destroy(clients[i]);
-            }
-            
-            free(clients);
-            login->clients = NULL;
-        }
+        login_free_clients(login);
+        login_free_servers(login);
         
         login->bannerMsg = sbuf_drop(login->bannerMsg);
+        login->loopbackAddr = sbuf_drop(login->loopbackAddr);
 
         login->packetVersion = packet_drop(login->packetVersion);
         login->packetBanner = packet_drop(login->packetBanner);
@@ -656,4 +748,48 @@ LoginThread* login_destroy(LoginThread* login)
     }
 
     return NULL;
+}
+
+int login_add_server(LoginThread* login, int* outServerId, const char* name, const char* remoteIp, const char* localIp, int8_t rank, int8_t status, bool isLocal)
+{
+    ZPacket zpacket;
+    int serverId;
+    int rc;
+    
+    if (!name) return ERR_Invalid;
+    
+    serverId = atomic32_add(&login->nextServerId, 1);
+    
+    if (outServerId)
+        *outServerId = serverId;
+    
+    zpacket.login.zNewServer.initialStatus = status;
+    zpacket.login.zNewServer.rank = rank;
+    zpacket.login.zNewServer.isLocal = isLocal;
+    zpacket.login.zNewServer.serverId = serverId;
+    
+    zpacket.login.zNewServer.serverName = sbuf_create(name, strlen(name));
+    zpacket.login.zNewServer.remoteIpAddr = (remoteIp) ? sbuf_create(remoteIp, strlen(remoteIp)) : login->loopbackAddr;
+    zpacket.login.zNewServer.localIpAddr = (localIp) ? sbuf_create(localIp, strlen(localIp)) : login->loopbackAddr;
+    
+    sbuf_grab(zpacket.login.zNewServer.serverName);
+    sbuf_grab(zpacket.login.zNewServer.remoteIpAddr);
+    sbuf_grab(zpacket.login.zNewServer.localIpAddr);
+    
+    if (!zpacket.login.zNewServer.serverName || !zpacket.login.zNewServer.remoteIpAddr || !zpacket.login.zNewServer.localIpAddr)
+    {
+        rc = ERR_OutOfMemory;
+        goto error;
+    }
+    
+    rc = ringbuf_push(login->loginQueue, ZOP_LOGIN_NewServer, &zpacket);
+    if (rc) goto error;
+    
+    return rc;
+    
+error:
+    sbuf_drop(zpacket.login.zNewServer.serverName);
+    sbuf_drop(zpacket.login.zNewServer.remoteIpAddr);
+    sbuf_drop(zpacket.login.zNewServer.localIpAddr);
+    return rc;
 }

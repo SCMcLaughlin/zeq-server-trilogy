@@ -62,6 +62,10 @@ const char* enum2str_zop(int e)
     case ZOP_DB_CloseDatabase: ret = "ZOP_DB_CloseDatabase"; break;
     case ZOP_DB_QueryLoginCredentials: ret = "ZOP_DB_QueryLoginCredentials"; break;
     case ZOP_DB_QueryLoginNewAccount: ret = "ZOP_DB_QueryLoginNewAccount"; break;
+    case ZOP_LOGIN_NewServer: ret = "ZOP_LOGIN_NewServer"; break;
+    case ZOP_LOGIN_RemoveServer: ret = "ZOP_LOGIN_RemoveServer"; break;
+    case ZOP_LOGIN_UpdateServerPlayerCount: ret = "ZOP_LOGIN_UpdateServerPlayerCount"; break;
+    case ZOP_LOGIN_UpdateServerStatus: ret = "ZOP_LOGIN_UpdateServerStatus"; break;
     case ZOP_COUNT: ret = "ZOP_COUNT"; break;
     default: ret = "UNKNOWN"; break;
     }
