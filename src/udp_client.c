@@ -42,14 +42,11 @@ bool udpc_send_disconnect(UdpClient* udpc)
     return udpc_send_immediate(udpc, &dis, sizeof(dis));
 }
 
-static void udpc_recv_packet(UdpClient* udpc, Aligned* a, uint16_t opcode)
+void udpc_recv_packet(UdpClient* udpc, Aligned* a, uint16_t opcode)
 {
-    ZPacket zpacket;
+    Aligned w;
     byte* data;
-    uint32_t length;
-    int rc;
-    
-    length = aligned_remaining_data(a);
+    uint32_t length = aligned_remaining_data(a);
     
     if (length)
     {
@@ -68,6 +65,17 @@ static void udpc_recv_packet(UdpClient* udpc, Aligned* a, uint16_t opcode)
         data = NULL;
     }
     
+    aligned_init(&w, data, length);
+    udpc_recv_packet_no_copy(udpc, &w, opcode);
+}
+
+void udpc_recv_packet_no_copy(UdpClient* udpc, Aligned* a, uint16_t opcode)
+{
+    ZPacket zpacket;
+    uint32_t length = aligned_remaining_data(a);
+    byte* data = aligned_current(a);
+    int rc;
+    
     zpacket.udp.zToServerPacket.opcode = opcode;
     zpacket.udp.zToServerPacket.length = length;
     zpacket.udp.zToServerPacket.clientObject = udpc->clientObject;
@@ -77,7 +85,7 @@ static void udpc_recv_packet(UdpClient* udpc, Aligned* a, uint16_t opcode)
     
     if (rc)
     {
-        log_writef(udpc->logQueue, udpc->logId, "udpc_recv_packet: ringbuf_push() failed, error: %s", enum2str_err(rc));
+        log_writef(udpc->logQueue, udpc->logId, "udpc_recv_packet_no_copy: ringbuf_push() failed, error: %s", enum2str_err(rc));
         if (data) free(data);
     }
 }
@@ -210,7 +218,7 @@ bool udpc_recv_protocol(UdpClient* udpc, byte* data, uint32_t len, bool suppress
         if (ackRequest)
         {
             /* Packet is to be acked, queue it up to ensure it is received in sequence */
-            //ack_recv_packet(udpc, &a, opcode, ackRequest, fragCount);
+            ack_recv_packet(udpc, &a, opcode, ackRequest, fragCount);
         }
         else if (opcode)
         {

@@ -1,7 +1,6 @@
 
 #include "ack_mgr.h"
 #include "define_netcode.h"
-#include "aligned.h"
 #include "bit.h"
 #include "crc.h"
 #include "udp_client.h"
@@ -187,6 +186,152 @@ void ack_recv_ack_request(AckMgr* ackMgr, uint16_t ack, int isFirstPacket)
         ackMgr->toServer.nextAckResponse = ack;
         ackMgr->toServer.nextAckRequestStart = ack;
         ackMgr->toServer.nextAckRequestEnd = ack;
+    }
+}
+
+static uint16_t ack_complete_packet(UdpClient* udpc, AckMgrToServerPacket* packet)
+{
+    Aligned a;
+    
+    aligned_init(&a, packet->data, packet->length);
+    udpc_recv_packet_no_copy(udpc, &a, packet->opcode);
+    
+    return packet->ackRequest + 1;
+}
+
+static uint16_t ack_complete_fragments(UdpClient* udpc, AckMgrToServerPacket* array, uint32_t length, uint32_t i, uint32_t n)
+{
+    AckMgrToServerPacket* packet;
+    Aligned a;
+    uint16_t opcode = array[i].opcode;
+    byte* data = alloc_bytes(length);
+    
+    if (!data) return array[i].ackRequest + 1; /*fixme: do something more sensible here*/
+    
+    aligned_init(&a, data, length);
+    
+    for (; i <= n; i++)
+    {
+        packet = &array[i];
+        
+        aligned_write_buffer(&a, packet->data, packet->length);
+        free(packet->data);
+        packet->data = NULL;
+    }
+    
+    aligned_reset_cursor(&a);
+    udpc_recv_packet_no_copy(udpc, &a, opcode);
+    
+    return packet->ackRequest + 1;
+}
+
+void ack_recv_packet(UdpClient* udpc, Aligned* a, uint16_t opcode, uint16_t ackRequest, uint16_t fragCount)
+{
+    AckMgr* ackMgr = &udpc->ackMgr;
+    uint16_t nextAck = ackMgr->toServer.nextAckRequestStart;
+    uint32_t n, i, diff, length, frags;
+    AckMgrToServerPacket* ptr;
+    
+    if (ackRequest == nextAck && fragCount == 0)
+    {
+        ackMgr->toServer.nextAckRequestStart = nextAck + 1;
+        udpc_recv_packet(udpc, a, opcode);
+        return;
+    }
+    
+    if (ack_cmp(ackRequest, nextAck) == ACK_Past)
+        return;
+
+    n = ackMgr->toServer.count;
+    
+    /* Protocol doesn't allow acks to roll over to 0, so shouldn't need to check for ackRequest being lower (fixme: confirm this) */
+    diff = ackRequest - nextAck;
+    
+    /* Do we need to expand our array? */
+    if (diff && diff >= n)
+    {
+        uint32_t cap = bit_pow2_greater_than_u32(diff);
+        AckMgrToServerPacket* queue = realloc_array_type(ackMgr->toServer.packetQueue, cap, AckMgrToServerPacket);
+        
+        if (!queue) return;
+        
+        ackMgr->toServer.packetQueue = queue;
+        ackMgr->toServer.count = cap;
+        memset(&ackMgr->toServer.packetQueue[n], 0, sizeof(AckMgrToServerPacket) * (diff - n));
+    }
+    
+    ptr = &ackMgr->toServer.packetQueue[diff];
+    
+    /*
+        If we already had a packet at this position, abort.
+        The client likes to spam the same packet over and over in some situations, especially during login
+    */
+    if (ptr->ackRequest)
+        return;
+    
+    length = aligned_remaining_data(a);
+    ptr->ackRequest = ackRequest;
+    ptr->fragCount = fragCount;
+    ptr->opcode = opcode;
+    ptr->length = length;
+    
+    if (length)
+    {
+        ptr->data = alloc_bytes(length);
+        if (!ptr->data) return;
+        memcpy(ptr->data, aligned_current(a), length);
+    }
+    else
+    {
+        ptr->data = NULL;
+    }
+    
+    /* Check if we have completed any fragmented packets and such */
+    ptr = ackMgr->toServer.packetQueue;
+    diff = 0;
+    frags = 0;
+    length = 0;
+    i = 0;
+    
+    while (i < n)
+    {
+        AckMgrToServerPacket* packet = &ptr[i];
+        
+        if (packet->ackRequest == 0)
+            break;
+        
+        fragCount = packet->fragCount;
+        
+        if (fragCount == 0)
+        {
+            nextAck = ack_complete_packet(udpc, packet);
+            diff++;
+        }
+        else
+        {
+            if (fragCount > n)
+                break;
+            
+            length += packet->length;
+            frags++;
+            
+            if (frags == fragCount)
+            {
+                diff += frags;
+                nextAck = ack_complete_fragments(udpc, ptr, length,i - (frags - 1), i);
+                length = 0;
+                frags = 0;
+            }
+        }
+        
+        i++;
+    }
+    
+    if (diff > 0)
+    {
+        ackMgr->toServer.count -= diff;
+        memmove(ackMgr->toServer.packetQueue, &ackMgr->toServer.packetQueue[diff], sizeof(AckMgrToServerPacket) * ackMgr->toServer.count);
+        ackMgr->toServer.nextAckRequestStart = nextAck;
     }
 }
 
