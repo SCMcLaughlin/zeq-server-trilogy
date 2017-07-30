@@ -631,7 +631,7 @@ int db_read(DbThread* db, sqlite3_stmt* stmt)
     }
 }
 
-int db_write(DbThread* db, sqlite3_stmt* stmt)
+bool db_write(DbThread* db, sqlite3_stmt* stmt)
 {
     for (;;)
     {
@@ -644,7 +644,7 @@ int db_write(DbThread* db, sqlite3_stmt* stmt)
             continue;
         
         case SQLITE_DONE:
-            return rc;
+            return true;
         
         case SQLITE_ROW:
             log_write_literal(db->logQueue, db->logId, "db_write: sqlite3_step() returned SQLITE_ROW, indicating data was SELECTed; is this a misconfigured READ query?");
@@ -656,7 +656,7 @@ int db_write(DbThread* db, sqlite3_stmt* stmt)
         }
     }
 error:
-    return SQLITE_ERROR;
+    return false;
 }
 
 bool db_bind_int(DbThread* db, sqlite3_stmt* stmt, int col, int val)

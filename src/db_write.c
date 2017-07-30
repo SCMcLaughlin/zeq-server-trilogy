@@ -31,17 +31,10 @@ static void dbw_login_new_account(DbThread* db, sqlite3* sqlite, ZPacket* zpacke
             db_bind_blob(db, stmt, 1, zpacket->db.zQuery.qLoginNewAccount.passwordHash, LOGIN_CRYPTO_HASH_SIZE) &&
             db_bind_blob(db, stmt, 2, zpacket->db.zQuery.qLoginNewAccount.salt, LOGIN_CRYPTO_SALT_SIZE))
         {
-            int rc = db_write(db, stmt);
-            
-            switch (rc)
+            if (db_write(db, stmt))
             {
-            case SQLITE_DONE:
                 reply.db.zResult.hadError = false;
                 reply.db.zResult.rLoginNewAccount.acctId = sqlite3_last_insert_rowid(sqlite);
-                break;
-            
-            case SQLITE_ERROR:
-                break;
             }
         }
     }

@@ -32,7 +32,7 @@ int db_close(RingBuf* dbQueue, int dbId);
 bool db_prepare(DbThread* db, sqlite3* sqlite, sqlite3_stmt** stmt, const char* sql, int len);
 #define db_prepare_literal(db, sqlite, stmt, sql) db_prepare((db), (sqlite), (stmt), sql, sizeof(sql) - 1)
 int db_read(DbThread* db, sqlite3_stmt* stmt);
-int db_write(DbThread* db, sqlite3_stmt* stmt);
+bool db_write(DbThread* db, sqlite3_stmt* stmt);
 
 bool db_bind_int(DbThread* db, sqlite3_stmt* stmt, int col, int val);
 bool db_bind_int64(DbThread* db, sqlite3_stmt* stmt, int col, int64_t val);
