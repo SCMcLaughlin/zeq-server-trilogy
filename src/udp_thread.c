@@ -94,7 +94,7 @@ static void udp_thread_open_port(UdpThread* udp, ZPacket* cmd)
     UdpSocket* usock;
     uint32_t index;
 
-    if (udp_thread_open_socket(udp, &sock, cmd->udp.zOpenPort.port))
+    if (!udp_thread_open_socket(udp, &sock, cmd->udp.zOpenPort.port))
         return;
 
     index = udp->sockCount;
@@ -205,7 +205,7 @@ static bool udp_thread_process_commands(UdpThread* udp)
     return true;
 }
 
-static void udp_thread_new_client(UdpThread* udp, uint32_t clientSize, UdpClient* toCopy)
+static int udp_thread_new_client(UdpThread* udp, uint32_t clientSize, UdpClient* toCopy)
 {
     void* clientObject = alloc_bytes(clientSize);
     ZPacket zpacket;
@@ -243,6 +243,8 @@ static void udp_thread_new_client(UdpThread* udp, uint32_t clientSize, UdpClient
 
     zpacket.udp.zNewClient.clientObject = clientObject;
     zpacket.udp.zNewClient.ipAddress = toCopy->ipAddr;
+    
+    toCopy->clientObject = clientObject;
 
     if (ringbuf_push(toCopy->toServerQueue, ZOP_UDP_NewClient, &zpacket))
     {
@@ -252,11 +254,10 @@ static void udp_thread_new_client(UdpThread* udp, uint32_t clientSize, UdpClient
     
     udp->clientCount = index + 1;
     udp->clients[index] = *toCopy;
-    udp->clients[index].clientObject = clientObject;
     udp->clientFlags[index] = 0;
     udp->clientAddresses[index] = zpacket.udp.zNewClient.ipAddress;
     udp->clientRecvTimestamps[index] = clock_milliseconds();
-    return;
+    return (int)index;
 oom:
     ip = toCopy->ipAddr.ip;
     log_writef(udp->logQueue, udp->logId, "udp_thread_new_client: out of memory while allocating client from %u.%u.%u.%u:%u",
@@ -264,6 +265,27 @@ oom:
 
 queue_fail:
     if (clientObject) free(clientObject);
+    return -1;
+}
+
+static void udp_thread_dump_packet_recv(byte* data, int len)
+{
+#ifndef ZEQ_UDP_DUMP_PACKETS
+    (void)data;
+    (void)len;
+#else
+    int i;
+    
+    fprintf(stdout, "[Recv] (%i):\n", len);
+    
+    for (i = 0; i < len; i++)
+    {
+        fprintf(stdout, "%02x ", data[i]);
+    }
+    
+    fputc('\n', stdout);
+    fflush(stdout);
+#endif
 }
 
 static void udp_thread_process_socket_reads(UdpThread* udp)
@@ -306,6 +328,8 @@ static void udp_thread_process_socket_reads(UdpThread* udp)
             if (len < UDP_THREAD_MINIMUM_MEANINGFUL_PACKET_SIZE)
                 continue;
             
+            udp_thread_dump_packet_recv(buffer, len);
+            
             /* Determine if we already know about this client connection */
             ip = raddr.sin_addr.s_addr;
             port = raddr.sin_port;
@@ -330,12 +354,13 @@ static void udp_thread_process_socket_reads(UdpThread* udp)
                 /* This will return true if the packet seems valid and is not flagged as session-terminating */
                 if (udpc_recv_protocol(&newClient, buffer, (uint32_t)len, true))
                 {
-                    udp_thread_new_client(udp, sockets[i].clientSize, &newClient);
+                    int index = udp_thread_new_client(udp, sockets[i].clientSize, &newClient);
                     /*
                         We redo this because we want to avoid telling a thread they've received a packet from a new client before telling them that new client exists.
                         We could allocate the client object first instead and avoid all of this, but we want to avoid doing an allocation for invalid connections sending garbage data.
                     */
-                    udpc_recv_protocol(&newClient, buffer, (uint32_t)len, false);
+                    if (index != -1)
+                        udpc_recv_protocol(&udp->clients[index], buffer, (uint32_t)len, false);
                 }
             }
         }
@@ -545,6 +570,11 @@ int udp_open_port(UdpThread* udp, uint16_t port, uint32_t clientSize, RingBuf* t
     cmd.udp.zOpenPort.toServerQueue = toServerQueue;
 
     return ringbuf_push(udp->udpQueue, ZOP_UDP_OpenPort, &cmd);
+}
+
+RingBuf* udp_get_queue(UdpThread* udp)
+{
+    return udp->udpQueue;
 }
 
 int udp_schedule_packet(RingBuf* toClientQueue, IpAddr ipAddr, TlgPacket* packet)

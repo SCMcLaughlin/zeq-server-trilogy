@@ -18,7 +18,7 @@ static void dbw_login_new_account(DbThread* db, sqlite3* sqlite, ZPacket* zpacke
     
     run = db_prepare_literal(db, sqlite, &stmt,
         "INSERT INTO account "
-        "   (name, password_hash, salt, creation_time)"
+        "   (name, password_hash, salt, creation_time) "
         "VALUES "
         "   (?, ?, ?, datetime('now'))");
     

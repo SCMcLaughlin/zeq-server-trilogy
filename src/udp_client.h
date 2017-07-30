@@ -26,7 +26,7 @@ void udpc_linkdead(UdpClient* udpc);
 bool udpc_send_disconnect(UdpClient* udpc);
 void udpc_recv_packet(UdpClient* udpc, Aligned* a, uint16_t opcode);
 void udpc_recv_packet_no_copy(UdpClient* udpc, Aligned* a, uint16_t opcode);
-bool udpc_recv_protocol(UdpClient* udpc, byte* data, uint32_t len, bool suppressSend);
+bool udpc_recv_protocol(UdpClient* udpc, byte* data, uint32_t len, bool suppressRecv);
 void udpc_schedule_packet(UdpClient* udpc, TlgPacket* packet, bool noAckRequest);
 bool udpc_send_immediate(UdpClient* udpc, const void* data, uint32_t len);
 void udpc_send_queued_packets(UdpClient* udpc);

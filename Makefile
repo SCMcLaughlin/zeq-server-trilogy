@@ -8,7 +8,7 @@ CDEF=
 
 #ifdef debug
 CFLAGS+= -O0 -g -Wno-format -fno-omit-frame-pointer
-CDEF+= -DDEBUG -DZEQ_LOG_DUMP_ALL_TO_STDOUT
+CDEF+= -DDEBUG -DZEQ_LOG_DUMP_ALL_TO_STDOUT -DZEQ_UDP_DUMP_PACKETS
 CINCLUDE+= -I/usr/include/lua5.1/
 #else
 #CFLAGS+= -DNDEBUG

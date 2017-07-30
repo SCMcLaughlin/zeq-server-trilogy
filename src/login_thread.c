@@ -166,7 +166,7 @@ static LoginClient* login_thread_remove_client_object(LoginThread* login, LoginC
     return NULL;
 }
 
-static LoginClient* login_thread_drop_client(LoginThread* login, LoginClient* loginc)
+static bool login_thread_drop_client(LoginThread* login, LoginClient* loginc)
 {
     ZPacket cmd;
     int rc;
@@ -182,20 +182,18 @@ static LoginClient* login_thread_drop_client(LoginThread* login, LoginClient* lo
         
         log_writef(login->logQueue, login->logId, "login_thread_drop_client: failed to inform UdpThread to drop client from %u.%u.%u.%u:%u, keeping client alive for now",
             (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, cmd.udp.zDropClient.ipAddress.port);
-    }
-    else
-    {
-        loginc = login_thread_remove_client_object(login, loginc);
+    
+        return false;
     }
     
-    return loginc;
+    return true;
 }
 
 static void login_thread_handle_new_client(LoginThread* login, ZPacket* zpacket)
 {
     LoginClient* loginc = loginc_init(zpacket);
     uint32_t index = login->clientCount;
-
+    
     if (bit_is_pow2_or_zero(index))
     {
         uint32_t cap = (index == 0) ? 1 : index * 2;
@@ -203,8 +201,8 @@ static void login_thread_handle_new_client(LoginThread* login, ZPacket* zpacket)
 
         if (!clients)
         {
-            loginc = login_thread_drop_client(login, loginc);
-            loginc_destroy(loginc); /* Unconditional destruction, in case login_thread_drop_client() fails */
+            if (!login_thread_drop_client(login, loginc))
+                loginc_destroy(loginc);
             return;
         }
 
@@ -282,7 +280,7 @@ static bool login_thread_account_auto_create(LoginThread* login, LoginClient* lo
     loginc_clear_password(loginc);
     sbuf_grab(accountName);
     
-    rc = db_queue_query(login->dbQueue, login->dbId, &zpacket);
+    rc = db_queue_query(login->dbQueue, ZOP_DB_QueryLoginNewAccount, &zpacket);
     
     if (rc)
     {
@@ -566,7 +564,7 @@ static void login_thread_handle_packet(LoginThread* login, ZPacket* zpacket)
     LoginClient* loginc = (LoginClient*)zpacket->udp.zToServerPacket.clientObject;
     byte* data = zpacket->udp.zToServerPacket.data;
     int rc = ERR_None;
-
+    
     switch (zpacket->udp.zToServerPacket.opcode)
     {
     case OP_LOGIN_Version:
@@ -591,6 +589,10 @@ static void login_thread_handle_packet(LoginThread* login, ZPacket* zpacket)
 
     case OP_LOGIN_SessionKey:
         rc = login_thread_handle_op_session_key(login, loginc);
+        break;
+    
+    case OP_LOGIN_Exit:
+        login_thread_drop_client(login, loginc);
         break;
 
     default:
@@ -639,6 +641,13 @@ static void login_thread_proc(void* ptr)
 
         case ZOP_UDP_NewClient:
             login_thread_handle_new_client(login, &zpacket);
+            break;
+        
+        case ZOP_UDP_ClientLinkdead:
+            break;
+        
+        case ZOP_UDP_ClientDisconnect:
+            login_thread_remove_client_object(login, (LoginClient*)zpacket.udp.zClientDisconnect.clientObject);
             break;
         
         case ZOP_DB_QueryLoginCredentials:
@@ -839,6 +848,11 @@ LoginThread* login_destroy(LoginThread* login)
     }
 
     return NULL;
+}
+
+RingBuf* login_get_queue(LoginThread* login)
+{
+    return login->loginQueue;
 }
 
 int login_add_server(LoginThread* login, int* outServerId, const char* name, const char* remoteIp, const char* localIp, int8_t rank, int8_t status, bool isLocal)

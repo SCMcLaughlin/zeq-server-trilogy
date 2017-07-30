@@ -15,6 +15,8 @@ UdpThread* udp_destroy(UdpThread* udp);
 int udp_trigger_shutdown(UdpThread* udp);
 int udp_open_port(UdpThread* udp, uint16_t port, uint32_t clientSize, RingBuf* toServerQueue);
 
+RingBuf* udp_get_queue(UdpThread* udp);
+
 int udp_schedule_packet(RingBuf* toClientQueue, IpAddr ipAddr, TlgPacket* packet);
 
 #endif/*UDP_THREAD_H*/

@@ -2,6 +2,8 @@
 #include "main_thread.h"
 #include "db_thread.h"
 #include "log_thread.h"
+#include "login_thread.h"
+#include "login_client.h"
 #include "udp_thread.h"
 #include "ringbuf.h"
 #include "util_alloc.h"
@@ -12,14 +14,15 @@
 #define MAIN_THREAD_LOG_PATH "log/main_thread.txt"
 
 struct MainThread {
-    DbThread*   db;
-    LogThread*  log;
-    UdpThread*  udp;
-    RingBuf*    mainQueue;
-    RingBuf*    logQueue;
-    RingBuf*    dbQueue;
-    int         dbId;
-    int         logId;
+    DbThread*       db;
+    LogThread*      log;
+    UdpThread*      udp;
+    LoginThread*    login;
+    RingBuf*        mainQueue;
+    RingBuf*        logQueue;
+    RingBuf*        dbQueue;
+    int             dbId;
+    int             logId;
 };
 
 MainThread* mt_create()
@@ -116,16 +119,26 @@ MainThread* mt_destroy(MainThread* mt)
     return NULL;
 }
 
-#include "enum_zop.h"
 void mt_main_loop(MainThread* mt)
 {
-    ZPacket p;
+    int rc;
     
-    p.db.zQuery.dbId = mt->dbId;
-    p.db.zQuery.replyQueue = mt->mainQueue;
-    p.db.zQuery.qLoginCredentials.accountName = sbuf_create_from_literal("TestAcct");
+    mt->login = login_create(mt->log, mt->dbQueue, mt->dbId, udp_get_queue(mt->udp));
+    if (!mt->login)
+    {
+        fprintf(stderr, "login_create() failed\n");
+        return;
+    }
     
-    db_queue_query(mt->dbQueue, ZOP_DB_QueryLoginCredentials, &p);
-
-    clock_sleep(5000);
+    rc = udp_open_port(mt->udp, 5998, loginc_sizeof(), login_get_queue(mt->login));
+    if (rc)
+    {
+        fprintf(stderr, "udp_open_port() failed: %s\n", enum2str_err(rc));
+        return;
+    }
+    
+    for (;;)
+    {
+        clock_sleep(50);
+    }
 }

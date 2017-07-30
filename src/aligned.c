@@ -33,7 +33,7 @@ uint32_t aligned_advance_by(Aligned* a, uint32_t len)
 
 uint32_t aligned_reverse_by(Aligned* a, uint32_t len)
 {
-    uint32_t c = a->cursor - len;
+    uint32_t c = a->cursor;
     a->cursor = c - len;
 
     /* Check for overflow */

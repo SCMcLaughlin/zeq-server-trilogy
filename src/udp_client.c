@@ -116,7 +116,7 @@ void udpc_recv_packet_no_copy(UdpClient* udpc, Aligned* a, uint16_t opcode)
     }
 }
 
-bool udpc_recv_protocol(UdpClient* udpc, byte* data, uint32_t len, bool suppressSend)
+bool udpc_recv_protocol(UdpClient* udpc, byte* data, uint32_t len, bool suppressRecv)
 {
     Aligned a;
     uint16_t header;
@@ -237,7 +237,7 @@ bool udpc_recv_protocol(UdpClient* udpc, byte* data, uint32_t len, bool suppress
     }
 
     /* Packet processing */
-    if (!suppressSend)
+    if (!suppressRecv)
     {
         if (ackRequest)
         {
@@ -262,12 +262,36 @@ void udpc_schedule_packet(UdpClient* udpc, TlgPacket* packet, bool hasAckRequest
     ack_schedule_packet(&udpc->ackMgr, packet, hasAckRequest);
 }
 
+static void udpc_dump_packet_send(const void* ptr, uint32_t len)
+{
+#ifndef ZEQ_UDP_DUMP_PACKETS
+    (void)ptr;
+    (void)len;
+#else
+    const byte* data = (const byte*)ptr;
+    uint32_t i;
+    
+    fprintf(stdout, "[Send] (%u):\n", len);
+    
+    for (i = 0; i < len; i++)
+    {
+        fprintf(stdout, "%02x ", data[i]);
+    }
+    
+    fputc('\n', stdout);
+    fflush(stdout);
+#endif
+}
+
 bool udpc_send_immediate(UdpClient* udpc, const void* data, uint32_t len)
 {
     IpAddrRaw addr;
 
+    addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = udpc->ipAddr.ip;
     addr.sin_port = udpc->ipAddr.port;
+    
+    udpc_dump_packet_send(data, len);
 
     return (0 != sendto(udpc->sock, (const char*)data, len, 0, (struct sockaddr*)&addr, sizeof(addr)));
 }
