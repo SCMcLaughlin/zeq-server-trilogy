@@ -15,7 +15,6 @@ static void dbw_login_new_account(DbThread* db, sqlite3* sqlite, ZPacket* zpacke
     reply.db.zResult.hadError = true;
     reply.db.zResult.hadErrorUnprocessed = false;
     reply.db.zResult.rLoginNewAccount.client = zpacket->db.zQuery.qLoginNewAccount.client;
-    reply.db.zResult.rLoginNewAccount.acctId = -1;
     
     run = db_prepare_literal(db, sqlite, &stmt,
         "INSERT INTO account "

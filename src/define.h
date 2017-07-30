@@ -56,6 +56,12 @@ typedef int8_t bool;
 # define false 0
 #endif
 
+#ifdef PLATFORM_WINDOWS
+# define FUNC_NAME __FUNCTION__
+#else
+# define FUNC_NAME __func__
+#endif
+
 #define sizeof_field(type, name) sizeof(((type*)0)->name)
 #define free_if_exists(ptr) do { if ((ptr)) { free((ptr)); (ptr) = NULL; } } while(0)
 

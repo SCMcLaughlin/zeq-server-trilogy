@@ -213,29 +213,44 @@ static bool login_thread_account_auto_create(LoginThread* login, LoginClient* lo
 #endif
 }
 
-static void login_thread_handle_db_login_credentials(LoginThread* login, ZPacket* zpacket)
+static int login_thread_check_db_error(LoginThread* login, LoginClient* loginc, ZPacket* zpacket, const char* funcName)
 {
-    LoginClient* loginc;
-    int rc;
-    
     if (zpacket->db.zResult.hadErrorUnprocessed)
     {
-        log_write_literal(login->logQueue, login->logId, "WARNING: login_thread_handle_db_login_credentials: database reported error, query unprocessed");
-        return;
+        log_writef(login->logQueue, login->logId, "WARNING: %s: database reported error, query unprocessed", funcName);
+        return ERR_Invalid;
     }
-    
-    loginc = (LoginClient*)zpacket->db.zResult.rLoginCredentials.client;
     
     if (!login_thread_is_client_valid(login, loginc))
     {
-        log_write_literal(login->logQueue, login->logId, "WARNING: login_thread_handle_db_login_credentials: received result for LoginClient that no longer exists");
-        return;
+        log_writef(login->logQueue, login->logId, "WARNING: %s: received result for LoginClient that no longer exists", funcName);
+        return ERR_Invalid;
     }
     
     if (zpacket->db.zResult.hadError)
     {
-        log_write_literal(login->logQueue, login->logId, "WARNING: login_thread_handle_db_login_credentials: database reported error");
+        log_writef(login->logQueue, login->logId, "WARNING: %s: database reported error", funcName);
+        return ERR_Generic;
+    }
+    
+    return ERR_None;
+}
+
+static void login_thread_handle_db_login_credentials(LoginThread* login, ZPacket* zpacket)
+{
+    LoginClient* loginc = (LoginClient*)zpacket->db.zResult.rLoginCredentials.client;
+    int rc;
+    
+    switch (login_thread_check_db_error(login, loginc, zpacket, FUNC_NAME))
+    {
+    case ERR_Invalid:
+        return;
+    
+    case ERR_Generic:
         goto drop_client;
+    
+    case ERR_None:
+        break;
     }
     
     if (zpacket->db.zResult.rLoginCredentials.acctId < 0)
@@ -253,6 +268,36 @@ static void login_thread_handle_db_login_credentials(LoginThread* login, ZPacket
     {
         if (rc != ERR_Mismatch)
             log_writef(login->logQueue, login->logId, "login_thread_handle_db_login_credentials: successful client login could not be processed: %s", enum2str_err(rc));
+        goto drop_client;
+    }
+    
+    return;
+    
+drop_client:
+    login_thread_drop_client(login, loginc);
+}
+
+static void login_thread_handle_db_new_account(LoginThread* login, ZPacket* zpacket)
+{
+    LoginClient* loginc = (LoginClient*)zpacket->db.zResult.rLoginNewAccount.client;
+    int rc;
+    
+    switch (login_thread_check_db_error(login, loginc, zpacket, FUNC_NAME))
+    {
+    case ERR_Invalid:
+        return;
+    
+    case ERR_Generic:
+        goto drop_client;
+    
+    case ERR_None:
+        break;
+    }
+    
+    rc = loginc_send_session_packet(loginc, login->toClientQueue, zpacket->db.zResult.rLoginNewAccount.acctId);
+    if (rc)
+    {
+        log_writef(login->logQueue, login->logId, "login_thread_handle_db_new_account: successfully created new account, but session packet could not be sent: %s", enum2str_err(rc));
         goto drop_client;
     }
     
@@ -341,6 +386,10 @@ static void login_thread_proc(void* ptr)
         
         case ZOP_DB_QueryLoginCredentials:
             login_thread_handle_db_login_credentials(login, &zpacket);
+            break;
+        
+        case ZOP_DB_QueryLoginNewAccount:
+            login_thread_handle_db_new_account(login, &zpacket);
             break;
         
         default:
