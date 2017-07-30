@@ -26,9 +26,13 @@ uint32_t loginc_get_ip(LoginClient* loginc);
 uint16_t loginc_get_port(LoginClient* loginc);
 bool loginc_is_authorized(LoginClient* loginc);
 bool loginc_is_local(LoginClient* loginc);
+int loginc_account_status(LoginClient* loginc);
 
 StaticBuffer* loginc_get_account_name(LoginClient* loginc);
 StaticBuffer* loginc_get_password(LoginClient* loginc);
 void loginc_clear_password(LoginClient* loginc);
+
+void loginc_generate_session_key(LoginClient* loginc);
+const char* loginc_get_session_key(LoginClient* loginc);
 
 #endif/*LOGIN_CLIENT_H*/

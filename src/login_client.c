@@ -6,9 +6,11 @@
 #include "login_packet_struct.h"
 #include "udp_thread.h"
 #include "udp_zpacket.h"
+#include "util_clock.h"
 #include "util_ipv4.h"
 #include "util_random.h"
 #include "util_str.h"
+#include "enum_account_status.h"
 #include "enum_login_opcode.h"
 #include "enum_zop.h"
 
@@ -16,9 +18,12 @@ struct LoginClient {
     int8_t          authState;
     bool            isLocal;
     IpAddr          ipAddress;
+    int             accountStatus;
     int64_t         accountId;
+    int64_t         suspendedUntil;
     StaticBuffer*   accountName;
     StaticBuffer*   passwordTemp;
+    char            sessionKey[16];
 };
 
 enum LoginAuthState
@@ -36,7 +41,9 @@ LoginClient* loginc_init(ZPacket* zpacket)
     loginc->authState = LOGIN_AUTH_Initial;
     loginc->isLocal = ip_is_local(zpacket->udp.zNewClient.ipAddress.ip);
     loginc->ipAddress = zpacket->udp.zNewClient.ipAddress;
+    loginc->accountStatus = ACCT_STATUS_Normal;
     loginc->accountId = 0;
+    loginc->suspendedUntil = 0;
     loginc->accountName = NULL;
     loginc->passwordTemp = NULL;
 
@@ -162,6 +169,9 @@ int loginc_handle_db_credentials(LoginClient* loginc, ZPacket* zpacket, RingBuf*
         return ERR_Mismatch;
     }
     
+    loginc->accountStatus = zpacket->db.zResult.rLoginCredentials.status;
+    loginc->suspendedUntil = zpacket->db.zResult.rLoginCredentials.suspendedUntil;
+    
     /* Successful login, send our response */
     loginc_clear_password(loginc);
     return loginc_send_session_packet(loginc, toClientQueue, zpacket->db.zResult.rLoginCredentials.acctId);
@@ -222,6 +232,14 @@ bool loginc_is_local(LoginClient* loginc)
     return loginc->isLocal;
 }
 
+int loginc_account_status(LoginClient* loginc)
+{
+    if (loginc->suspendedUntil > (int64_t)clock_unix_seconds())
+        return ACCT_STATUS_Suspended;
+    
+    return loginc->accountStatus;
+}
+
 StaticBuffer* loginc_get_account_name(LoginClient* loginc)
 {
     return loginc->accountName;
@@ -236,4 +254,32 @@ void loginc_clear_password(LoginClient* loginc)
 {
     sbuf_zero_fill(loginc->passwordTemp);
     loginc->passwordTemp = sbuf_drop(loginc->passwordTemp);
+}
+
+void loginc_generate_session_key(LoginClient* loginc)
+{
+    uint32_t n = sizeof(loginc->sessionKey) - 1;
+    uint32_t i;
+    
+    static const char keys[] =
+    {
+        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+        'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+        'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+        'Y', 'Z', '0', '1', '2', '3', '4', '5',
+        '6', '7', '8', '9'
+    };
+    
+    for (i = 0; i < n; i++)
+    {
+        loginc->sessionKey[i] = keys[random_uint8() % sizeof(keys)];
+    }
+    
+    /* Null terminator */
+    loginc->sessionKey[n] = 0;
+}
+
+const char* loginc_get_session_key(LoginClient* loginc)
+{
+    return loginc->sessionKey;
 }

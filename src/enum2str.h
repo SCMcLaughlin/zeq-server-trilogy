@@ -5,6 +5,7 @@
 #include "define.h"
 
 const char* enum2str_login_server_rank(int e);
+const char* enum2str_account_status(int e);
 const char* enum2str_login_opcode(int e);
 const char* enum2str_zop(int e);
 const char* enum2str_err(int e);

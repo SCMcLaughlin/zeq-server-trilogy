@@ -15,6 +15,7 @@
 #include "util_random.h"
 #include "util_thread.h"
 #include "zpacket.h"
+#include "enum_account_status.h"
 #include "enum_login_opcode.h"
 #include "enum_login_server_rank.h"
 #include "enum_login_server_status.h"
@@ -45,9 +46,9 @@ typedef struct {
 
 typedef struct {
     bool        isLocal;
-    uint16_t    nameLength;
-    uint16_t    remoteLength;
-    uint16_t    localLength;
+    uint8_t     nameLength;
+    uint8_t     remoteLength;
+    uint8_t     localLength;
 } LoginServerLengths;
 
 struct LoginThread {
@@ -72,6 +73,7 @@ struct LoginThread {
     TlgPacket*          packetErrBadCredentials;
     TlgPacket*          packetErrSuspended;
     TlgPacket*          packetErrBanned;
+    TlgPacket*          packetLoginAccepted;
 };
 
 static void login_thread_handle_new_server(LoginThread* login, ZPacket* zpacket)
@@ -386,7 +388,7 @@ drop_client:
     login_thread_drop_client(login, loginc);
 }
 
-uint32_t login_thread_calc_server_list_length(LoginThread* login, bool isLocal)
+static uint32_t login_thread_calc_server_list_length(LoginThread* login, bool isLocal)
 {
     LoginServerLengths* serverLengths = login->serverLengths;
     uint32_t count = login->serverCount;
@@ -471,7 +473,7 @@ static void login_thread_write_server_list(LoginThread* login, bool isLocal, Tlg
     aligned_write_zeroes(&a, sizeof(byte) * 12);
 }
 
-int login_thread_handle_op_server_list(LoginThread* login, LoginClient* loginc)
+static int login_thread_handle_op_server_list(LoginThread* login, LoginClient* loginc)
 {
     TlgPacket* packet;
     uint32_t length;
@@ -486,6 +488,75 @@ int login_thread_handle_op_server_list(LoginThread* login, LoginClient* loginc)
     if (!packet) return ERR_OutOfMemory;
     
     login_thread_write_server_list(login, isLocal, packet);
+    
+    return loginc_schedule_packet(loginc, login->toClientQueue, packet);
+}
+
+static int login_thread_handle_op_server_status_request(LoginThread* login, LoginClient* loginc, ZPacket* zpacket)
+{
+    const char* ipAddress = (const char*)zpacket->udp.zToServerPacket.data;
+    RingBuf* toClientQueue;
+    uint32_t length = zpacket->udp.zToServerPacket.length;
+    int status;
+    int rc;
+    
+    if (!ipAddress || length == 0 || !loginc_is_authorized(loginc))
+        return ERR_Invalid;
+    
+    /*fixme:
+        To support multiple servers, we would use the ipAddress from the client to look up 
+        which server they want to connect to, then have some back and forth with that server
+        to see if they accept this client logging on.
+    
+        Since this is just a standalone one-to-one login server for now, we just respond
+        immediately with what we already know about the client.
+    */
+    
+    status = loginc_account_status(loginc);
+    toClientQueue = login->toClientQueue;
+    
+    switch (status)
+    {
+    case ACCT_STATUS_Banned:
+        rc = loginc_schedule_packet(loginc, toClientQueue, login->packetErrBanned);
+        break;
+    
+    case ACCT_STATUS_Suspended:
+        rc = loginc_schedule_packet(loginc, toClientQueue, login->packetErrSuspended);
+        break;
+    
+    default:
+        rc = loginc_schedule_packet(loginc, toClientQueue, login->packetLoginAccepted);
+        break;
+    }
+    
+    return rc;
+}
+
+static int login_thread_handle_op_session_key(LoginThread* login, LoginClient* loginc)
+{
+    const char* sessionKey;
+    TlgPacket* packet;
+    Aligned a;
+    
+    if (!loginc_is_authorized(loginc))
+        return ERR_Invalid;
+    
+    packet = packet_create_type(OP_LOGIN_SessionKey, PSLogin_SessionKey);
+    if (!packet) return ERR_OutOfMemory;
+    
+    loginc_generate_session_key(loginc);
+    sessionKey = loginc_get_session_key(loginc);
+    
+    aligned_init(&a, packet_data(packet), packet_length(packet));
+    
+    /* PSLogin_SessionKey */
+    /* unknown */
+    aligned_write_uint8(&a, 0);
+    /* sessionKey */
+    aligned_write_buffer(&a, sessionKey, sizeof_field(PSLogin_SessionKey, sessionKey));
+    
+    /*fixme: inform the MainThread about this login with this session key */
     
     return loginc_schedule_packet(loginc, login->toClientQueue, packet);
 }
@@ -515,9 +586,11 @@ static void login_thread_handle_packet(LoginThread* login, ZPacket* zpacket)
         break;
 
     case OP_LOGIN_ServerStatusRequest:
+        rc = login_thread_handle_op_server_status_request(login, loginc, zpacket);
         break;
 
     case OP_LOGIN_SessionKey:
+        rc = login_thread_handle_op_session_key(login, loginc);
         break;
 
     default:
@@ -530,8 +603,8 @@ static void login_thread_handle_packet(LoginThread* login, ZPacket* zpacket)
         uint32_t ip = loginc_get_ip(loginc);
         uint16_t port = loginc_get_port(loginc);
         
-        log_writef(login->logQueue, login->logId, "login_thread_handle_packet: got errcode %i while processing packet with opcode %u from client from %u.%u.%u.%u:%u, disconnecting them to maintain consistency",
-            rc, zpacket->udp.zToServerPacket.opcode, (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, port);
+        log_writef(login->logQueue, login->logId, "login_thread_handle_packet: got errcode %s while processing packet with opcode %s from client from %u.%u.%u.%u:%u, disconnecting them to maintain consistency",
+            enum2str_err(rc), enum2str_login_opcode(zpacket->udp.zToServerPacket.opcode), (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, port);
         
         login_thread_drop_client(login, loginc);
     }
@@ -638,6 +711,11 @@ static int login_create_cached_packets(LoginThread* login)
     aligned_write_uint32(&a, 1);
     /* message */
     aligned_write_literal_null_terminated(&a, LOGIN_THREAD_DEFAULT_BANNER_MESSAGE);
+    
+    /* Login accepted packet has no content, just the opcode */
+    login->packetLoginAccepted = packet_create_opcode_only(OP_LOGIN_ServerStatusAccept);
+    if (!login->packetLoginAccepted) goto fail;
+    packet_grab(login->packetLoginAccepted);
 
     return ERR_None;
 fail:
@@ -670,6 +748,7 @@ LoginThread* login_create(LogThread* log, RingBuf* dbQueue, int dbId)
     login->packetErrBadCredentials = NULL;
     login->packetErrSuspended = NULL;
     login->packetErrBanned = NULL;
+    login->packetLoginAccepted = NULL;
 
     rc = log_open_file_literal(log, &login->logId, LOGIN_THREAD_LOG_PATH);
     if (rc) goto fail;
@@ -762,6 +841,7 @@ LoginThread* login_destroy(LoginThread* login)
         login->packetErrBadCredentials = packet_drop(login->packetErrBadCredentials);
         login->packetErrSuspended = packet_drop(login->packetErrSuspended);
         login->packetErrBanned = packet_drop(login->packetErrBanned);
+        login->packetLoginAccepted = packet_drop(login->packetLoginAccepted);
 
         log_close_file(login->logQueue, login->logId);
         free(login);
@@ -802,7 +882,7 @@ int login_add_server(LoginThread* login, int* outServerId, const char* name, con
         goto error;
     }
     
-    if (sbuf_length(zpacket.login.zNewServer.serverName) > USHRT_MAX || sbuf_length(zpacket.login.zNewServer.remoteIpAddr) > USHRT_MAX || sbuf_length(zpacket.login.zNewServer.localIpAddr) > USHRT_MAX)
+    if (sbuf_length(zpacket.login.zNewServer.serverName) > UINT8_MAX || sbuf_length(zpacket.login.zNewServer.remoteIpAddr) > UINT8_MAX || sbuf_length(zpacket.login.zNewServer.localIpAddr) > UINT8_MAX)
     {
         rc = ERR_OutOfBounds;
         goto error;

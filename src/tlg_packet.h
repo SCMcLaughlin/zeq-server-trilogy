@@ -30,6 +30,7 @@ enum TlgPacketHeaderBits
 
 TlgPacket* packet_create(uint16_t opcode, uint32_t length);
 #define packet_create_type(opcode, type) packet_create((opcode), sizeof(type))
+#define packet_create_opcode_only(opcode) packet_create((opcode), 0)
 TlgPacket* packet_drop(TlgPacket* packet);
 void packet_grab(TlgPacket* packet);
 

@@ -16,9 +16,11 @@ static void dbr_login_credentials(DbThread* db, sqlite3* sqlite, ZPacket* zpacke
     reply.db.zResult.hadErrorUnprocessed = false;
     reply.db.zResult.rLoginCredentials.client = zpacket->db.zQuery.qLoginCredentials.client;
     reply.db.zResult.rLoginCredentials.acctId = -1;
+    reply.db.zResult.rLoginCredentials.status = 0;
+    reply.db.zResult.rLoginCredentials.suspendedUntil = 0;
     
     run = db_prepare_literal(db, sqlite, &stmt,
-        "SELECT id, password_hash, salt FROM account WHERE name = ? LIMIT 1");
+        "SELECT id, password_hash, salt, status, suspended_until FROM account WHERE name = ? LIMIT 1");
     
     if (run)
     {
@@ -49,6 +51,8 @@ static void dbr_login_credentials(DbThread* db, sqlite3* sqlite, ZPacket* zpacke
                 reply.db.zResult.rLoginCredentials.acctId = acctId;
                 memcpy(reply.db.zResult.rLoginCredentials.passwordHash, passhash, LOGIN_CRYPTO_HASH_SIZE);
                 memcpy(reply.db.zResult.rLoginCredentials.salt, salt, LOGIN_CRYPTO_SALT_SIZE);
+                reply.db.zResult.rLoginCredentials.status = db_fetch_int(stmt, 3);
+                reply.db.zResult.rLoginCredentials.suspendedUntil = db_fetch_int64(stmt, 4);
                 break;
             
             case SQLITE_DONE:

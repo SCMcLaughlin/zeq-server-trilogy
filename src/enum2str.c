@@ -1,6 +1,7 @@
 
 #include "enum2str.h"
 #include "enum_login_server_rank.h"
+#include "enum_account_status.h"
 #include "enum_login_opcode.h"
 #include "enum_zop.h"
 #include "enum_err.h"
@@ -14,6 +15,20 @@ const char* enum2str_login_server_rank(int e)
     case LOGIN_SERVER_RANK_Standard: ret = "LOGIN_SERVER_RANK_Standard"; break;
     case LOGIN_SERVER_RANK_Preferred: ret = "LOGIN_SERVER_RANK_Preferred"; break;
     case LOGIN_SERVER_RANK_Legends: ret = "LOGIN_SERVER_RANK_Legends"; break;
+    default: ret = "UNKNOWN"; break;
+    }
+    return ret;
+}
+
+const char* enum2str_account_status(int e)
+{
+    const char* ret;
+    switch (e)
+    {
+    case ACCT_STATUS_Banned: ret = "ACCT_STATUS_Banned"; break;
+    case ACCT_STATUS_Suspended: ret = "ACCT_STATUS_Suspended"; break;
+    case ACCT_STATUS_Normal: ret = "ACCT_STATUS_Normal"; break;
+    case ACCT_STATUS_GM: ret = "ACCT_STATUS_GM"; break;
     default: ret = "UNKNOWN"; break;
     }
     return ret;

@@ -39,6 +39,8 @@ typedef struct {
     int64_t acctId;
     byte    passwordHash[LOGIN_CRYPTO_HASH_SIZE];
     byte    salt[LOGIN_CRYPTO_SALT_SIZE];
+    int     status;
+    int64_t suspendedUntil;
 } DBR_LoginCredentials;
 
 typedef struct {

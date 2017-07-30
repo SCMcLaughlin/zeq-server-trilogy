@@ -36,6 +36,11 @@ typedef struct {
     uint8_t     zeroesB[12];
 } PSLogin_ServerListFooter;
 
+typedef struct {
+    uint8_t     unknown;
+    char        sessionKey[16];
+} PSLogin_SessionKey;
+
 #pragma pack()
 
 #endif/*LOGIN_PACKET_STRUCT_H*/
