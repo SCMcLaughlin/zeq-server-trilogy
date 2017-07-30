@@ -23,6 +23,7 @@ struct MainThread {
     RingBuf*        dbQueue;
     int             dbId;
     int             logId;
+    int             loginServerId;
 };
 
 MainThread* mt_create()
@@ -119,6 +120,8 @@ MainThread* mt_destroy(MainThread* mt)
     return NULL;
 }
 
+#include "enum_login_server_rank.h"
+#include "enum_login_server_status.h"
 void mt_main_loop(MainThread* mt)
 {
     int rc;
@@ -134,6 +137,13 @@ void mt_main_loop(MainThread* mt)
     if (rc)
     {
         fprintf(stderr, "udp_open_port() failed: %s\n", enum2str_err(rc));
+        return;
+    }
+    
+    rc = login_add_server(mt->login, &mt->loginServerId, "ZEQ Test", NULL, "192.168.1.73", LOGIN_SERVER_RANK_Standard, LOGIN_SERVER_STATUS_Up, true);
+    if (rc)
+    {
+        fprintf(stderr, "login_add_server() failed: %s\n", enum2str_err(rc));
         return;
     }
     

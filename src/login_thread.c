@@ -114,6 +114,10 @@ static void login_thread_handle_new_server(LoginThread* login, ZPacket* zpacket)
     server->name = zpacket->login.zNewServer.serverName;
     server->remoteIpAddr = zpacket->login.zNewServer.remoteIpAddr;
     server->localIpAddr = zpacket->login.zNewServer.localIpAddr;
+    
+    log_writef(login->logQueue, login->logId, "New LoginServer: \"%s\", remote ip: %s, local ip: %s, isLocal: %s",
+        sbuf_str(server->name), sbuf_str(server->remoteIpAddr), sbuf_str(server->localIpAddr), (server->isLocal) ? "true" : "false");
+    
     return;
     
 error:
@@ -745,6 +749,7 @@ LoginThread* login_create(LogThread* log, RingBuf* dbQueue, int dbId, RingBuf* u
     login->dbId = dbId;
     login->clients = NULL;
     login->servers = NULL;
+    login->serverLengths = NULL;
     login->bannerMsg = NULL;
     login->loopbackAddr = NULL;
     login->loginQueue = NULL;
