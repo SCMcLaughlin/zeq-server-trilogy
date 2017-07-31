@@ -483,8 +483,6 @@ static void cs_thread_handle_packet(CharSelectThread* cs, ZPacket* zpacket)
     uint16_t opcode = zpacket->udp.zToServerPacket.opcode;
     int rc = ERR_None;
 
-    printf("%04x %s\n", opcode, enum2str_char_select_opcode(opcode)); fflush(stdout);
-    
     switch (opcode)
     {
     case OP_CS_LoginInfo:
