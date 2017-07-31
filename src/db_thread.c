@@ -521,9 +521,12 @@ DbThread* db_destroy(DbThread* db)
     return NULL;
 }
 
-int db_queue_query(RingBuf* dbQueue, int zop, ZPacket* zpacket)
+int db_queue_query(RingBuf* dbQueue, RingBuf* replyQueue, int dbId, int queryId, int zop, ZPacket* zpacket)
 {
+    zpacket->db.zQuery.dbId = dbId;
+    zpacket->db.zQuery.queryId = queryId;
     zpacket->db.zQuery.zop = zop;
+    zpacket->db.zQuery.replyQueue = replyQueue;
     return ringbuf_push(dbQueue, zop, zpacket);
 }
 

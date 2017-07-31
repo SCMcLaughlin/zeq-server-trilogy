@@ -238,15 +238,12 @@ static int login_thread_handle_op_credentials(LoginThread* login, LoginClient* l
         ZPacket zpacket;
         StaticBuffer* acctName = loginc_get_account_name(loginc);
         
-        zpacket.db.zQuery.dbId = login->dbId;
-        zpacket.db.zQuery.queryId = login->nextQueryId++;
-        zpacket.db.zQuery.replyQueue = login->loginQueue;
         zpacket.db.zQuery.qLoginCredentials.client = loginc;
         zpacket.db.zQuery.qLoginCredentials.accountName = acctName;
         
         sbuf_grab(acctName);
         
-        rc = db_queue_query(login->dbQueue, ZOP_DB_QueryLoginCredentials, &zpacket);
+        rc = db_queue_query(login->dbQueue, login->loginQueue, login->dbId, login->nextQueryId++, ZOP_DB_QueryLoginCredentials, &zpacket);
         
         if (rc)
         {
@@ -269,9 +266,6 @@ static bool login_thread_account_auto_create(LoginThread* login, LoginClient* lo
     ZPacket zpacket;
     int rc;
     
-    zpacket.db.zQuery.dbId = login->dbId;
-    zpacket.db.zQuery.queryId = login->nextQueryId++;
-    zpacket.db.zQuery.replyQueue = login->loginQueue;
     zpacket.db.zQuery.qLoginNewAccount.client = loginc;
     zpacket.db.zQuery.qLoginNewAccount.accountName = accountName;
     
@@ -282,7 +276,7 @@ static bool login_thread_account_auto_create(LoginThread* login, LoginClient* lo
     loginc_clear_password(loginc);
     sbuf_grab(accountName);
     
-    rc = db_queue_query(login->dbQueue, ZOP_DB_QueryLoginNewAccount, &zpacket);
+    rc = db_queue_query(login->dbQueue, login->loginQueue, login->dbId, login->nextQueryId++, ZOP_DB_QueryLoginNewAccount, &zpacket);
     
     if (rc)
     {

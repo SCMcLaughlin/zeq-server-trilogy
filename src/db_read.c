@@ -87,7 +87,7 @@ static void dbr_cs_character_info(DbThread* db, sqlite3* sqlite, ZPacket* zpacke
         "SELECT "
             "name, level, class, race, zone_id, gender, face, "
             "material0, material1, material2, material3, material4, material5, material6, material7, material8, "
-            "tint0, tint1, tint2, tint3, tint4, tint5, tint6, "
+            "tint0, tint1, tint2, tint3, tint4, tint5, tint6 "
         "FROM character "
         "WHERE account_id = ? "
         "ORDER BY character_id ASC LIMIT 10");

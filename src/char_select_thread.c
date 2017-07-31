@@ -29,6 +29,7 @@ struct CharSelectThread {
     uint32_t            clientCount;
     uint32_t            authsAwaitingClientCount;
     uint32_t            clientsAwaitingAuthCount;
+    int                 nextQueryId;
     int                 dbId;
     int                 logId;
     CharSelectClient**  clients;
@@ -149,7 +150,7 @@ static int cs_thread_add_authed_client(CharSelectThread* cs, CharSelectClient* c
     zpacket.db.zQuery.qCSCharacterInfo.client = client;
     zpacket.db.zQuery.qCSCharacterInfo.accountId = accountId;
     
-    rc = db_queue_query(cs->dbQueue, ZOP_DB_QueryCSCharacterInfo, &zpacket);
+    rc = db_queue_query(cs->dbQueue, cs->csQueue, cs->dbId, cs->nextQueryId++, ZOP_DB_QueryCSCharacterInfo, &zpacket);
     if (rc) goto fail;
     
     csc_set_auth_data(client, accountId, sessionKey);
@@ -481,6 +482,8 @@ static void cs_thread_handle_packet(CharSelectThread* cs, ZPacket* zpacket)
     byte* data = zpacket->udp.zToServerPacket.data;
     uint16_t opcode = zpacket->udp.zToServerPacket.opcode;
     int rc = ERR_None;
+
+    printf("%04x %s\n", opcode, enum2str_char_select_opcode(opcode)); fflush(stdout);
     
     switch (opcode)
     {
@@ -779,6 +782,7 @@ CharSelectThread* cs_create(LogThread* log, RingBuf* dbQueue, int dbId, UdpThrea
     cs->clientCount = 0;
     cs->authsAwaitingClientCount = 0;
     cs->clientsAwaitingAuthCount = 0;
+    cs->nextQueryId = 1;
     cs->dbId = dbId;
     cs->clients = NULL;
     cs->authsAwaitingClient = NULL;

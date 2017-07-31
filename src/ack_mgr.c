@@ -248,7 +248,7 @@ void ack_recv_packet(UdpClient* udpc, Aligned* a, uint16_t opcode, uint16_t ackR
     diff = ackRequest - nextAck;
     
     /* Do we need to expand our array? */
-    if (diff && diff >= n)
+    if (diff >= n)
     {
         uint32_t cap = bit_pow2_greater_than_u32(diff);
         AckMgrToServerPacket* queue = realloc_array_type(ackMgr->toServer.packetQueue, cap, AckMgrToServerPacket);
@@ -318,7 +318,7 @@ void ack_recv_packet(UdpClient* udpc, Aligned* a, uint16_t opcode, uint16_t ackR
             if (frags == fragCount)
             {
                 diff += frags;
-                nextAck = ack_complete_fragments(udpc, ptr, length,i - (frags - 1), i);
+                nextAck = ack_complete_fragments(udpc, ptr, length, i - (frags - 1), i);
                 length = 0;
                 frags = 0;
             }
