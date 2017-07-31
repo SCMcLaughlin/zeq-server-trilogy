@@ -19,7 +19,7 @@
 typedef struct {
     char        names[CHAR_SELECT_MAX_CHARS][CHAR_SELECT_MAX_NAME_LENGTH];
     uint8_t     levels[CHAR_SELECT_MAX_CHARS];
-    uint8_t     classeIds[CHAR_SELECT_MAX_CHARS];
+    uint8_t     classIds[CHAR_SELECT_MAX_CHARS];
     int16_t     raceIds[CHAR_SELECT_MAX_CHARS];
     char        zoneShortNames[CHAR_SELECT_MAX_CHARS][CHAR_SELECT_MAX_ZONE_SHORTNAME_LENGTH];
     uint8_t     genderIds[CHAR_SELECT_MAX_CHARS];

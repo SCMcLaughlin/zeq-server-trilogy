@@ -154,6 +154,7 @@ static void db_thread_destruct_zpacket(DbThread* db, ZPacket* zpacket)
     switch (zop)
     {
     case ZOP_DB_QueryLoginCredentials:
+    case ZOP_DB_QueryCSCharacterInfo:
         dbr_destruct(db, zpacket, zop);
         break;
     
@@ -434,6 +435,7 @@ static void db_thread_proc(void* ptr)
                 break;
 
             case ZOP_DB_QueryLoginCredentials:
+            case ZOP_DB_QueryCSCharacterInfo:
                 db_thread_queue_query(db, &zpacket, zop, false);
                 break;
 

@@ -3,10 +3,12 @@
 #include "aligned.h"
 #include "bit.h"
 #include "char_select_client.h"
+#include "db_thread.h"
 #include "tlg_packet.h"
 #include "util_alloc.h"
 #include "util_clock.h"
 #include "util_thread.h"
+#include "zone_id.h"
 #include "zpacket.h"
 #include "char_select_packet_struct.h"
 #include "enum_char_select_opcode.h"
@@ -71,11 +73,53 @@ static bool cs_thread_drop_client(CharSelectThread* cs, CharSelectClient* client
     return true;
 }
 
-static int cs_thread_add_authed_client(CharSelectThread* cs, CharSelectClient* client)
+static bool cs_thread_is_client_valid(CharSelectThread* cs, CharSelectClient* client)
+{
+    if (client)
+    {
+        CharSelectClient** clients = cs->clients;
+        uint32_t n = cs->clientCount;
+        uint32_t i;
+        
+        for (i = 0; i < n; i++)
+        {
+            if (clients[i] == client)
+                return true;
+        }
+    }
+    
+    return false;
+}
+
+static int cs_thread_check_db_error(CharSelectThread* cs, CharSelectClient* client, ZPacket* zpacket, const char* funcName)
+{
+    if (zpacket->db.zResult.hadErrorUnprocessed)
+    {
+        log_writef(cs->logQueue, cs->logId, "WARNING: %s: database reported error, query unprocessed", funcName);
+        return ERR_Invalid;
+    }
+    
+    if (!cs_thread_is_client_valid(cs, client))
+    {
+        log_writef(cs->logQueue, cs->logId, "WARNING: %s: received result for CharSelectClient that no longer exists", funcName);
+        return ERR_Invalid;
+    }
+    
+    if (zpacket->db.zResult.hadError)
+    {
+        log_writef(cs->logQueue, cs->logId, "WARNING: %s: database reported error", funcName);
+        return ERR_Generic;
+    }
+    
+    return ERR_None;
+}
+
+static int cs_thread_add_authed_client(CharSelectThread* cs, CharSelectClient* client, int64_t accountId, const char* sessionKey)
 {
     RingBuf* udpQueue = cs->udpQueue;
     uint32_t index = cs->clientCount;
-    int rc;
+    ZPacket zpacket;
+    int rc = ERR_OutOfMemory;
     
     if (bit_is_pow2_or_zero(index))
     {
@@ -92,22 +136,27 @@ static int cs_thread_add_authed_client(CharSelectThread* cs, CharSelectClient* c
     
     /* Info the client that we have accepted them */
     rc = csc_schedule_packet(client, udpQueue, cs->packetLoginApproved);
-    if (rc) goto packet_fail;
+    if (rc) goto fail;
     
     rc = csc_schedule_packet(client, udpQueue, cs->packetEnter);
-    if (rc) goto packet_fail;
+    if (rc) goto fail;
     
     rc = csc_schedule_packet(client, udpQueue, cs->packetExpansionInfo);
-    if (rc) goto packet_fail;
+    if (rc) goto fail;
     
-    /*fixme: query the DB for client char select data*/
+    /* Query the DB for char select data */
+    zpacket.db.zQuery.qCSCharacterInfo.client = client;
+    zpacket.db.zQuery.qCSCharacterInfo.accountId = accountId;
     
-packet_fail:
-    return rc;
+    rc = db_queue_query(cs->dbQueue, ZOP_DB_QueryCSCharacterInfo, &zpacket);
+    if (rc) goto fail;
+    
+    csc_set_auth_data(client, accountId, sessionKey);
+    return ERR_None;
     
 fail:
     cs_thread_drop_client(cs, client);
-    return ERR_OutOfMemory;
+    return rc;
 }
 
 static bool cs_thread_is_auth_awaiting_client(CharSelectThread* cs, int64_t accountId, const char* sessionKey)
@@ -120,6 +169,7 @@ static bool cs_thread_is_auth_awaiting_client(CharSelectThread* cs, int64_t acco
     {
         CharSelectAuth* auth = &auths[i];
         
+        /*fixme: accountId may be limited to 7 digits, should match the truncating behavior for this check*/
         if (auth->accountId == accountId && memcmp(auth->sessionKey, sessionKey, sizeof(auth->sessionKey)) == 0)
         {
             /* Pop and swap */
@@ -184,10 +234,203 @@ static int cs_thread_handle_op_login_info(CharSelectThread* cs, CharSelectClient
     
     /* Check if this client is already authorized (highly likely) */
     if (cs_thread_is_auth_awaiting_client(cs, accountId, sessionKey))
-        return cs_thread_add_authed_client(cs, client);
+        return cs_thread_add_authed_client(cs, client, accountId, sessionKey);
     
     /* Client wasn't authorized... add it to the clientsAwaitingAuth queue */
     return cs_thread_add_client_awaiting_auth(cs, client);
+}
+
+static TlgPacket* cs_thread_write_char_info_packet(CharSelectData* data, uint32_t count)
+{
+    TlgPacket* packet = packet_create_type(OP_CS_CharacterInfo, PSCS_CharacterInfo);
+    Aligned a;
+    uint32_t i;
+    
+    if (!packet) return NULL;
+    
+    aligned_init(&a, packet_data(packet), packet_length(packet));
+    
+    /* names */
+    for (i = 0; i < count; i++)
+    {
+        aligned_write_snprintf_and_advance_by(&a, CHAR_SELECT_MAX_NAME_LENGTH, "%s", sbuf_str(data->name[i]));
+    }
+    
+    for (; i < CHAR_SELECT_MAX_CHARS; i++)
+    {
+        aligned_write_snprintf_and_advance_by(&a, CHAR_SELECT_MAX_NAME_LENGTH, "<none>");
+    }
+    
+    /* levels */
+    for (i = 0; i < count; i++)
+    {
+        aligned_write_uint8(&a, data->level[i]);
+    }
+    
+    for (; i < CHAR_SELECT_MAX_CHARS; i++)
+    {
+        aligned_write_uint8(&a, 0);
+    }
+    
+    /* classIds */
+    for (i = 0; i < count; i++)
+    {
+        aligned_write_uint8(&a, data->classId[i]);
+    }
+    
+    for (; i < CHAR_SELECT_MAX_CHARS; i++)
+    {
+        aligned_write_uint8(&a, 0);
+    }
+    
+    /* raceIds */
+    for (i = 0; i < count; i++)
+    {
+        aligned_write_int16(&a, data->raceId[i]);
+    }
+    
+    for (; i < CHAR_SELECT_MAX_CHARS; i++)
+    {
+        aligned_write_int16(&a, 0);
+    }
+    
+    /* zoneShortNames */
+    for (i = 0; i < count; i++)
+    {
+        aligned_write_snprintf_and_advance_by(&a, CHAR_SELECT_MAX_ZONE_SHORTNAME_LENGTH, "%s", zone_short_name_by_id(data->zoneId[i]));
+    }
+    
+    for (; i < CHAR_SELECT_MAX_CHARS; i++)
+    {
+        aligned_write_snprintf_and_advance_by(&a, CHAR_SELECT_MAX_ZONE_SHORTNAME_LENGTH, "qeynos");
+    }
+    
+    /* genderIds */
+    for (i = 0; i < count; i++)
+    {
+        aligned_write_uint8(&a, data->genderId[i]);
+    }
+    
+    for (; i < CHAR_SELECT_MAX_CHARS; i++)
+    {
+        aligned_write_uint8(&a, 0);
+    }
+    
+    /* faceIds */
+    for (i = 0; i < count; i++)
+    {
+        aligned_write_uint8(&a, data->faceId[i]);
+    }
+    
+    for (; i < CHAR_SELECT_MAX_CHARS; i++)
+    {
+        aligned_write_uint8(&a, 0);
+    }
+    
+    /* materialIds */
+    for (i = 0; i < count; i++)
+    {
+        aligned_write_uint8(&a, data->materialIds[i][0]);
+        aligned_write_uint8(&a, data->materialIds[i][1]);
+        aligned_write_uint8(&a, data->materialIds[i][2]);
+        aligned_write_uint8(&a, data->materialIds[i][3]);
+        aligned_write_uint8(&a, data->materialIds[i][4]);
+        aligned_write_uint8(&a, data->materialIds[i][5]);
+        aligned_write_uint8(&a, data->materialIds[i][6]);
+        aligned_write_uint8(&a, data->materialIds[i][7]);
+        aligned_write_uint8(&a, data->materialIds[i][8]);
+    }
+    
+    for (; i < CHAR_SELECT_MAX_CHARS; i++)
+    {
+        aligned_write_zeroes(&a, CHAR_SELECT_MATERIAL_COUNT);
+    }
+    
+    /* unknownA */
+    aligned_write_zeroes(&a, sizeof_field(PSCS_CharacterInfo, unknownA));
+    
+    /* materialTints */
+    for (i = 0; i < count; i++)
+    {
+        aligned_write_uint32(&a, data->materialTints[i][0]);
+        aligned_write_uint32(&a, data->materialTints[i][1]);
+        aligned_write_uint32(&a, data->materialTints[i][2]);
+        aligned_write_uint32(&a, data->materialTints[i][3]);
+        aligned_write_uint32(&a, data->materialTints[i][4]);
+        aligned_write_uint32(&a, data->materialTints[i][5]);
+        aligned_write_uint32(&a, data->materialTints[i][6]);
+        /* Weapon slots are never tinted */
+        aligned_write_uint32(&a, 0);
+        aligned_write_uint32(&a, 0);
+    }
+    
+    for (; i < CHAR_SELECT_MAX_CHARS; i++)
+    {
+        aligned_write_zeroes(&a, sizeof(uint32_t) * CHAR_SELECT_MATERIAL_COUNT);
+    }
+    
+    /* unknownB */
+    aligned_write_zeroes(&a, sizeof_field(PSCS_CharacterInfo, unknownB));
+    
+    /*
+        The weird fields:
+        We need to set these (probably not exactly as below, but close enough) to be able
+        to tell which character slot is being referred to when the client asks for which
+        weapon models to display in the characters' hands, via WearChange requests.
+    */
+    
+    /* weirdA */
+    for (i = 0; i < CHAR_SELECT_MAX_CHARS; i++)
+    {
+        aligned_write_uint32(&a, i);
+    }
+    
+    /* weirdB */
+    for (i = 0; i < CHAR_SELECT_MAX_CHARS; i++)
+    {
+        aligned_write_uint32(&a, i);
+    }
+    
+    /* unknownC */
+    aligned_write_zeroes(&a, sizeof_field(PSCS_CharacterInfo, unknownC));
+    
+    return packet;
+}
+
+static void cs_thread_handle_db_character_info(CharSelectThread* cs, ZPacket* zpacket)
+{
+    CharSelectClient* client = (CharSelectClient*)zpacket->db.zResult.rCSCharacterInfo.client;
+    CharSelectData* data = zpacket->db.zResult.rCSCharacterInfo.data;
+    TlgPacket* packet;
+    int rc;
+    
+    switch (cs_thread_check_db_error(cs, client, zpacket, FUNC_NAME))
+    {
+    case ERR_Invalid:
+        goto free_data;
+    
+    case ERR_Generic:
+        goto drop_client;
+    
+    case ERR_None:
+        break;
+    }
+    
+    if (!csc_is_authed(client))
+        goto drop_client;
+    
+    packet = cs_thread_write_char_info_packet(data, zpacket->db.zResult.rCSCharacterInfo.count);
+    if (!packet) goto drop_client;
+    
+    rc = csc_schedule_packet(client, cs->udpQueue, packet);
+    if (rc) goto drop_client;
+    
+    goto free_data;
+    
+drop_client:
+    cs_thread_drop_client(cs, client);
+free_data:
+    if (data) free(data);
 }
 
 static int cs_thread_handle_op_echo(CharSelectThread* cs, CharSelectClient* client, uint16_t opcode)
@@ -275,7 +518,7 @@ static void cs_thread_handle_login_auth(CharSelectThread* cs, ZPacket* zpacket)
         
         if (csc_check_auth(client, accountId, sessionKey))
         {
-            cs_thread_add_authed_client(cs, client);
+            cs_thread_add_authed_client(cs, client, accountId, sessionKey);
             
             /* Pop and swap */
             count--;
@@ -452,6 +695,10 @@ static void cs_thread_proc(void* ptr)
         
         case ZOP_CS_CheckAuthTimeouts:
             cs_thread_check_auth_timeouts(cs);
+            break;
+        
+        case ZOP_DB_QueryCSCharacterInfo:
+            cs_thread_handle_db_character_info(cs, &zpacket);
             break;
         
         default:

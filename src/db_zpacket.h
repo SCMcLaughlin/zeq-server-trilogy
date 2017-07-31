@@ -4,10 +4,13 @@
 
 #include "define.h"
 #include "buffer.h"
+#include "char_select_data.h"
 #include "ringbuf.h"
 #include "login_crypto.h"
 
-/* Query structs */
+/* == Query structs == */
+
+/* LoginThread */
 
 typedef struct  {
     void*           client;
@@ -21,6 +24,13 @@ typedef struct {
     byte            salt[LOGIN_CRYPTO_SALT_SIZE];
 } DBQ_LoginNewAccount;
 
+/* CharSelectThread */
+
+typedef struct {
+    void*       client;
+    int64_t     accountId;
+} DBQ_CSCharacterInfo;
+
 typedef struct {
     int         dbId;
     int         queryId;    /* User-supplied tracking value, not used internally by the DB system */
@@ -29,10 +39,13 @@ typedef struct {
     union {
         DBQ_LoginCredentials    qLoginCredentials;
         DBQ_LoginNewAccount     qLoginNewAccount;
+        DBQ_CSCharacterInfo     qCSCharacterInfo;
     };
 } DB_ZQuery;
 
-/* Result structs */
+/* == Result structs == */
+
+/* LoginThread */
 
 typedef struct {
     void*   client;
@@ -48,6 +61,14 @@ typedef struct {
     int64_t acctId;
 } DBR_LoginNewAccount;
 
+/* CharSelectThread */
+
+typedef struct {
+    uint32_t        count;
+    void*           client;
+    CharSelectData* data;
+} DBR_CSCharacterInfo;
+
 typedef struct {
     int         queryId;    /* User-supplied tracking value, not used internally by the DB system */
     bool        hadError;
@@ -55,6 +76,7 @@ typedef struct {
     union {
         DBR_LoginCredentials    rLoginCredentials;
         DBR_LoginNewAccount     rLoginNewAccount;
+        DBR_CSCharacterInfo     rCSCharacterInfo;
     };
 } DB_ZResult;
 

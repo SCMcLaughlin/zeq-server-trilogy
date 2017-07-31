@@ -26,6 +26,7 @@ enum ZOP
     ZOP_DB_CloseDatabase,
     ZOP_DB_QueryLoginCredentials,
     ZOP_DB_QueryLoginNewAccount,
+    ZOP_DB_QueryCSCharacterInfo,
     /* Login thread */
     ZOP_LOGIN_TerminateThread,
     ZOP_LOGIN_NewServer,

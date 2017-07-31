@@ -45,7 +45,8 @@ _OBJECTS=               \
  util_semaphore_posix   \
  util_socket_lib        \
  util_str               \
- util_thread_posix
+ util_thread_posix      \
+ zone_id
 
 OBJECTS= $(patsubst %,build/%.o,$(_OBJECTS))
 
