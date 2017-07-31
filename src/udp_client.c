@@ -83,7 +83,11 @@ void udpc_recv_packet(UdpClient* udpc, Aligned* a, uint16_t opcode)
 {
     Aligned w;
     byte* data;
-    uint32_t length = aligned_remaining_data(a);
+    uint32_t length;
+
+    if (opcode == 0) return;
+
+    length = aligned_remaining_data(a);
     
     if (length)
     {

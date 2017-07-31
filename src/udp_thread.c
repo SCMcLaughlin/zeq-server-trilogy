@@ -17,6 +17,7 @@
 enum UdpClientFlag
 {
     UDP_FLAG_ReadyToSend,
+    UDP_FLAG_IgnorePackets,
     UDP_FLAG_Dead,
 };
 
@@ -163,7 +164,8 @@ static void udp_thread_handle_drop_client(UdpThread* udp, ZPacket* cmd)
     
     if (client)
     {
-        bit_set(udp->clientFlags[index], UDP_FLAG_Dead);
+        bit_set(udp->clientFlags[index], UDP_FLAG_IgnorePackets);
+        //bit_set(udp->clientFlags[index], UDP_FLAG_Dead);
     }
 }
 
@@ -295,6 +297,7 @@ static void udp_thread_process_socket_reads(UdpThread* udp)
     IpAddrRaw raddr;
     socklen_t addrlen = sizeof(IpAddrRaw);
     UdpSocket* sockets = udp->sockets;
+    uint8_t* clientFlags = udp->clientFlags;
     byte* buffer = udp->recvBuffer;
     uint32_t n = udp->sockCount;
     uint32_t i;
@@ -315,7 +318,7 @@ static void udp_thread_process_socket_reads(UdpThread* udp)
             {
             #ifdef PLATFORM_WINDOWS
                 int err = WSAGetLastError();
-                if (err != WSAEWOULDBLOCK)
+                if (err != WSAEWOULDBLOCK && err != WSAECONNRESET)
             #else
                 int err = errno;
                 if (err != EAGAIN && err != EWOULDBLOCK)
@@ -339,9 +342,11 @@ static void udp_thread_process_socket_reads(UdpThread* udp)
             
             if (client)
             {
-                if (udpc_recv_protocol(client, buffer, (uint32_t)len, false))
+                udp->clientRecvTimestamps[cliIndex] = clock_milliseconds();
+
+                if (!bit_get(clientFlags[cliIndex], UDP_FLAG_IgnorePackets))
                 {
-                    udp->clientRecvTimestamps[cliIndex] = clock_milliseconds();
+                    udpc_recv_protocol(client, buffer, (uint32_t)len, false);
                 }
                 
                 continue;
