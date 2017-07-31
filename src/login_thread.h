@@ -8,7 +8,7 @@
 
 typedef struct LoginThread LoginThread;
 
-LoginThread* login_create(LogThread* log, RingBuf* dbQueue, int dbId, RingBuf* udpQueue);
+LoginThread* login_create(LogThread* log, RingBuf* dbQueue, int dbId, RingBuf* udpQueue, RingBuf* csQueue);
 LoginThread* login_destroy(LoginThread* login);
 
 RingBuf* login_get_queue(LoginThread* login);

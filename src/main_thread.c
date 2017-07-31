@@ -1,11 +1,13 @@
 
 #include "main_thread.h"
+#include "char_select_thread.h"
 #include "db_thread.h"
 #include "log_thread.h"
 #include "login_thread.h"
 #include "login_client.h"
-#include "udp_thread.h"
 #include "ringbuf.h"
+#include "timer.h"
+#include "udp_thread.h"
 #include "util_alloc.h"
 #include "util_clock.h"
 #include "zpacket.h"
@@ -14,16 +16,19 @@
 #define MAIN_THREAD_LOG_PATH "log/main_thread.txt"
 
 struct MainThread {
-    DbThread*       db;
-    LogThread*      log;
-    UdpThread*      udp;
-    LoginThread*    login;
-    RingBuf*        mainQueue;
-    RingBuf*        logQueue;
-    RingBuf*        dbQueue;
-    int             dbId;
-    int             logId;
-    int             loginServerId;
+    DbThread*           db;
+    LogThread*          log;
+    UdpThread*          udp;
+    LoginThread*        login;
+    CharSelectThread*   cs;
+    TimerPool           timerPool;
+    RingBuf*            mainQueue;
+    RingBuf*            logQueue;
+    RingBuf*            dbQueue;
+    Timer*              timerCSAuthTimeouts; /*fixme: start this and make the callback*/
+    int                 dbId;
+    int                 logId;
+    int                 loginServerId;
 };
 
 MainThread* mt_create()
@@ -38,6 +43,9 @@ MainThread* mt_create()
     }
 
     memset(mt, 0, sizeof(MainThread));
+    
+    timer_pool_init(&mt->timerPool);
+    
     mt->mainQueue = ringbuf_create_type(ZPacket, 1024);
     if (!mt->mainQueue)
     {
@@ -82,6 +90,13 @@ MainThread* mt_create()
         fprintf(stderr, "mt_create: failed to create UdpThread object\n");
         goto fail;
     }
+    
+    mt->cs = cs_create(mt->log, mt->dbQueue, mt->dbId, mt->udp);
+    if (!mt->cs)
+    {
+        fprintf(stderr, "mt_create: failed to create CharSelectThread object\n");
+        goto fail;
+    }
 
     return mt;
 
@@ -114,6 +129,7 @@ MainThread* mt_destroy(MainThread* mt)
         }
 
         mt->mainQueue = ringbuf_destroy(mt->mainQueue);
+        timer_pool_deinit(&mt->timerPool);
         free(mt);
     }
 
@@ -126,7 +142,7 @@ void mt_main_loop(MainThread* mt)
 {
     int rc;
     
-    mt->login = login_create(mt->log, mt->dbQueue, mt->dbId, udp_get_queue(mt->udp));
+    mt->login = login_create(mt->log, mt->dbQueue, mt->dbId, udp_get_queue(mt->udp), cs_get_queue(mt->cs));
     if (!mt->login)
     {
         fprintf(stderr, "login_create() failed\n");

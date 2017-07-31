@@ -91,6 +91,7 @@ static void log_thread_write(LogThread* log, LogMsg* packet)
         }
 
         fputc('\n', fp);
+        fflush(fp);
         file->bytes += written;
         break;
     }

@@ -34,6 +34,8 @@ enum ZOP
     ZOP_LOGIN_UpdateServerStatus,
     /* CharSelect thread */
     ZOP_CS_TerminateThread,
+    ZOP_CS_LoginAuth,
+    ZOP_CS_CheckAuthTimeouts,
     ZOP_COUNT
 };
 

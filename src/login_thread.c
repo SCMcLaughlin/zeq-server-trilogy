@@ -64,6 +64,7 @@ struct LoginThread {
     StaticBuffer*       loopbackAddr;
     RingBuf*            loginQueue;
     RingBuf*            udpQueue;
+    RingBuf*            csQueue;
     RingBuf*            dbQueue;
     RingBuf*            logQueue;
     /* Cached packets that are more or less static for all clients */
@@ -143,7 +144,7 @@ static bool login_thread_is_client_valid(LoginThread* login, LoginClient* loginc
     return false;
 }
 
-static LoginClient* login_thread_remove_client_object(LoginThread* login, LoginClient* loginc)
+static void login_thread_remove_client_object(LoginThread* login, LoginClient* loginc)
 {
     if (loginc)
     {
@@ -165,8 +166,6 @@ static LoginClient* login_thread_remove_client_object(LoginThread* login, LoginC
         login->clientCount = n;
         loginc_destroy(loginc);
     }
-    
-    return NULL;
 }
 
 static bool login_thread_drop_client(LoginThread* login, LoginClient* loginc)
@@ -536,9 +535,11 @@ static int login_thread_handle_op_server_status_request(LoginThread* login, Logi
 
 static int login_thread_handle_op_session_key(LoginThread* login, LoginClient* loginc)
 {
+    ZPacket zpacket;
     const char* sessionKey;
     TlgPacket* packet;
     Aligned a;
+    int rc;
     
     if (!loginc_is_authorized(loginc))
         return ERR_Invalid;
@@ -557,7 +558,12 @@ static int login_thread_handle_op_session_key(LoginThread* login, LoginClient* l
     /* sessionKey */
     aligned_write_buffer(&a, sessionKey, sizeof_field(PSLogin_SessionKey, sessionKey));
     
-    /*fixme: inform the MainThread about this login with this session key */
+    /* Inform the CharSelectThread about this login with this accountId and sessionKey */
+    zpacket.cs.zLoginAuth.accountId = loginc_get_account_id(loginc);
+    memcpy(zpacket.cs.zLoginAuth.sessionKey, sessionKey, sizeof_field(PSLogin_SessionKey, sessionKey));
+    
+    rc = ringbuf_push(login->csQueue, ZOP_CS_LoginAuth, &zpacket);
+    if (rc) return rc;
     
     return loginc_schedule_packet(loginc, login->udpQueue, packet);
 }
@@ -737,7 +743,7 @@ fail:
     return ERR_OutOfMemory;
 }
 
-LoginThread* login_create(LogThread* log, RingBuf* dbQueue, int dbId, RingBuf* udpQueue)
+LoginThread* login_create(LogThread* log, RingBuf* dbQueue, int dbId, RingBuf* udpQueue, RingBuf* csQueue)
 {
     LoginThread* login = alloc_type(LoginThread);
     int rc;
@@ -756,6 +762,7 @@ LoginThread* login_create(LogThread* log, RingBuf* dbQueue, int dbId, RingBuf* u
     login->loopbackAddr = NULL;
     login->loginQueue = NULL;
     login->udpQueue = udpQueue;
+    login->csQueue = csQueue;
     login->dbQueue = dbQueue;
     login->logQueue = log_get_queue(log);
 

@@ -20,4 +20,6 @@ IpAddr csc_get_ip_addr(CharSelectClient* csc);
 uint32_t csc_get_ip(CharSelectClient* csc);
 uint16_t csc_get_port(CharSelectClient* csc);
 
+bool csc_check_auth(CharSelectClient* csc, int64_t accountId, const char* sessionKey);
+
 #endif/*CHAR_SELECT_CLIENT_H*/

@@ -86,6 +86,8 @@ const char* enum2str_zop(int e)
     case ZOP_LOGIN_UpdateServerPlayerCount: ret = "ZOP_LOGIN_UpdateServerPlayerCount"; break;
     case ZOP_LOGIN_UpdateServerStatus: ret = "ZOP_LOGIN_UpdateServerStatus"; break;
     case ZOP_CS_TerminateThread: ret = "ZOP_CS_TerminateThread"; break;
+    case ZOP_CS_LoginAuth: ret = "ZOP_CS_LoginAuth"; break;
+    case ZOP_CS_CheckAuthTimeouts: ret = "ZOP_CS_CheckAuthTimeouts"; break;
     case ZOP_COUNT: ret = "ZOP_COUNT"; break;
     default: ret = "UNKNOWN"; break;
     }

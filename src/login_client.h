@@ -24,6 +24,7 @@ int loginc_handle_op_banner(LoginClient* loginc, RingBuf* toClientQueue, TlgPack
 IpAddr loginc_get_ip_addr(LoginClient* loginc);
 uint32_t loginc_get_ip(LoginClient* loginc);
 uint16_t loginc_get_port(LoginClient* loginc);
+int64_t loginc_get_account_id(LoginClient* loginc);
 bool loginc_is_authorized(LoginClient* loginc);
 bool loginc_is_local(LoginClient* loginc);
 int loginc_account_status(LoginClient* loginc);

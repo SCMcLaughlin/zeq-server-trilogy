@@ -222,6 +222,11 @@ uint16_t loginc_get_port(LoginClient* loginc)
     return loginc->ipAddress.port;
 }
 
+int64_t loginc_get_account_id(LoginClient* loginc)
+{
+    return loginc->accountId;
+}
+
 bool loginc_is_authorized(LoginClient* loginc)
 {
     return loginc->authState == LOGIN_AUTH_Authorized;
