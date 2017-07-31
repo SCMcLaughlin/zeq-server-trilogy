@@ -401,6 +401,7 @@ static void cs_thread_handle_db_character_info(CharSelectThread* cs, ZPacket* zp
 {
     CharSelectClient* client = (CharSelectClient*)zpacket->db.zResult.rCSCharacterInfo.client;
     CharSelectData* data = zpacket->db.zResult.rCSCharacterInfo.data;
+    uint32_t count = zpacket->db.zResult.rCSCharacterInfo.count;
     TlgPacket* packet;
     int rc;
     
@@ -419,7 +420,7 @@ static void cs_thread_handle_db_character_info(CharSelectThread* cs, ZPacket* zp
     if (!csc_is_authed(client))
         goto drop_client;
     
-    packet = cs_thread_write_char_info_packet(data, zpacket->db.zResult.rCSCharacterInfo.count);
+    packet = cs_thread_write_char_info_packet(data, count);
     if (!packet) goto drop_client;
     
     rc = csc_schedule_packet(client, cs->udpQueue, packet);
@@ -430,7 +431,17 @@ static void cs_thread_handle_db_character_info(CharSelectThread* cs, ZPacket* zp
 drop_client:
     cs_thread_drop_client(cs, client);
 free_data:
-    if (data) free(data);
+    if (data)
+    {
+        uint32_t i;
+        
+        for (i = 0; i < count; i++)
+        {
+            data->name[i] = sbuf_drop(data->name[i]);
+        }
+        
+        free(data);
+    }
 }
 
 static int cs_thread_handle_op_echo(CharSelectThread* cs, CharSelectClient* client, uint16_t opcode)

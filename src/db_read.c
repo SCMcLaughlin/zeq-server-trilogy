@@ -96,6 +96,7 @@ static void dbr_cs_character_info(DbThread* db, sqlite3* sqlite, ZPacket* zpacke
     {
         CharSelectData* data = alloc_type(CharSelectData);
         uint32_t index = 0;
+        uint32_t i;
         
         if (!data) goto done;
         
@@ -147,6 +148,11 @@ static void dbr_cs_character_info(DbThread* db, sqlite3* sqlite, ZPacket* zpacke
             
             case SQLITE_ERROR:
             error:
+                for (i = 0; i < 10; i++)
+                {
+                    data->name[i] = sbuf_drop(data->name[i]);
+                }
+                
                 free(data);
                 goto done;
             }
