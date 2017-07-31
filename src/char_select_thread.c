@@ -11,6 +11,7 @@
 #include "zone_id.h"
 #include "zpacket.h"
 #include "char_select_packet_struct.h"
+#include "player_profile_packet_struct.h"
 #include "enum_char_select_opcode.h"
 #include "enum_zop.h"
 #include "enum2str.h"
