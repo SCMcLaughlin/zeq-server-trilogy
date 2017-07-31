@@ -3,6 +3,7 @@
 #define LOGIN_THREAD_H
 
 #include "define.h"
+#include "ringbuf.h"
 #include "log_thread.h"
 
 typedef struct LoginThread LoginThread;

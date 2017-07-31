@@ -4,6 +4,7 @@
 #include "enum_account_status.h"
 #include "enum_login_opcode.h"
 #include "enum_zop.h"
+#include "enum_char_select_opcode.h"
 #include "enum_err.h"
 #include "enum_login_server_status.h"
 
@@ -79,11 +80,37 @@ const char* enum2str_zop(int e)
     case ZOP_DB_CloseDatabase: ret = "ZOP_DB_CloseDatabase"; break;
     case ZOP_DB_QueryLoginCredentials: ret = "ZOP_DB_QueryLoginCredentials"; break;
     case ZOP_DB_QueryLoginNewAccount: ret = "ZOP_DB_QueryLoginNewAccount"; break;
+    case ZOP_LOGIN_TerminateThread: ret = "ZOP_LOGIN_TerminateThread"; break;
     case ZOP_LOGIN_NewServer: ret = "ZOP_LOGIN_NewServer"; break;
     case ZOP_LOGIN_RemoveServer: ret = "ZOP_LOGIN_RemoveServer"; break;
     case ZOP_LOGIN_UpdateServerPlayerCount: ret = "ZOP_LOGIN_UpdateServerPlayerCount"; break;
     case ZOP_LOGIN_UpdateServerStatus: ret = "ZOP_LOGIN_UpdateServerStatus"; break;
+    case ZOP_CS_TerminateThread: ret = "ZOP_CS_TerminateThread"; break;
     case ZOP_COUNT: ret = "ZOP_COUNT"; break;
+    default: ret = "UNKNOWN"; break;
+    }
+    return ret;
+}
+
+const char* enum2str_char_select_opcode(int e)
+{
+    const char* ret;
+    switch (e)
+    {
+    case OP_CS_LoginInfo: ret = "OP_CS_LoginInfo"; break;
+    case OP_CS_LoginApproved: ret = "OP_CS_LoginApproved"; break;
+    case OP_CS_Enter: ret = "OP_CS_Enter"; break;
+    case OP_CS_ExpansionInfo: ret = "OP_CS_ExpansionInfo"; break;
+    case OP_CS_CharacterInfo: ret = "OP_CS_CharacterInfo"; break;
+    case OP_CS_GuildList: ret = "OP_CS_GuildList"; break;
+    case OP_CS_NameApproval: ret = "OP_CS_NameApproval"; break;
+    case OP_CS_CreateCharacter: ret = "OP_CS_CreateCharacter"; break;
+    case OP_CS_DeleteCharacter: ret = "OP_CS_DeleteCharacter"; break;
+    case OP_CS_WearChange: ret = "OP_CS_WearChange"; break;
+    case OP_CS_ZoneUnavailable: ret = "OP_CS_ZoneUnavailable"; break;
+    case OP_CS_MessageOfTheDay: ret = "OP_CS_MessageOfTheDay"; break;
+    case OP_CS_TimeOfDay: ret = "OP_CS_TimeOfDay"; break;
+    case OP_CS_ZoneAddress: ret = "OP_CS_ZoneAddress"; break;
     default: ret = "UNKNOWN"; break;
     }
     return ret;

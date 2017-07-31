@@ -5,7 +5,6 @@
 #include "bit.h"
 #include "buffer.h"
 #include "db_thread.h"
-#include "ringbuf.h"
 #include "login_client.h"
 #include "login_crypto.h"
 #include "login_packet_struct.h"
@@ -633,7 +632,7 @@ static void login_thread_proc(void* ptr)
         
         if (rc)
         {
-            log_writef(login->logQueue, login->logId, "login_thread_proc: ringbuf_wait_for_packet() returned errcode: %i", rc);
+            log_writef(login->logQueue, login->logId, "login_thread_proc: ringbuf_wait_for_packet() returned error: %s", enum2str_err(rc));
             break;
         }
         
@@ -661,6 +660,9 @@ static void login_thread_proc(void* ptr)
         case ZOP_DB_QueryLoginNewAccount:
             login_thread_handle_db_new_account(login, &zpacket);
             break;
+        
+        case ZOP_LOGIN_TerminateThread:
+            return;
         
         case ZOP_LOGIN_NewServer:
             login_thread_handle_new_server(login, &zpacket);
@@ -840,6 +842,8 @@ LoginThread* login_destroy(LoginThread* login)
         
         login->bannerMsg = sbuf_drop(login->bannerMsg);
         login->loopbackAddr = sbuf_drop(login->loopbackAddr);
+        
+        login->loginQueue = ringbuf_destroy(login->loginQueue);
 
         login->packetVersion = packet_drop(login->packetVersion);
         login->packetBanner = packet_drop(login->packetBanner);
