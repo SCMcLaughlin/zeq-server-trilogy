@@ -257,7 +257,7 @@ void ack_recv_packet(UdpClient* udpc, Aligned* a, uint16_t opcode, uint16_t ackR
         
         ackMgr->toServer.packetQueue = queue;
         ackMgr->toServer.count = cap;
-        memset(&ackMgr->toServer.packetQueue[n], 0, sizeof(AckMgrToServerPacket) * (diff - n));
+        memset(&ackMgr->toServer.packetQueue[n], 0, sizeof(AckMgrToServerPacket) * (cap - n));
     }
     
     ptr = &ackMgr->toServer.packetQueue[diff];
