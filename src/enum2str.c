@@ -111,6 +111,11 @@ const char* enum2str_char_select_opcode(int e)
     case OP_CS_MessageOfTheDay: ret = "OP_CS_MessageOfTheDay"; break;
     case OP_CS_TimeOfDay: ret = "OP_CS_TimeOfDay"; break;
     case OP_CS_ZoneAddress: ret = "OP_CS_ZoneAddress"; break;
+    case OP_CS_Echo1: ret = "OP_CS_Echo1"; break;
+    case OP_CS_Echo2: ret = "OP_CS_Echo2"; break;
+    case OP_CS_Echo3: ret = "OP_CS_Echo3"; break;
+    case OP_CS_Echo4: ret = "OP_CS_Echo4"; break;
+    case OP_CS_Echo5: ret = "OP_CS_Echo5"; break;
     default: ret = "UNKNOWN"; break;
     }
     return ret;

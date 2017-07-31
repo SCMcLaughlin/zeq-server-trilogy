@@ -21,6 +21,12 @@ enum CharSelectOpcode
     OP_CS_MessageOfTheDay   = 0x21dd,
     OP_CS_TimeOfDay         = 0x20f2,
     OP_CS_ZoneAddress       = 0x8004,
+    /* Special, zero-length packets that need to be echoed for whatever reason */
+    OP_CS_Echo1             = 0x2023,
+    OP_CS_Echo2             = 0x80a9,
+    OP_CS_Echo3             = 0xab00,
+    OP_CS_Echo4             = 0xac00,
+    OP_CS_Echo5             = 0xad00,
 };
 
 #endif/*ENUM_CHAR_SELECT_OPCODE_H*/

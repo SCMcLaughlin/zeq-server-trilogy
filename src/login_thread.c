@@ -608,7 +608,7 @@ static void login_thread_handle_packet(LoginThread* login, ZPacket* zpacket)
         uint32_t ip = loginc_get_ip(loginc);
         uint16_t port = loginc_get_port(loginc);
         
-        log_writef(login->logQueue, login->logId, "login_thread_handle_packet: got errcode %s while processing packet with opcode %s from client from %u.%u.%u.%u:%u, disconnecting them to maintain consistency",
+        log_writef(login->logQueue, login->logId, "login_thread_handle_packet: got error %s while processing packet with opcode %s from client from %u.%u.%u.%u:%u, disconnecting them to maintain consistency",
             enum2str_err(rc), enum2str_login_opcode(zpacket->udp.zToServerPacket.opcode), (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, port);
         
         login_thread_drop_client(login, loginc);

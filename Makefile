@@ -20,6 +20,7 @@ _OBJECTS=               \
  aligned                \
  bit                    \
  buffer                 \
+ char_select_client     \
  char_select_thread     \
  crc                    \
  db_read                \
