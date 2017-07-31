@@ -87,7 +87,7 @@ typedef struct {
     float                   x;                                                                                          \
     float                   z;                                                                                          \
     float                   heading;                                                                                    \
-    char                    zoneShortName[32];                                                                          \
+    char                    zoneShortName[ZEQ_PP_MAX_ZONE_SHORT_NAME_LENGTH];                                           \
     uint32_t                unknownEDefault100;   /* Breath or something? */                                            \
     PS_Coin                 coins;                                                                                      \
     PS_Coin                 coinsBank;                                                                                  \
