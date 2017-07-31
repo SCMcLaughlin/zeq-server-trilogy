@@ -25,6 +25,8 @@ end
 
 if not needUpdate then return end
 
+table.sort(filenames)
+
 local funcProtos = {}
 local funcImpls = {}
 local includes = {}
