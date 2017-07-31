@@ -127,13 +127,13 @@ static void dbr_cs_character_info(DbThread* db, sqlite3* sqlite, ZPacket* zpacke
                 data->materialIds[index][7] = db_fetch_int(stmt, 14);
                 data->materialIds[index][8] = db_fetch_int(stmt, 15);
             
-                data->materialTints[index][0] = db_fetch_int64(stmt, 16);
-                data->materialTints[index][1] = db_fetch_int64(stmt, 17);
-                data->materialTints[index][2] = db_fetch_int64(stmt, 18);
-                data->materialTints[index][3] = db_fetch_int64(stmt, 19);
-                data->materialTints[index][4] = db_fetch_int64(stmt, 20);
-                data->materialTints[index][5] = db_fetch_int64(stmt, 21);
-                data->materialTints[index][6] = db_fetch_int64(stmt, 22);
+                data->materialTints[index][0] = (uint32_t)db_fetch_int64(stmt, 16);
+                data->materialTints[index][1] = (uint32_t)db_fetch_int64(stmt, 17);
+                data->materialTints[index][2] = (uint32_t)db_fetch_int64(stmt, 18);
+                data->materialTints[index][3] = (uint32_t)db_fetch_int64(stmt, 19);
+                data->materialTints[index][4] = (uint32_t)db_fetch_int64(stmt, 20);
+                data->materialTints[index][5] = (uint32_t)db_fetch_int64(stmt, 21);
+                data->materialTints[index][6] = (uint32_t)db_fetch_int64(stmt, 22);
             
                 if (!data->name[index]) goto error;
                 

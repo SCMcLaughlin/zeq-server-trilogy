@@ -447,7 +447,7 @@ free_data:
 
 static int cs_thread_handle_op_echo(CharSelectThread* cs, CharSelectClient* client, uint16_t opcode)
 {
-    TlgPacket* packet;
+    TlgPacket* packet = NULL;
     
     switch (opcode)
     {

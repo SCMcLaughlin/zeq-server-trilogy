@@ -35,12 +35,12 @@ struct LogThread {
     atomic8_t   isThreadShutDown;
 };
 
-static uint32_t log_thread_write_timestamp(FILE* fp)
+static size_t log_thread_write_timestamp(FILE* fp)
 {
     char buf[256];
     time_t rawTime;
     struct tm* curTime;
-    int len;
+    size_t len;
     
     rawTime = time(NULL);
     
@@ -92,7 +92,7 @@ static void log_thread_write(LogThread* log, LogMsg* packet)
 
         fputc('\n', fp);
         fflush(fp);
-        file->bytes += written;
+        file->bytes += (uint32_t)written;
         break;
     }
 
@@ -106,7 +106,7 @@ static void log_thread_open_file(LogThread* log, LogMsg* packet)
     FILE* fp = fopen(sbuf_str(sbuf), "ab");
     LogFile* cur;
     uint32_t index;
-    uint32_t written;
+    size_t written;
 
     if (!fp) goto failure;
 
@@ -133,7 +133,7 @@ static void log_thread_open_file(LogThread* log, LogMsg* packet)
     written += log_thread_write_timestamp(fp);
     written += fwrite_literal(fp, "::: Opened Log :::\n");
     
-    cur->bytes = written;
+    cur->bytes = (uint32_t)written;
 
 failure:
     if (sbuf) sbuf_drop(sbuf);
@@ -327,9 +327,9 @@ static int log_write_op(RingBuf* logQueue, int zop, int logId, const char* msg, 
     if (msg)
     {
         if (len < 0)
-            len = strlen(msg);
+            len = (int)strlen(msg);
 
-        sbuf = sbuf_create(msg, len);
+        sbuf = sbuf_create(msg, (uint32_t)len);
         if (!sbuf) return ERR_OutOfMemory;
     }
 

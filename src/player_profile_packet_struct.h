@@ -54,9 +54,9 @@ typedef struct {
 #define PP_FIELDS                                                                                                       \
     char                    name[ZEQ_PP_MAX_NAME_LENGTH];                                                               \
     char                    surname[ZEQ_PP_MAX_SURNAME_LENGTH];                                                         \
-    uint16_t                gender;                                                                                     \
-    uint16_t                race;                                                                                       \
-    uint16_t                class;                                                                                      \
+    uint16_t                genderId;                                                                                   \
+    uint16_t                raceId;                                                                                     \
+    uint16_t                classId;                                                                                    \
     uint32_t                level;                                                                                      \
     uint32_t                experience;                                                                                 \
     uint16_t                trainingPoints;                                                                             \

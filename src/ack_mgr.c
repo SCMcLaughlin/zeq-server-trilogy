@@ -201,7 +201,7 @@ static uint16_t ack_complete_packet(UdpClient* udpc, AckMgrToServerPacket* packe
 
 static uint16_t ack_complete_fragments(UdpClient* udpc, AckMgrToServerPacket* array, uint32_t length, uint32_t i, uint32_t n)
 {
-    AckMgrToServerPacket* packet;
+    AckMgrToServerPacket* packet = NULL;
     Aligned a;
     uint16_t opcode = array[i].opcode;
     byte* data = alloc_bytes(length);

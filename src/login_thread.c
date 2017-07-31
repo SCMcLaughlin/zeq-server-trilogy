@@ -889,9 +889,9 @@ int login_add_server(LoginThread* login, int* outServerId, const char* name, con
     zpacket.login.zNewServer.isLocal = isLocal;
     zpacket.login.zNewServer.serverId = serverId;
     
-    zpacket.login.zNewServer.serverName = sbuf_create(name, strlen(name));
-    zpacket.login.zNewServer.remoteIpAddr = (remoteIp) ? sbuf_create(remoteIp, strlen(remoteIp)) : login->loopbackAddr;
-    zpacket.login.zNewServer.localIpAddr = (localIp) ? sbuf_create(localIp, strlen(localIp)) : login->loopbackAddr;
+    zpacket.login.zNewServer.serverName = sbuf_create(name, (uint32_t)strlen(name));
+    zpacket.login.zNewServer.remoteIpAddr = (remoteIp) ? sbuf_create(remoteIp, (uint32_t)strlen(remoteIp)) : login->loopbackAddr;
+    zpacket.login.zNewServer.localIpAddr = (localIp) ? sbuf_create(localIp, (uint32_t)strlen(localIp)) : login->loopbackAddr;
     
     sbuf_grab(zpacket.login.zNewServer.serverName);
     sbuf_grab(zpacket.login.zNewServer.remoteIpAddr);

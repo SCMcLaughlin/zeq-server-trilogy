@@ -81,21 +81,34 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>ZEQ_UDP_DUMP_PACKETS;ZEQ_LOG_DUMP_ALL_TO_STDOUT;_CRT_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <CompileAs>CompileAsCpp</CompileAs>
       <AdditionalIncludeDirectories>win32;win32\openssl;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>libeay32.lib;ssleay32.lib;ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>sqlite3.lib;libeay32.lib;ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>win32;</AdditionalLibraryDirectories>
     </Link>
+    <PreBuildEvent>
+      <Command>luajit codegen/enum2str.lua</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>win32;win32\openssl;</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
+    <PreBuildEvent>
+      <Command>luajit codegen/enum2str.lua</Command>
+    </PreBuildEvent>
+    <Link>
+      <AdditionalLibraryDirectories>win32;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>sqlite3.lib;libeay32.lib;ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -111,9 +124,12 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>libeay32.lib;ssleay32.lib;ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>sqlite3.lib;libeay32.lib;ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>win32;</AdditionalLibraryDirectories>
     </Link>
+    <PreBuildEvent>
+      <Command>luajit codegen/enum2str.lua</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -122,32 +138,57 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>win32;win32\openssl;</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>win32;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>sqlite3.lib;libeay32.lib;ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>luajit codegen/enum2str.lua</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\ack_mgr.h" />
     <ClInclude Include="src\aligned.h" />
     <ClInclude Include="src\bit.h" />
     <ClInclude Include="src\buffer.h" />
+    <ClInclude Include="src\char_select_client.h" />
+    <ClInclude Include="src\char_select_data.h" />
+    <ClInclude Include="src\char_select_packet_struct.h" />
+    <ClInclude Include="src\char_select_thread.h" />
+    <ClInclude Include="src\char_select_zpacket.h" />
     <ClInclude Include="src\crc.h" />
+    <ClInclude Include="src\db_read.h" />
     <ClInclude Include="src\db_thread.h" />
+    <ClInclude Include="src\db_write.h" />
     <ClInclude Include="src\db_zpacket.h" />
     <ClInclude Include="src\define.h" />
     <ClInclude Include="src\define_netcode.h" />
+    <ClInclude Include="src\enum2str.h" />
+    <ClInclude Include="src\enum_account_status.h" />
+    <ClInclude Include="src\enum_char_select_opcode.h" />
     <ClInclude Include="src\enum_err.h" />
+    <ClInclude Include="src\enum_login_opcode.h" />
     <ClInclude Include="src\enum_login_opcodes.h" />
+    <ClInclude Include="src\enum_login_server_rank.h" />
+    <ClInclude Include="src\enum_login_server_status.h" />
     <ClInclude Include="src\enum_zop.h" />
     <ClInclude Include="src\login_client.h" />
     <ClInclude Include="src\login_crypto.h" />
+    <ClInclude Include="src\login_packet_struct.h" />
     <ClInclude Include="src\login_thread.h" />
+    <ClInclude Include="src\login_zpacket.h" />
     <ClInclude Include="src\log_thread.h" />
     <ClInclude Include="src\main_thread.h" />
+    <ClInclude Include="src\player_profile_packet_struct.h" />
     <ClInclude Include="src\ringbuf.h" />
     <ClInclude Include="src\sqlite3_win32.h" />
+    <ClInclude Include="src\structs_container.h" />
     <ClInclude Include="src\timer.h" />
     <ClInclude Include="src\tlg_packet.h" />
     <ClInclude Include="src\udp_client.h" />
@@ -156,10 +197,15 @@
     <ClInclude Include="src\util_alloc.h" />
     <ClInclude Include="src\util_atomic.h" />
     <ClInclude Include="src\util_clock.h" />
+    <ClInclude Include="src\util_file.h" />
     <ClInclude Include="src\util_ipv4.h" />
+    <ClInclude Include="src\util_random.h" />
     <ClInclude Include="src\util_semaphore.h" />
+    <ClInclude Include="src\util_socket_lib.h" />
+    <ClInclude Include="src\util_str.h" />
     <ClInclude Include="src\util_thread.h" />
     <ClInclude Include="src\win32_posix_define.h" />
+    <ClInclude Include="src\zone_id.h" />
     <ClInclude Include="src\zpacket.h" />
   </ItemGroup>
   <ItemGroup>
@@ -167,8 +213,13 @@
     <ClCompile Include="src\aligned.c" />
     <ClCompile Include="src\bit.c" />
     <ClCompile Include="src\buffer.c" />
+    <ClCompile Include="src\char_select_client.c" />
+    <ClCompile Include="src\char_select_thread.c" />
     <ClCompile Include="src\crc.c" />
+    <ClCompile Include="src\db_read.c" />
     <ClCompile Include="src\db_thread.c" />
+    <ClCompile Include="src\db_write.c" />
+    <ClCompile Include="src\enum2str.c" />
     <ClCompile Include="src\login_client.c" />
     <ClCompile Include="src\login_crypto.c" />
     <ClCompile Include="src\login_thread.c" />
@@ -183,8 +234,12 @@
     <ClCompile Include="src\util_atomic_win32.cpp" />
     <ClCompile Include="src\util_clock_win32.c" />
     <ClCompile Include="src\util_ipv4.c" />
+    <ClCompile Include="src\util_random.c" />
     <ClCompile Include="src\util_semaphore_win32.c" />
+    <ClCompile Include="src\util_socket_lib.c" />
+    <ClCompile Include="src\util_str.c" />
     <ClCompile Include="src\util_thread_win32.c" />
+    <ClCompile Include="src\zone_id.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
