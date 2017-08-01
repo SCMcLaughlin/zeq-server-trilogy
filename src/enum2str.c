@@ -155,6 +155,7 @@ const char* enum2str_zop(int e)
     case ZOP_DB_TerminateThread: ret = "ZOP_DB_TerminateThread"; break;
     case ZOP_DB_OpenDatabase: ret = "ZOP_DB_OpenDatabase"; break;
     case ZOP_DB_CloseDatabase: ret = "ZOP_DB_CloseDatabase"; break;
+    case ZOP_DB_QueryMainGuildList: ret = "ZOP_DB_QueryMainGuildList"; break;
     case ZOP_DB_QueryLoginCredentials: ret = "ZOP_DB_QueryLoginCredentials"; break;
     case ZOP_DB_QueryLoginNewAccount: ret = "ZOP_DB_QueryLoginNewAccount"; break;
     case ZOP_DB_QueryCSCharacterInfo: ret = "ZOP_DB_QueryCSCharacterInfo"; break;
@@ -164,6 +165,7 @@ const char* enum2str_zop(int e)
     case ZOP_LOGIN_UpdateServerPlayerCount: ret = "ZOP_LOGIN_UpdateServerPlayerCount"; break;
     case ZOP_LOGIN_UpdateServerStatus: ret = "ZOP_LOGIN_UpdateServerStatus"; break;
     case ZOP_CS_TerminateThread: ret = "ZOP_CS_TerminateThread"; break;
+    case ZOP_CS_AddGuild: ret = "ZOP_CS_AddGuild"; break;
     case ZOP_CS_LoginAuth: ret = "ZOP_CS_LoginAuth"; break;
     case ZOP_CS_CheckAuthTimeouts: ret = "ZOP_CS_CheckAuthTimeouts"; break;
     case ZOP_COUNT: ret = "ZOP_COUNT"; break;

@@ -153,6 +153,7 @@ static void db_thread_destruct_zpacket(DbThread* db, ZPacket* zpacket)
     
     switch (zop)
     {
+    case ZOP_DB_QueryMainGuildList:
     case ZOP_DB_QueryLoginCredentials:
     case ZOP_DB_QueryCSCharacterInfo:
         dbr_destruct(db, zpacket, zop);

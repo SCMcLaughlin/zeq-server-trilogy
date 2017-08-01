@@ -1,10 +1,86 @@
 
 #include "db_read.h"
+#include "bit.h"
 #include "login_crypto.h"
 #include "util_alloc.h"
 #include "util_clock.h"
 #include "enum_zop.h"
 #include "enum2str.h"
+
+static void dbr_main_guild_list(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
+{
+    sqlite3_stmt* stmt = NULL;
+    ZPacket reply;
+    bool run;
+
+    reply.db.zResult.queryId = zpacket->db.zQuery.queryId;
+    reply.db.zResult.hadError = true;
+    reply.db.zResult.hadErrorUnprocessed = false;
+    reply.db.zResult.rMainGuildList.count = 0;
+    reply.db.zResult.rMainGuildList.guilds = NULL;
+
+    run = db_prepare_literal(db, sqlite, &stmt,
+        "SELECT guild_id, name FROM guild LIMIT 512");
+
+    if (run)
+    {
+        uint32_t index = 0;
+        Guild* guilds = NULL;
+
+        for (;;)
+        {
+            int rc = db_read(db, stmt);
+
+            switch (rc)
+            {
+            case SQLITE_ROW:
+                if (bit_is_pow2_or_zero(index))
+                {
+                    uint32_t cap = (index == 0) ? 1 : index * 2;
+                    Guild* newGuilds = realloc_array_type(guilds, cap, Guild);
+
+                    if (!newGuilds) goto error;
+
+                    guilds = newGuilds;
+                }
+
+                guilds[index].guildId = db_fetch_int(stmt, 0);
+                guilds[index].guildName = db_fetch_string_copy(stmt, 1);
+                index++;
+
+                if (!guilds[index].guildName) goto error;
+
+                break;
+
+            case SQLITE_DONE:
+                reply.db.zResult.hadError = false;
+                reply.db.zResult.rMainGuildList.count = index;
+                reply.db.zResult.rMainGuildList.guilds = guilds;
+                goto done;
+
+            case SQLITE_ERROR:
+            error:
+                if (guilds)
+                {
+                    uint32_t i;
+
+                    for (i = 0; i < index; i++)
+                    {
+                        guilds[i].guildName = sbuf_drop(guilds[i].guildName);
+                    }
+
+                    free(guilds);
+                }
+
+                goto done;
+            }
+        }
+    }
+
+done:
+    db_reply(db, zpacket, &reply);
+    sqlite3_finalize(stmt);
+}
 
 static void dbr_login_credentials(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
 {
@@ -171,6 +247,9 @@ void dbr_dispatch(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
     
     switch (zop)
     {
+    case ZOP_DB_QueryMainGuildList:
+        break;
+
     case ZOP_DB_QueryLoginCredentials:
         dbr_login_credentials(db, sqlite, zpacket);
         break;
@@ -199,6 +278,7 @@ void dbr_destruct(DbThread* db, ZPacket* zpacket, int zop)
         break;
     
     /* No data to destruct */
+    case ZOP_DB_QueryMainGuildList:
     case ZOP_DB_QueryCSCharacterInfo:
         break;
     

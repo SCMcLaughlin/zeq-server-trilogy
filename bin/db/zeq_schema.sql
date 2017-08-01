@@ -89,3 +89,8 @@ CREATE TABLE character (
 
 CREATE INDEX idx_character_account_id ON character (account_id);
 CREATE INDEX idx_character_name ON character (name);
+
+CREATE TABLE guild (
+    guild_id    INTEGER PRIMARY KEY,
+    name        TEXT
+);

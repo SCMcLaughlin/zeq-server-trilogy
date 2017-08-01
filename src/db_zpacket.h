@@ -5,6 +5,7 @@
 #include "define.h"
 #include "buffer.h"
 #include "char_select_data.h"
+#include "guild.h"
 #include "ringbuf.h"
 #include "login_crypto.h"
 
@@ -45,6 +46,13 @@ typedef struct {
 
 /* == Result structs == */
 
+/* MainThread */
+
+typedef struct {
+    uint32_t    count;
+    Guild*      guilds;
+} DBR_MainGuildList;
+
 /* LoginThread */
 
 typedef struct {
@@ -74,6 +82,7 @@ typedef struct {
     bool        hadError;
     bool        hadErrorUnprocessed;
     union {
+        DBR_MainGuildList       rMainGuildList;
         DBR_LoginCredentials    rLoginCredentials;
         DBR_LoginNewAccount     rLoginNewAccount;
         DBR_CSCharacterInfo     rCSCharacterInfo;

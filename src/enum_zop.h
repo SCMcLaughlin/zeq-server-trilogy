@@ -24,6 +24,7 @@ enum ZOP
     ZOP_DB_TerminateThread,
     ZOP_DB_OpenDatabase,
     ZOP_DB_CloseDatabase,
+    ZOP_DB_QueryMainGuildList,
     ZOP_DB_QueryLoginCredentials,
     ZOP_DB_QueryLoginNewAccount,
     ZOP_DB_QueryCSCharacterInfo,
@@ -35,6 +36,7 @@ enum ZOP
     ZOP_LOGIN_UpdateServerStatus,
     /* CharSelect thread */
     ZOP_CS_TerminateThread,
+    ZOP_CS_AddGuild,
     ZOP_CS_LoginAuth,
     ZOP_CS_CheckAuthTimeouts,
     ZOP_COUNT

@@ -29,6 +29,7 @@ struct CharSelectThread {
     uint32_t            clientCount;
     uint32_t            authsAwaitingClientCount;
     uint32_t            clientsAwaitingAuthCount;
+    uint32_t            guildCount;
     int                 nextQueryId;
     int                 dbId;
     int                 logId;
@@ -37,6 +38,7 @@ struct CharSelectThread {
     CharSelectClient**  clientsAwaitingAuth;
     uint64_t*           authAwaitingClientTimeouts;
     uint64_t*           clientAwaitingAuthTimeouts;
+    Guild*              guildList;
     RingBuf*            csQueue;
     RingBuf*            udpQueue;
     RingBuf*            dbQueue;
@@ -45,6 +47,7 @@ struct CharSelectThread {
     TlgPacket*          packetLoginApproved;
     TlgPacket*          packetEnter;
     TlgPacket*          packetExpansionInfo;
+    TlgPacket*          packetGuildList;
     TlgPacket*          packetEcho1;
     TlgPacket*          packetEcho2;
     TlgPacket*          packetEcho3;
@@ -91,6 +94,94 @@ static bool cs_thread_is_client_valid(CharSelectThread* cs, CharSelectClient* cl
     }
     
     return false;
+}
+
+static void cs_thread_handle_add_guild(CharSelectThread* cs, ZPacket* zpacket)
+{
+    Guild* guild = &zpacket->cs.zAddGuild.guild;
+
+    if (guild->guildName)
+    {
+        uint32_t index = cs->guildCount;
+
+        if (bit_is_pow2_or_zero(index))
+        {
+            uint32_t cap = (index == 0) ? 1 : index * 2;
+            Guild* array = realloc_array_type(cs->guildList, cap, Guild);
+
+            if (!array) goto skip;
+
+            cs->guildList = array;
+        }
+
+        sbuf_grab(guild->guildName);
+        cs->guildList[index] = *guild;
+        cs->guildCount = index + 1;
+    }
+
+skip:
+    /* Should we update our cached guild list packet? */
+    if (zpacket->cs.zAddGuild.isLast)
+    {
+        TlgPacket* packet = packet_create_type(OP_CS_GuildList, PSCS_GuildList);
+        Guild* guildList;
+        uint32_t n, i;
+        Aligned a;
+
+        if (!packet) return;
+
+        aligned_init(&a, packet_data(packet), packet_length(packet));
+
+        /* PSCS_GuildList */
+        /* count */
+        aligned_write_uint32(&a, 0);
+
+        n = cs->guildCount;
+        guildList = cs->guildList;
+        
+        /* PSCS_Guild */
+        for (i = 0; i < n; i++)
+        {
+            guild = &guildList[i];
+
+            /* guildId */
+            aligned_write_uint32(&a, guild->guildId);
+            /* name */
+            aligned_write_snprintf_and_advance_by(&a, CHAR_SELECT_MAX_GUILD_NAME_LENGTH, "%s", sbuf_str(guild->guildName));
+            /* unknownA */
+            aligned_write_uint32(&a, 0xffffffff);
+            /* exists */
+            aligned_write_uint32(&a, 1);
+            /* unknownB */
+            aligned_write_uint32(&a, 0);
+            /* unknownC */
+            aligned_write_uint32(&a, 0xffffffff);
+            /* unknownD */
+            aligned_write_uint32(&a, 0);
+        }
+
+        for (; i < CHAR_SELECT_MAX_GUILD_COUNT; i++)
+        {
+            /* guildId */
+            aligned_write_uint32(&a, 0xffffffff);
+            /* name */
+            aligned_write_zeroes(&a, CHAR_SELECT_MAX_GUILD_NAME_LENGTH);
+            /* unknownA */
+            aligned_write_uint32(&a, 0xffffffff);
+            /* exists */
+            aligned_write_uint32(&a, 0);
+            /* unknownB */
+            aligned_write_uint32(&a, 0);
+            /* unknownC */
+            aligned_write_uint32(&a, 0xffffffff);
+            /* unknownD */
+            aligned_write_uint32(&a, 0);
+        }
+
+        cs->packetGuildList = packet_drop(cs->packetGuildList);
+        cs->packetGuildList = packet;
+        packet_grab(packet);
+    }
 }
 
 static int cs_thread_check_db_error(CharSelectThread* cs, CharSelectClient* client, ZPacket* zpacket, const char* funcName)
@@ -446,6 +537,22 @@ free_data:
     }
 }
 
+static void cs_thread_handle_op_guild_list(CharSelectThread* cs, CharSelectClient* client)
+{
+    int rc;
+
+    if (!csc_is_authed(client))
+        goto drop_client;
+
+    rc = csc_schedule_packet(client, cs->udpQueue, cs->packetGuildList);
+    if (rc) goto drop_client;
+
+    return;
+
+drop_client:
+    cs_thread_drop_client(cs, client);
+}
+
 static int cs_thread_handle_op_echo(CharSelectThread* cs, CharSelectClient* client, uint16_t opcode)
 {
     TlgPacket* packet = NULL;
@@ -487,6 +594,10 @@ static void cs_thread_handle_packet(CharSelectThread* cs, ZPacket* zpacket)
     {
     case OP_CS_LoginInfo:
         rc = cs_thread_handle_op_login_info(cs, client, zpacket);
+        break;
+
+    case OP_CS_GuildList:
+        cs_thread_handle_op_guild_list(cs, client);
         break;
     
     case OP_CS_Echo1:
@@ -701,6 +812,10 @@ static void cs_thread_proc(void* ptr)
         
         case ZOP_CS_TerminateThread:
             return;
+
+        case ZOP_CS_AddGuild:
+            cs_thread_handle_add_guild(cs, &zpacket);
+            break;
         
         case ZOP_CS_LoginAuth:
             cs_thread_handle_login_auth(cs, &zpacket);
@@ -773,6 +888,7 @@ fail:
 CharSelectThread* cs_create(LogThread* log, RingBuf* dbQueue, int dbId, UdpThread* udp)
 {
     CharSelectThread* cs = alloc_type(CharSelectThread);
+    ZPacket zpacket;
     int rc;
     
     if (!cs) goto fail_alloc;
@@ -780,6 +896,7 @@ CharSelectThread* cs_create(LogThread* log, RingBuf* dbQueue, int dbId, UdpThrea
     cs->clientCount = 0;
     cs->authsAwaitingClientCount = 0;
     cs->clientsAwaitingAuthCount = 0;
+    cs->guildCount = 0;
     cs->nextQueryId = 1;
     cs->dbId = dbId;
     cs->clients = NULL;
@@ -787,6 +904,7 @@ CharSelectThread* cs_create(LogThread* log, RingBuf* dbQueue, int dbId, UdpThrea
     cs->clientsAwaitingAuth = NULL;
     cs->authAwaitingClientTimeouts = NULL;
     cs->clientAwaitingAuthTimeouts = NULL;
+    cs->guildList = NULL;
     cs->csQueue = NULL;
     cs->udpQueue = udp_get_queue(udp);
     cs->dbQueue = dbQueue;
@@ -795,6 +913,7 @@ CharSelectThread* cs_create(LogThread* log, RingBuf* dbQueue, int dbId, UdpThrea
     cs->packetLoginApproved = NULL;
     cs->packetEnter = NULL;
     cs->packetExpansionInfo = NULL;
+    cs->packetGuildList = NULL;
     cs->packetEcho1 = NULL;
     cs->packetEcho2 = NULL;
     cs->packetEcho3 = NULL;
@@ -806,6 +925,13 @@ CharSelectThread* cs_create(LogThread* log, RingBuf* dbQueue, int dbId, UdpThrea
 
     cs->csQueue = ringbuf_create_type(ZPacket, 1024);
     if (!cs->csQueue) goto fail;
+
+    /* Initialize the default cached guild packet as soon as the thread starts */
+    zpacket.cs.zAddGuild.isLast = true;
+    zpacket.cs.zAddGuild.guild.guildId = 0;
+    zpacket.cs.zAddGuild.guild.guildName = NULL;
+    rc = ringbuf_push(cs->csQueue, ZOP_CS_AddGuild, &zpacket);
+    if (rc) goto fail;
     
     rc = cs_create_cached_packets(cs);
     if (rc) goto fail;
@@ -833,6 +959,7 @@ CharSelectThread* cs_destroy(CharSelectThread* cs)
         cs->packetLoginApproved = packet_drop(cs->packetLoginApproved);
         cs->packetEnter = packet_drop(cs->packetEnter);
         cs->packetExpansionInfo = packet_drop(cs->packetExpansionInfo);
+        cs->packetGuildList = packet_drop(cs->packetGuildList);
         cs->packetEcho1 = packet_drop(cs->packetEcho1);
         cs->packetEcho2 = packet_drop(cs->packetEcho2);
         cs->packetEcho3 = packet_drop(cs->packetEcho3);
