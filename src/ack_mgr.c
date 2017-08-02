@@ -44,6 +44,7 @@ enum AckComparison
         lastAckSent - the ack response we most recently sent to the client. Updates at the end of a send cycle, if an ack was sent.
         nextAckRequestExpected - one more than the most recent ack request we have received. Updates when a packet is received, after the received packet
             buffer has been driven forward as much as possible (e.g. if there was a backlock of packets that are now in order with the addition of the current packet).
+        lowestAckInQueue - stores the start of our received packet buffer in terms of acks.
 
         If lastAckSent != nextAckRequestExpected - 1, we have an new ack response to send to the client, equal to nextAckRequestExpected - 1.
 
@@ -66,11 +67,11 @@ static int ack_cmp(uint16_t got, uint16_t expected)
 
 void ack_init(AckMgr* ackMgr)
 {
-    ackMgr->toServer.nextAckResponse = 0;
     ackMgr->toServer.nextAckRequestExpected = 0;
-    ackMgr->toServer.nextAckRequestEnd = 0;
+    ackMgr->toServer.lastAckSent = 0;
     ackMgr->toServer.lastAckReceived = 0;
     ackMgr->toServer.count = 0;
+    ackMgr->toServer.capacity = 0;
     ackMgr->toServer.packetQueue = NULL;
     
     ackMgr->toClient.nextSeqToSend = 0;
@@ -208,43 +209,28 @@ void ack_recv_ack_response(AckMgr* ackMgr, uint16_t ack)
     }
 }
 
-void ack_recv_ack_request(AckMgr* ackMgr, uint16_t ack, int isFirstPacket)
+void ack_recv_sync(AckMgr* ackMgr, uint16_t ackRequest)
 {
-    if (!isFirstPacket)
-    {
-        /*fixme: these don't keep pace if packets are received out of order*/
-        if (ack == (ackMgr->toServer.nextAckRequestEnd + 1))
-        {
-            ackMgr->toServer.nextAckResponse = ack;
-            ackMgr->toServer.nextAckRequestEnd = ack;
-        }
-    }
-    else
-    {
-        ackMgr->toServer.nextAckResponse = ack;
-        ackMgr->toServer.nextAckRequestExpected = ack;
-        ackMgr->toServer.nextAckRequestEnd = ack;
-    }
+    ackMgr->toServer.lastAckSent = ackRequest - 1;
+    ackMgr->toServer.nextAckRequestExpected = ackRequest;
 }
 
-static uint16_t ack_complete_packet(UdpThread* udp, UdpClient* udpc, AckMgrToServerPacket* packet)
+static void ack_complete_packet(UdpThread* udp, UdpClient* udpc, AckMgrToServerPacket* packet)
 {
     Aligned a;
     
     aligned_init(&a, packet->data, packet->length);
     udpc_recv_packet_no_copy(udp, udpc, &a, packet->opcode);
-    
-    return packet->ackRequest + 1;
 }
 
-static uint16_t ack_complete_fragments(UdpThread* udp, UdpClient* udpc, AckMgrToServerPacket* array, uint32_t length, uint32_t i, uint32_t n)
+static void ack_complete_fragments(UdpThread* udp, UdpClient* udpc, AckMgrToServerPacket* array, uint32_t length, uint32_t i, uint32_t n)
 {
     AckMgrToServerPacket* packet = NULL;
     Aligned a;
     uint16_t opcode = array[i].opcode;
     byte* data = alloc_bytes(length);
     
-    if (!data) return array[i].ackRequest + 1; /*fixme: do something more sensible here*/
+    if (!data) return;
     
     aligned_init(&a, data, length);
     
@@ -259,9 +245,21 @@ static uint16_t ack_complete_fragments(UdpThread* udp, UdpClient* udpc, AckMgrTo
     
     aligned_reset_cursor(&a);
     udpc_recv_packet_no_copy(udp, udpc, &a, opcode);
-    
-    return packet->ackRequest + 1;
 }
+
+#if 0
+static void ack_debug_print_queue(AckMgr* ackMgr)
+{
+    uint32_t i;
+
+    for (i = 0; i < ackMgr->toServer.capacity; i++)
+    {
+        AckMgrToServerPacket* p = &ackMgr->toServer.packetQueue[i];
+
+        printf("[%2i] ack: %04x, op: %04x, fragCount: %u, len: %u\n", i, p->ackRequest, p->opcode, p->fragCount, p->length);
+    }
+}
+#endif
 
 void ack_recv_packet(UdpThread* udp, UdpClient* udpc, Aligned* a, uint16_t opcode, uint16_t ackRequest, uint16_t fragCount)
 {
@@ -269,10 +267,12 @@ void ack_recv_packet(UdpThread* udp, UdpClient* udpc, Aligned* a, uint16_t opcod
     uint16_t nextAck = ackMgr->toServer.nextAckRequestExpected;
     uint32_t n, i, diff, length, frags;
     AckMgrToServerPacket* ptr;
-    
+
     if (ackRequest == nextAck && fragCount == 0)
     {
-        ackMgr->toServer.nextAckRequestExpected = nextAck + 1;
+        nextAck++;
+        ackMgr->toServer.nextAckRequestExpected = nextAck;
+        ackMgr->toServer.lowestAckInQueue = nextAck;
         udpc_recv_packet(udp, udpc, a, opcode);
         return;
     }
@@ -283,30 +283,26 @@ void ack_recv_packet(UdpThread* udp, UdpClient* udpc, Aligned* a, uint16_t opcod
     n = ackMgr->toServer.count;
     
     /* Protocol doesn't allow acks to roll over to 0, so shouldn't need to check for ackRequest being lower (fixme: confirm this) */
-    diff = ackRequest - nextAck;
+    diff = ackRequest - ackMgr->toServer.lowestAckInQueue;
     
     /* Do we need to expand our array? */
-    if (diff >= n)
+    if (diff >= ackMgr->toServer.capacity)
     {
-        uint32_t curCap;
         uint32_t cap;
+        uint32_t d = diff;
+        AckMgrToServerPacket* queue;
 
-        if (diff == 0)
-            diff = 1;
+        if (d == 0)
+            d = 1;
 
-        curCap = bit_pow2_greater_than_u32(n);
-        cap = bit_pow2_greater_than_u32(diff);
+        cap = bit_pow2_greater_than_u32(d);
+        queue = realloc_array_type(ackMgr->toServer.packetQueue, cap, AckMgrToServerPacket);
 
-        if (cap > curCap)
-        {
-            AckMgrToServerPacket* queue = realloc_array_type(ackMgr->toServer.packetQueue, cap, AckMgrToServerPacket);
+        if (!queue) return;
 
-            if (!queue) return;
-
-            ackMgr->toServer.packetQueue = queue;
-            ackMgr->toServer.count = cap;
-            memset(&ackMgr->toServer.packetQueue[n], 0, sizeof(AckMgrToServerPacket) * (cap - n));
-        }
+        ackMgr->toServer.packetQueue = queue;
+        ackMgr->toServer.capacity = cap;
+        memset(&ackMgr->toServer.packetQueue[n], 0, sizeof(AckMgrToServerPacket) * (cap - n));
     }
     
     ptr = &ackMgr->toServer.packetQueue[diff];
@@ -341,6 +337,8 @@ void ack_recv_packet(UdpThread* udp, UdpClient* udpc, Aligned* a, uint16_t opcod
     frags = 0;
     length = 0;
     i = 0;
+
+    n++; /* Include the packet we just added */
     
     while (i < n)
     {
@@ -353,7 +351,9 @@ void ack_recv_packet(UdpThread* udp, UdpClient* udpc, Aligned* a, uint16_t opcod
         
         if (fragCount == 0)
         {
-            nextAck = ack_complete_packet(udp, udpc, packet);
+            ack_complete_packet(udp, udpc, packet);
+            nextAck = packet->ackRequest;
+            ackMgr->toServer.lowestAckInQueue = nextAck + 1;
             diff++;
         }
         else
@@ -363,11 +363,13 @@ void ack_recv_packet(UdpThread* udp, UdpClient* udpc, Aligned* a, uint16_t opcod
             
             length += packet->length;
             frags++;
+            nextAck = packet->ackRequest;
             
             if (frags == fragCount)
             {
                 diff += frags;
-                nextAck = ack_complete_fragments(udp, udpc, ptr, length, i - (frags - 1), i);
+                ack_complete_fragments(udp, udpc, ptr, length, i - (frags - 1), i);
+                ackMgr->toServer.lowestAckInQueue = nextAck + 1;
                 length = 0;
                 frags = 0;
             }
@@ -378,13 +380,26 @@ void ack_recv_packet(UdpThread* udp, UdpClient* udpc, Aligned* a, uint16_t opcod
     
     if (diff > 0)
     {
-        ackMgr->toServer.count -= diff;
-        memmove(ackMgr->toServer.packetQueue, &ackMgr->toServer.packetQueue[diff], sizeof(AckMgrToServerPacket) * ackMgr->toServer.count);
-        ackMgr->toServer.nextAckRequestExpected = nextAck;
+        uint32_t count = n - diff;
+        ackMgr->toServer.count = count;
+
+        if (count)
+            memmove(ackMgr->toServer.packetQueue, &ackMgr->toServer.packetQueue[diff], sizeof(AckMgrToServerPacket) * count);
+
+        diff = n - count;
+
+        if (diff)
+            memset(&ackMgr->toServer.packetQueue[count], 0, sizeof(AckMgrToServerPacket) * diff);
     }
+    else
+    {
+        ackMgr->toServer.count = n;
+    }
+
+    ackMgr->toServer.nextAckRequestExpected = nextAck +1;
 }
 
-static void ack_send_fragment(UdpClient* udpc, AckMgr* ackMgr, AckMgrToClientPacket* wrapper, Aligned* a, uint32_t dataLength, uint16_t opcode, uint16_t ackResponse, uint16_t fragIndex)
+static void ack_send_fragment(UdpClient* udpc, AckMgr* ackMgr, AckMgrToClientPacket* wrapper, Aligned* a, uint32_t dataLength, uint16_t opcode, bool hasAckResponse, uint16_t ackResponse, uint16_t fragIndex)
 {
     uint32_t orig = aligned_position(a);
     uint16_t header = wrapper->header;
@@ -414,7 +429,7 @@ static void ack_send_fragment(UdpClient* udpc, AckMgr* ackMgr, AckMgrToClientPac
         aligned_write_reverse_uint16(a, to_network_uint16(wrapper->ackRequest + fragIndex));
     
     /* ackResponse */
-    if (ackResponse)
+    if (hasAckResponse)
     {
         header |= TLG_PACKET_HasAckResponse;
         aligned_write_reverse_uint16(a, ackResponse);
@@ -441,12 +456,20 @@ void ack_send_queued_packets(UdpThread* udp, UdpClient* udpc)
     AckMgr* ackMgr = &udpc->ackMgr;
     AckMgrToClientPacket* packets = ackMgr->toClient.packetQueue;
     uint32_t n = ackMgr->toClient.count;
-    uint16_t ackResponse = to_network_uint16(ackMgr->toServer.nextAckResponse);
+    uint16_t nextAck = ackMgr->toServer.nextAckRequestExpected -1;
     uint16_t ackReceived = ackMgr->toServer.lastAckReceived;
     uint32_t sendFromIndex = ackMgr->toClient.sendFromIndex;
     uint64_t time = clock_milliseconds();
+    int hasAckResponse = 0;
+    uint16_t ackResponse = 0;
     Aligned a;
     uint32_t i;
+
+    if (ackMgr->toServer.lastAckSent != nextAck)
+    {
+        hasAckResponse = 1;
+        ackResponse = to_network_uint16(nextAck);
+    }
     
     for (i = 0; i < n; i++)
     {
@@ -487,34 +510,51 @@ void ack_send_queued_packets(UdpThread* udp, UdpClient* udpc)
         for (; fragIndex < fragCount; fragIndex++)
         {
             uint32_t space = TLG_PACKET_DATA_SPACE;
+            bool hasAck = (hasAckResponse == 1);
             
             if (fragIndex == 0)
                 space -= sizeof(uint16_t);
             
             aligned_advance_by(&a, TLG_PACKET_DATA_OFFSET);
             
-            ack_send_fragment(udpc, ackMgr, wrapper, &a, (dataLength > space) ? space : dataLength, opcode, ackResponse, fragIndex);
+            ack_send_fragment(udpc, ackMgr, wrapper, &a, (dataLength > space) ? space : dataLength, opcode, hasAck, ackResponse, fragIndex);
             
             wrapper->ackTimestamp = clock_milliseconds();
             
-            if (ackResponse)
+            if (hasAck)
             {
-                udpc_flag_last_ack(udp, udpc, ackResponse);
-                ackResponse = 0;
+                udpc_flag_last_ack(udp, udpc);
+                hasAckResponse = 2;
             }
 
             dataLength -= space;
         }
     }
     
-    if (ackResponse)
+    if (hasAckResponse == 1)
         udpc_send_pure_ack(udp, udpc, ackResponse);
     
-    ackMgr->toServer.nextAckResponse = 0;
+    if (hasAckResponse != 0)
+        ackMgr->toServer.lastAckSent = nextAck;
+
     ackMgr->toClient.sendFromIndex = i;
 }
 
 uint16_t ack_get_next_seq_to_send_and_increment(AckMgr* ackMgr)
 {
     return to_network_uint16(ackMgr->toClient.nextSeqToSend++);
+}
+
+uint16_t ack_get_keep_alive_ack(AckMgr* ackMgr)
+{
+    uint16_t nextAck = ackMgr->toServer.nextAckRequestExpected - 1;
+    uint16_t ackToSend = ackMgr->toServer.lastAckSent;
+
+    if (ackToSend != nextAck)
+    {
+        ackToSend = nextAck;
+        ackMgr->toServer.lastAckSent = nextAck;
+    }
+
+    return to_network_uint16(ackToSend);
 }

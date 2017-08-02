@@ -18,11 +18,12 @@ typedef struct {
 } AckMgrToServerPacket;
 
 typedef struct {
-    uint16_t                nextAckResponse;
     uint16_t                nextAckRequestExpected;
-    uint16_t                nextAckRequestEnd;
+    uint16_t                lastAckSent;
     uint16_t                lastAckReceived;
-    uint32_t                count;
+    uint16_t                lowestAckInQueue;
+    uint16_t                count;
+    uint16_t                capacity;
     AckMgrToServerPacket*   packetQueue;
 } AckMgrToServer;
 
@@ -59,11 +60,12 @@ void ack_deinit(AckMgr* ackMgr);
 void ack_schedule_packet(AckMgr* ackMgr, TlgPacket* packet, bool hasAckRequest);
 
 void ack_recv_ack_response(AckMgr* ackMgr, uint16_t ack);
-void ack_recv_ack_request(AckMgr* ackMgr, uint16_t ackRequest, int isFirstPacket);
+void ack_recv_sync(AckMgr* ackMgr, uint16_t ackRequest);
 void ack_recv_packet(struct UdpThread* udp, struct UdpClient* udpc, Aligned* a, uint16_t opcode, uint16_t ackRequest, uint16_t fragCount);
 
 void ack_send_queued_packets(struct UdpThread* udp, struct UdpClient* udpc);
 
 uint16_t ack_get_next_seq_to_send_and_increment(AckMgr* ackMgr);
+uint16_t ack_get_keep_alive_ack(AckMgr* ackMgr);
 
 #endif/*ACK_MGR_H*/

@@ -10,12 +10,11 @@
 #include "enum_zop.h"
 #include "enum2str.h"
 
-void udpc_init(UdpClient* udpc, sock_t sock, uint32_t ip, uint16_t port, RingBuf* toServerQueue, RingBuf* logQueue, int logId)
+void udpc_init(UdpClient* udpc, sock_t sock, uint32_t ip, uint16_t port, RingBuf* toServerQueue)
 {
     udpc->sock = sock;
     udpc->ipAddr.ip = ip;
     udpc->ipAddr.port = port;
-    udpc->lastAckSent = 0;
     udpc->accountId = 0;
     udpc->udpIndex = -1;
     udpc->clientObject = NULL;
@@ -117,6 +116,12 @@ void udpc_recv_packet_no_copy(UdpThread* udp, UdpClient* udpc, Aligned* a, uint1
     uint32_t length = aligned_remaining_data(a);
     byte* data = aligned_current(a);
     int rc;
+
+    if (opcode == 0)
+    {
+        if (data) free(data);
+        return;
+    }
     
     zpacket.udp.zToServerPacket.opcode = opcode;
     zpacket.udp.zToServerPacket.length = length;
@@ -213,7 +218,9 @@ bool udpc_recv_protocol(UdpThread* udp, UdpClient* udpc, byte* data, uint32_t le
             goto oob;
 
         ackRequest = to_host_uint16(aligned_read_uint16(&a));
-        ack_recv_ack_request(&udpc->ackMgr, ackRequest, ((header & TLG_PACKET_IsFirstPacket) != 0));
+
+        if (header & TLG_PACKET_IsFirstPacket)
+            ack_recv_sync(&udpc->ackMgr, ackRequest);
     }
 
     /* Session finalizer */
@@ -317,14 +324,12 @@ void udpc_send_queued_packets(UdpThread* udp, UdpClient* udpc)
     ack_send_queued_packets(udp, udpc);
 }
 
-void udpc_flag_last_ack(struct UdpThread* udp, UdpClient* udpc, uint16_t ackNetworkByteOrder)
+void udpc_flag_last_ack(struct UdpThread* udp, UdpClient* udpc)
 {
     int index = udpc->udpIndex;
 
     if (index >= 0)
         udp_thread_update_ack_timestamp(udp, (uint32_t)index);
-
-    udpc->lastAckSent = ackNetworkByteOrder;
 }
 
 static bool udpc_send_ack(UdpClient* udpc, uint16_t ackNetworkByteOrder)
@@ -344,11 +349,11 @@ static bool udpc_send_ack(UdpClient* udpc, uint16_t ackNetworkByteOrder)
 
 bool udpc_send_pure_ack(UdpThread* udp, UdpClient* udpc, uint16_t ackNetworkByteOrder)
 {
-    udpc_flag_last_ack(udp, udpc, ackNetworkByteOrder);
+    udpc_flag_last_ack(udp, udpc);
     return udpc_send_ack(udpc, ackNetworkByteOrder);
 }
 
 bool udpc_send_keep_alive_ack(UdpClient* udpc)
 {
-    return udpc_send_ack(udpc, udpc->lastAckSent);
+    return udpc_send_ack(udpc, ack_get_keep_alive_ack(&udpc->ackMgr));
 }

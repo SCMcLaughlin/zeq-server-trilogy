@@ -13,7 +13,6 @@ struct UdpThread;
 typedef struct UdpClient {
     sock_t      sock;
     IpAddr      ipAddr;
-    uint16_t    lastAckSent;
     uint32_t    accountId;
     int         udpIndex;
     void*       clientObject;
@@ -21,7 +20,7 @@ typedef struct UdpClient {
     AckMgr      ackMgr;
 } UdpClient;
 
-void udpc_init(UdpClient* udpc, sock_t sock, uint32_t ip, uint16_t port, RingBuf* toServerQueue, RingBuf* logQueue, int logId);
+void udpc_init(UdpClient* udpc, sock_t sock, uint32_t ip, uint16_t port, RingBuf* toServerQueue);
 void udpc_deinit(UdpClient* udpc);
 
 #define udpc_set_index(udpc, idx) ((udpc)->udpIndex = (int)(idx))
@@ -35,7 +34,7 @@ void udpc_schedule_packet(UdpClient* udpc, TlgPacket* packet, bool noAckRequest)
 bool udpc_send_immediate(UdpClient* udpc, const void* data, uint32_t len);
 void udpc_send_queued_packets(struct UdpThread* udp, UdpClient* udpc);
 
-void udpc_flag_last_ack(struct UdpThread* udp, UdpClient* udpc, uint16_t ackNetworkByteOrder);
+void udpc_flag_last_ack(struct UdpThread* udp, UdpClient* udpc);
 bool udpc_send_pure_ack(struct UdpThread* udp, UdpClient* udpc, uint16_t ackNetworkByteOrder);
 bool udpc_send_keep_alive_ack(UdpClient* udpc);
 

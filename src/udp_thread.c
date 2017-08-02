@@ -356,7 +356,8 @@ static void udp_thread_process_socket_reads(UdpThread* udp)
 
                 if (!bit_get(udp->clientFlags[cliIndex], UDP_FLAG_IgnorePackets))
                 {
-                    udpc_recv_protocol(udp, client, buffer, (uint32_t)len, false);
+                    if (udpc_recv_protocol(udp, client, buffer, (uint32_t)len, false))
+                        bit_set(udp->clientFlags[cliIndex], UDP_FLAG_ReadyToSend);
                 }
                 
                 continue;
@@ -366,7 +367,7 @@ static void udp_thread_process_socket_reads(UdpThread* udp)
             {
                 UdpClient newClient;
 
-                udpc_init(&newClient, sock, ip, port, sockets[i].toServerQueueDefault, udp->logQueue, udp->logId);
+                udpc_init(&newClient, sock, ip, port, sockets[i].toServerQueueDefault);
 
                 /* This will return true if the packet seems valid and is not flagged as session-terminating */
                 if (udpc_recv_protocol(udp, &newClient, buffer, (uint32_t)len, true))
