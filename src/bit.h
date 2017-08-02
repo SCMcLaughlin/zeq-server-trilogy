@@ -10,12 +10,13 @@
 #define bit_is_pow2(n) ((n) && (((n) & ((n) - 1)) == 0))
 #define bit_is_pow2_or_zero(n) ((n == 0) || (((n) & ((n) - 1)) == 0))
 #define bit_rotate(x, n) (((x)<<(n)) | ((x)>>(-(int)(n)&(8*sizeof(x)-1))))
-#define bit_get(val, n) (val & (1 << n))
-#define bit_get64(val, n) (val & (1ULL << (n)))
+#define bit_get(val, n) ((val) & (1 << (n)))
+#define bit_get64(val, n) ((val) & (1ULL << (n)))
 #define bit_set(val, n) ((val) |= (1 << (n)))
 #define bit_set64(val, n) ((val) |= (1ULL << (n)))
 #define bit_unset(val, n) ((val) &= ~(1 << (n)))
 #define bit_unset64(val, n) ((val) &= ~(1ULL << (n)))
+#define nth_bit(n) (1 << (n))
 
 uint32_t bit_next_pow2_u32(uint32_t n);
 

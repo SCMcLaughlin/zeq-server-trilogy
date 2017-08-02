@@ -19,4 +19,10 @@ RingBuf* udp_get_queue(UdpThread* udp);
 
 int udp_schedule_packet(RingBuf* toClientQueue, IpAddr ipAddr, TlgPacket* packet);
 
+RingBuf* udp_get_log_queue(UdpThread* udp);
+int udp_get_log_id(UdpThread* udp);
+
+/* Only to be used by UdpClient */
+void udp_thread_update_ack_timestamp(UdpThread* udp, uint32_t index);
+
 #endif/*UDP_THREAD_H*/

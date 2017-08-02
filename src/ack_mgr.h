@@ -6,6 +6,7 @@
 #include "aligned.h"
 #include "tlg_packet.h"
 
+struct UdpThread;
 struct UdpClient;
 
 typedef struct {
@@ -18,7 +19,7 @@ typedef struct {
 
 typedef struct {
     uint16_t                nextAckResponse;
-    uint16_t                nextAckRequestStart;
+    uint16_t                nextAckRequestExpected;
     uint16_t                nextAckRequestEnd;
     uint16_t                lastAckReceived;
     uint32_t                count;
@@ -59,9 +60,9 @@ void ack_schedule_packet(AckMgr* ackMgr, TlgPacket* packet, bool hasAckRequest);
 
 void ack_recv_ack_response(AckMgr* ackMgr, uint16_t ack);
 void ack_recv_ack_request(AckMgr* ackMgr, uint16_t ackRequest, int isFirstPacket);
-void ack_recv_packet(struct UdpClient* udpc, Aligned* a, uint16_t opcode, uint16_t ackRequest, uint16_t fragCount);
+void ack_recv_packet(struct UdpThread* udp, struct UdpClient* udpc, Aligned* a, uint16_t opcode, uint16_t ackRequest, uint16_t fragCount);
 
-void ack_send_queued_packets(struct UdpClient* udpc);
+void ack_send_queued_packets(struct UdpThread* udp, struct UdpClient* udpc);
 
 uint16_t ack_get_next_seq_to_send_and_increment(AckMgr* ackMgr);
 
