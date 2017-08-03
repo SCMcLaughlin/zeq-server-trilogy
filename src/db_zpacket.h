@@ -33,14 +33,20 @@ typedef struct {
 } DBQ_CSCharacterInfo;
 
 typedef struct {
+    void*           client;
+    StaticBuffer*   name;
+} DBQ_CSCharacterNameAvailable;
+
+typedef struct {
     int         dbId;
     int         queryId;    /* User-supplied tracking value, not used internally by the DB system */
     int         zop;
     RingBuf*    replyQueue;
     union {
-        DBQ_LoginCredentials    qLoginCredentials;
-        DBQ_LoginNewAccount     qLoginNewAccount;
-        DBQ_CSCharacterInfo     qCSCharacterInfo;
+        DBQ_LoginCredentials            qLoginCredentials;
+        DBQ_LoginNewAccount             qLoginNewAccount;
+        DBQ_CSCharacterInfo             qCSCharacterInfo;
+        DBQ_CSCharacterNameAvailable    qCSCharacterNameAvailable;
     };
 } DB_ZQuery;
 
@@ -78,14 +84,20 @@ typedef struct {
 } DBR_CSCharacterInfo;
 
 typedef struct {
+    bool    isNameAvailable;
+    void*   client;
+} DBR_CSCharacterNameAvailable;
+
+typedef struct {
     int         queryId;    /* User-supplied tracking value, not used internally by the DB system */
     bool        hadError;
     bool        hadErrorUnprocessed;
     union {
-        DBR_MainGuildList       rMainGuildList;
-        DBR_LoginCredentials    rLoginCredentials;
-        DBR_LoginNewAccount     rLoginNewAccount;
-        DBR_CSCharacterInfo     rCSCharacterInfo;
+        DBR_MainGuildList               rMainGuildList;
+        DBR_LoginCredentials            rLoginCredentials;
+        DBR_LoginNewAccount             rLoginNewAccount;
+        DBR_CSCharacterInfo             rCSCharacterInfo;
+        DBR_CSCharacterNameAvailable    rCSCharacterNameAvailable;
     };
 } DB_ZResult;
 

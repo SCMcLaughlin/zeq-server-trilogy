@@ -482,10 +482,11 @@ static void udp_thread_proc(void* ptr)
 
     for (;;)
     {
+        udp_thread_process_socket_reads(udp);
+
         if (!udp_thread_process_commands(udp))
             break;
 
-        udp_thread_process_socket_reads(udp);
         udp_thread_process_socket_writes(udp);
         
         udp_thread_check_client_timeouts(udp);

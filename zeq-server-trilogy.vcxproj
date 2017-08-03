@@ -162,6 +162,7 @@
     <ClInclude Include="src\char_select_packet_struct.h" />
     <ClInclude Include="src\char_select_thread.h" />
     <ClInclude Include="src\char_select_zpacket.h" />
+    <ClInclude Include="src\client_mgr.h" />
     <ClInclude Include="src\crc.h" />
     <ClInclude Include="src\db_read.h" />
     <ClInclude Include="src\db_thread.h" />
@@ -213,6 +214,7 @@
     <ClCompile Include="src\buffer.c" />
     <ClCompile Include="src\char_select_client.c" />
     <ClCompile Include="src\char_select_thread.c" />
+    <ClCompile Include="src\client_mgr.c" />
     <ClCompile Include="src\crc.c" />
     <ClCompile Include="src\db_read.c" />
     <ClCompile Include="src\db_thread.c" />

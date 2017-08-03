@@ -7,6 +7,7 @@
 #include "tlg_packet.h"
 #include "util_alloc.h"
 #include "util_clock.h"
+#include "util_str.h"
 #include "util_thread.h"
 #include "zone_id.h"
 #include "zpacket.h"
@@ -19,6 +20,7 @@
 #define CHAR_SELECT_THREAD_UDP_PORT 9000
 #define CHAR_SELECT_THREAD_LOG_PATH "log/char_select_thread.txt"
 #define CHAR_SELECT_THREAD_AUTH_TIMEOUT_MS 10000
+#define CHAR_SELECT_THREAD_WEARCHANGE_OP_SWITCH_CHAR 0x7fff
 
 typedef struct {
     int64_t     accountId;
@@ -109,12 +111,16 @@ static void cs_thread_handle_add_guild(CharSelectThread* cs, ZPacket* zpacket)
             uint32_t cap = (index == 0) ? 1 : index * 2;
             Guild* array = realloc_array_type(cs->guildList, cap, Guild);
 
-            if (!array) goto skip;
+            if (!array)
+            {
+                /* We can't take this guild, make sure to drop the name refcount */
+                sbuf_drop(guild->guildName);
+                goto skip;
+            }
 
             cs->guildList = array;
         }
 
-        sbuf_grab(guild->guildName);
         cs->guildList[index] = *guild;
         cs->guildCount = index + 1;
     }
@@ -512,6 +518,8 @@ static void cs_thread_handle_db_character_info(CharSelectThread* cs, ZPacket* zp
     
     if (!csc_is_authed(client))
         goto drop_client;
+
+    csc_set_weapon_material_ids(client, data);
     
     packet = cs_thread_write_char_info_packet(data, count);
     if (!packet) goto drop_client;
@@ -537,20 +545,95 @@ free_data:
     }
 }
 
-static void cs_thread_handle_op_guild_list(CharSelectThread* cs, CharSelectClient* client)
+static int cs_thread_handle_op_guild_list(CharSelectThread* cs, CharSelectClient* client)
 {
+    if (!csc_is_authed(client))
+        return ERR_Invalid;
+
+    return csc_schedule_packet(client, cs->udpQueue, cs->packetGuildList);
+}
+
+static int cs_thread_handle_op_name_approval(CharSelectThread* cs, CharSelectClient* client, ZPacket* zpacket)
+{
+    ZPacket query;
+    Aligned a;
+    const char* name;
+    int len;
     int rc;
 
-    if (!csc_is_authed(client))
-        goto drop_client;
+    aligned_init(&a, zpacket->udp.zToServerPacket.data, zpacket->udp.zToServerPacket.length);
 
-    rc = csc_schedule_packet(client, cs->udpQueue, cs->packetGuildList);
-    if (rc) goto drop_client;
+    if (!csc_is_authed(client) || aligned_remaining_data(&a) < sizeof(PSCS_NameApproval))
+        return ERR_Invalid;
 
-    return;
+    name = aligned_current_type(&a, const char);
+    len = str_len_bounded(name, (int)sizeof_field(PSCS_NameApproval, name));
 
-drop_client:
-    cs_thread_drop_client(cs, client);
+    if (len == 0) return ERR_Invalid;
+
+    query.db.zQuery.qCSCharacterNameAvailable.client = client;
+    query.db.zQuery.qCSCharacterNameAvailable.name = sbuf_create(name, (int)len);
+    sbuf_grab(query.db.zQuery.qCSCharacterNameAvailable.name);
+
+    rc = db_queue_query(cs->dbQueue, cs->csQueue, cs->dbId, cs->nextQueryId++, ZOP_DB_QueryCSCharacterNameAvailable, &query);
+
+    if (rc)
+        sbuf_drop(query.db.zQuery.qCSCharacterNameAvailable.name);
+
+    return rc;
+}
+
+static int cs_thread_handle_op_wear_change(CharSelectThread* cs, CharSelectClient* client, ZPacket* zpacket)
+{
+    Aligned a;
+    uint32_t slot, op, flag, index;
+
+    aligned_init(&a, zpacket->udp.zToServerPacket.data, zpacket->udp.zToServerPacket.length);
+
+    if (!csc_is_authed(client) || aligned_remaining_data(&a) < sizeof(PSCS_WearChange))
+        return ERR_Invalid;
+
+    /* PSCS_WearChange */
+    /* unusedSpawnId */
+    aligned_advance_by(&a, sizeof_field(PSCS_WearChange, unusedSpawnId));
+    /* slotId */
+    slot = aligned_read_uint8(&a);
+    /* materialId */
+    index = aligned_read_uint8(&a);
+    /* operationId */
+    op = aligned_read_uint16(&a);
+    /* color, unknownA */
+    aligned_advance_by(&a, sizeof_field(PSCS_WearChange, color) + sizeof_field(PSCS_WearChange, unknownA));
+    /* flag */
+    flag = aligned_read_uint8(&a);
+
+    /* If the flag is 0xb1, this packet is some kind of echo; don't reply or it'll cause endless echo spam */
+    if (op != CHAR_SELECT_THREAD_WEARCHANGE_OP_SWITCH_CHAR && flag != 0xb1)
+    {
+        TlgPacket* packet;
+
+        if (index >= 10 || (slot != 7 && slot != 8))
+            return ERR_None;
+
+        packet = packet_create_type(OP_CS_WearChange, PSCS_WearChange);
+        if (!packet) return ERR_OutOfMemory;
+
+        aligned_init(&a, packet_data(packet), packet_length(packet));
+
+        /* PSCS_WearChange */
+        /* unusedSpawnId */
+        aligned_write_uint32(&a, 0);
+        /* slotId */
+        aligned_write_uint8(&a, slot);
+        /* materialId */
+        aligned_write_uint8(&a, csc_get_weapon_material_id(client, index, slot));
+        /* operationId, color, unknownA, flag, unknownB */
+        aligned_write_zeroes(&a, aligned_remaining_space(&a));
+
+        return csc_schedule_packet(client, cs->udpQueue, packet);
+    }
+
+    return ERR_None;
 }
 
 static int cs_thread_handle_op_echo(CharSelectThread* cs, CharSelectClient* client, uint16_t opcode)
@@ -597,15 +680,26 @@ static void cs_thread_handle_packet(CharSelectThread* cs, ZPacket* zpacket)
         break;
 
     case OP_CS_GuildList:
-        cs_thread_handle_op_guild_list(cs, client);
+        rc = cs_thread_handle_op_guild_list(cs, client);
+        break;
+
+    case OP_CS_NameApproval:
+        rc = cs_thread_handle_op_name_approval(cs, client, zpacket);
         break;
     
+    case OP_CS_WearChange:
+        rc = cs_thread_handle_op_wear_change(cs, client, zpacket);
+        break;
+
     case OP_CS_Echo1:
     case OP_CS_Echo2:
     case OP_CS_Echo3:
     case OP_CS_Echo4:
     case OP_CS_Echo5:
         rc = cs_thread_handle_op_echo(cs, client, opcode);
+        break;
+
+    case OP_CS_Ignore1:
         break;
     
     default:
@@ -827,6 +921,9 @@ static void cs_thread_proc(void* ptr)
         
         case ZOP_DB_QueryCSCharacterInfo:
             cs_thread_handle_db_character_info(cs, &zpacket);
+            break;
+
+        case ZOP_DB_QueryCSCharacterNameAvailable:
             break;
         
         default:

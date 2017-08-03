@@ -1,6 +1,7 @@
 
 #include "main_thread.h"
 #include "char_select_thread.h"
+#include "client_mgr.h"
 #include "db_thread.h"
 #include "log_thread.h"
 #include "login_thread.h"
@@ -11,6 +12,7 @@
 #include "util_alloc.h"
 #include "util_clock.h"
 #include "zpacket.h"
+#include "enum_zop.h"
 #include "enum2str.h"
 
 #define MAIN_THREAD_LOG_PATH "log/main_thread.txt"
@@ -29,6 +31,7 @@ struct MainThread {
     int                 dbId;
     int                 logId;
     int                 loginServerId;
+    ClientMgr           cmgr;
 };
 
 MainThread* mt_create()
@@ -98,6 +101,13 @@ MainThread* mt_create()
         goto fail;
     }
 
+    rc = cmgr_init(mt);
+    if (rc)
+    {
+        fprintf(stderr, "mt_create: cmgr_init() failed: %s\n", enum2str_err(rc));
+        goto fail;
+    }
+
     return mt;
 
 fail:
@@ -130,16 +140,42 @@ MainThread* mt_destroy(MainThread* mt)
 
         mt->mainQueue = ringbuf_destroy(mt->mainQueue);
         timer_pool_deinit(&mt->timerPool);
+        cmgr_deinit(&mt->cmgr);
         free(mt);
     }
 
     return NULL;
 }
 
+static void mt_process_commands(MainThread* mt, RingBuf* mainQueue)
+{
+    ZPacket zpacket;
+    int zop;
+    int rc;
+
+    for (;;)
+    {
+        rc = ringbuf_pop(mainQueue, &zop, &zpacket);
+        if (rc) break;
+
+        switch (zop)
+        {
+        case ZOP_DB_QueryMainGuildList:
+            cmgr_handle_guild_list(mt, &zpacket);
+            break;
+
+        default:
+            log_writef(mt->logQueue, mt->logId, "WARNING: mt_process_commands: received unexpected zop : %s", enum2str_zop(zop));
+            break;
+        }
+    }
+}
+
 #include "enum_login_server_rank.h"
 #include "enum_login_server_status.h"
 void mt_main_loop(MainThread* mt)
 {
+    RingBuf* mainQueue = mt->mainQueue;
     int rc;
     
     mt->login = login_create(mt->log, mt->dbQueue, mt->dbId, udp_get_queue(mt->udp), cs_get_queue(mt->cs));
@@ -156,7 +192,7 @@ void mt_main_loop(MainThread* mt)
         return;
     }
     
-    rc = login_add_server(mt->login, &mt->loginServerId, "ZEQ Test", NULL, "192.168.1.73", LOGIN_SERVER_RANK_Standard, LOGIN_SERVER_STATUS_Up, true);
+    rc = login_add_server(mt->login, &mt->loginServerId, "ZEQ Test", NULL, "127.0.0.1", LOGIN_SERVER_RANK_Standard, LOGIN_SERVER_STATUS_Up, true);
     if (rc)
     {
         fprintf(stderr, "login_add_server() failed: %s\n", enum2str_err(rc));
@@ -165,6 +201,43 @@ void mt_main_loop(MainThread* mt)
     
     for (;;)
     {
-        clock_sleep(50);
+        mt_process_commands(mt, mainQueue);
+
+        clock_sleep(25);
     }
+}
+
+ClientMgr* mt_get_cmgr(MainThread* mt)
+{
+    return &mt->cmgr;
+}
+
+RingBuf* mt_get_queue(MainThread* mt)
+{
+    return mt->mainQueue;
+}
+
+RingBuf* mt_get_db_queue(MainThread* mt)
+{
+    return mt->dbQueue;
+}
+
+RingBuf* mt_get_log_queue(MainThread* mt)
+{
+    return mt->logQueue;
+}
+
+RingBuf* mt_get_cs_queue(MainThread* mt)
+{
+    return cs_get_queue(mt->cs);
+}
+
+int mt_get_db_id(MainThread* mt)
+{
+    return mt->dbId;
+}
+
+int mt_get_log_id(MainThread* mt)
+{
+    return mt->logId;
 }

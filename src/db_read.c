@@ -240,6 +240,43 @@ done:
     sqlite3_finalize(stmt);
 }
 
+static void dbr_cs_character_name_available(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
+{
+    sqlite3_stmt* stmt = NULL;
+    ZPacket reply;
+    bool run;
+
+    reply.db.zResult.queryId = zpacket->db.zQuery.queryId;
+    reply.db.zResult.hadError = true;
+    reply.db.zResult.hadErrorUnprocessed = false;
+    reply.db.zResult.rCSCharacterNameAvailable.isNameAvailable = false;
+    reply.db.zResult.rCSCharacterNameAvailable.client = zpacket->db.zQuery.qCSCharacterNameAvailable.client;
+
+    run = db_prepare_literal(db, sqlite, &stmt,
+        "SELECT rowid FROM character WHERE name = ?");
+
+    if (run && db_bind_string_sbuf(db, stmt, 0, zpacket->db.zQuery.qCSCharacterNameAvailable.name))
+    {
+        int rc = db_read(db, stmt);
+
+        switch (rc)
+        {
+        case SQLITE_DONE:
+            reply.db.zResult.rCSCharacterNameAvailable.isNameAvailable = true;
+            /* fallthrough */
+        case SQLITE_ROW:
+            reply.db.zResult.hadError = false;
+            break;
+
+        case SQLITE_ERROR:
+            break;
+        }
+    }
+
+    db_reply(db, zpacket, &reply);
+    sqlite3_finalize(stmt);
+}
+
 void dbr_dispatch(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
 {
     uint64_t timer = clock_microseconds();
@@ -248,6 +285,7 @@ void dbr_dispatch(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
     switch (zop)
     {
     case ZOP_DB_QueryMainGuildList:
+        dbr_main_guild_list(db, sqlite, zpacket);
         break;
 
     case ZOP_DB_QueryLoginCredentials:
@@ -256,6 +294,10 @@ void dbr_dispatch(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
     
     case ZOP_DB_QueryCSCharacterInfo:
         dbr_cs_character_info(db, sqlite, zpacket);
+        break;
+
+    case ZOP_DB_QueryCSCharacterNameAvailable:
+        dbr_cs_character_name_available(db, sqlite, zpacket);
         break;
     
     default:
@@ -275,6 +317,10 @@ void dbr_destruct(DbThread* db, ZPacket* zpacket, int zop)
     {
     case ZOP_DB_QueryLoginCredentials:
         zpacket->db.zQuery.qLoginCredentials.accountName = sbuf_drop(zpacket->db.zQuery.qLoginCredentials.accountName);
+        break;
+
+    case ZOP_DB_QueryCSCharacterNameAvailable:
+        zpacket->db.zQuery.qCSCharacterNameAvailable.name = sbuf_drop(zpacket->db.zQuery.qCSCharacterNameAvailable.name);
         break;
     
     /* No data to destruct */
