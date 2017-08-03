@@ -11,6 +11,10 @@ int cmgr_init(MainThread* mt)
     RingBuf* dbQueue = mt_get_db_queue(mt);
     int dbId = mt_get_db_id(mt);
     int rc;
+    
+    cmgr->guildCount = 0;
+    
+    cmgr->guilds = NULL;
 
     rc = db_queue_query(dbQueue, mainQueue, dbId, 0, ZOP_DB_QueryMainGuildList, NULL);
     if (rc) goto ret;

@@ -22,6 +22,7 @@ _OBJECTS=               \
  buffer                 \
  char_select_client     \
  char_select_thread     \
+ client_mgr             \
  crc                    \
  db_read                \
  db_thread              \
