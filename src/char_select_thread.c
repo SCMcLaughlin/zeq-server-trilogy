@@ -583,6 +583,53 @@ static int cs_thread_handle_op_name_approval(CharSelectThread* cs, CharSelectCli
     return rc;
 }
 
+static void cs_thread_handle_db_name_approval(CharSelectThread* cs, ZPacket* zpacket)
+{
+    CharSelectClient* client = (CharSelectClient*)zpacket->db.zResult.rCSCharacterInfo.client;
+    bool isAvailable = zpacket->db.zResult.rCSCharacterNameAvailable.isNameAvailable;
+    TlgPacket* packet;
+    int rc;
+
+    switch (cs_thread_check_db_error(cs, client, zpacket, FUNC_NAME))
+    {
+    case ERR_Invalid:
+    case ERR_Generic:
+        goto drop_client;
+
+    case ERR_None:
+        break;
+    }
+
+    if (!csc_is_authed(client))
+        goto drop_client;
+
+    packet = packet_create(OP_CS_NameApproval, 1);
+    if (!packet) goto drop_client;
+
+    packet_data(packet)[0] = (uint8_t)isAvailable;
+
+    rc = csc_schedule_packet(client, cs->udpQueue, packet);
+    if (rc) goto drop_client;
+
+    csc_set_name_approved(client, isAvailable);
+    return;
+
+drop_client:
+    cs_thread_drop_client(cs, client);
+}
+
+static int cs_thread_handle_op_create_character(CharSelectThread* cs, CharSelectClient* client, ZPacket* zpacket)
+{
+    Aligned a;
+
+    aligned_init(&a, zpacket->udp.zToServerPacket.data, zpacket->udp.zToServerPacket.length);
+
+    if (!csc_is_authed(client) || !csc_is_name_approved(client) || aligned_remaining_data(&a) < sizeof(PSCS_PlayerProfile))
+        return ERR_Invalid;
+
+    return ERR_None;
+}
+
 static int cs_thread_handle_op_wear_change(CharSelectThread* cs, CharSelectClient* client, ZPacket* zpacket)
 {
     Aligned a;
@@ -685,6 +732,10 @@ static void cs_thread_handle_packet(CharSelectThread* cs, ZPacket* zpacket)
 
     case OP_CS_NameApproval:
         rc = cs_thread_handle_op_name_approval(cs, client, zpacket);
+        break;
+
+    case OP_CS_CreateCharacter:
+        rc = cs_thread_handle_op_create_character(cs, client, zpacket);
         break;
     
     case OP_CS_WearChange:

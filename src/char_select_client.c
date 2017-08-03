@@ -6,6 +6,7 @@
 
 struct CharSelectClient {
     bool        authed;
+    bool        isNameApproved;
     IpAddr      ipAddress;
     int64_t     accountId;
     char        sessionKey[16];
@@ -104,4 +105,14 @@ void csc_set_weapon_material_ids(CharSelectClient* csc, CharSelectData* data)
 uint8_t csc_get_weapon_material_id(CharSelectClient* csc, uint32_t index, uint32_t slot)
 {
     return csc->weaponMaterialIds[index][slot - 7];
+}
+
+void csc_set_name_approved(CharSelectClient* csc, bool value)
+{
+    csc->isNameApproved = value;
+}
+
+bool csc_is_name_approved(CharSelectClient* csc)
+{
+    return csc->isNameApproved;
 }
