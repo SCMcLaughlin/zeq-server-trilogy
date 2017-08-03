@@ -28,7 +28,8 @@ enum CharSelectOpcode
     OP_CS_Echo4             = 0xac00,
     OP_CS_Echo5             = 0xad00,
     /* Packets the client sends that we have no interest in */
-    OP_CS_Ignore1           = 0x2139,
+    OP_CS_Ignore1           = 0x2135,
+    OP_CS_Ignore2           = 0x2139,
 };
 
 #endif/*ENUM_CHAR_SELECT_OPCODE_H*/

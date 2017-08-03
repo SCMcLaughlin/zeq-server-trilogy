@@ -700,6 +700,7 @@ static void cs_thread_handle_packet(CharSelectThread* cs, ZPacket* zpacket)
         break;
 
     case OP_CS_Ignore1:
+    case OP_CS_Ignore2:
         break;
     
     default:
