@@ -6,6 +6,7 @@
 #include "log_thread.h"
 #include "login_thread.h"
 #include "login_client.h"
+#include "main_timers.h"
 #include "ringbuf.h"
 #include "timer.h"
 #include "udp_thread.h"
@@ -33,6 +34,16 @@ struct MainThread {
     int                 loginServerId;
     ClientMgr           cmgr;
 };
+
+static int mt_start_timers(MainThread* mt)
+{
+    mt->timerCSAuthTimeouts = timer_new(&mt->timerPool, 5000, mtt_cs_auth_timeouts, mt, true);
+    if (!mt->timerCSAuthTimeouts) goto oom;
+
+    return ERR_None;
+oom:
+    return ERR_OutOfMemory;
+}
 
 MainThread* mt_create()
 {
@@ -105,6 +116,13 @@ MainThread* mt_create()
     if (rc)
     {
         fprintf(stderr, "mt_create: cmgr_init() failed: %s\n", enum2str_err(rc));
+        goto fail;
+    }
+
+    rc = mt_start_timers(mt);
+    if (rc)
+    {
+        fprintf(stderr, "mt_create: mt_start_timers() failed: %s\n", enum2str_err(rc));
         goto fail;
     }
 

@@ -703,7 +703,7 @@ static void cs_thread_handle_packet(CharSelectThread* cs, ZPacket* zpacket)
         break;
     
     default:
-        log_writef(cs->logQueue, cs->logId, "WARNING: cs_thread_handle_packet: received unexpected char select opcode: %04x", zpacket->udp.zToServerPacket.opcode);
+        log_writef(cs->logQueue, cs->logId, "WARNING: cs_thread_handle_packet: received unexpected char select opcode: 0x%04x", zpacket->udp.zToServerPacket.opcode);
         break;
     }
     

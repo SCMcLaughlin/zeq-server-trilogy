@@ -217,3 +217,8 @@ int timer_restart(TimerPool* pool, Timer* timer)
     
     return rc;
 }
+
+void* timer_userdata(Timer* timer)
+{
+    return timer->userdata;
+}

@@ -30,4 +30,7 @@ int timer_stop(TimerPool* pool, Timer* timer);
 int timer_restart(TimerPool* pool, Timer* timer);
 #define timer_start(pool, timer) (timer_restart((pool), (timer)))
 
+void* timer_userdata(Timer* timer);
+#define timer_userdata_type(timer, type) (type*)timer_userdata((timer))
+
 #endif/*TIMER_H*/

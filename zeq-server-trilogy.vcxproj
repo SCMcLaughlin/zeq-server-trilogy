@@ -185,6 +185,7 @@
     <ClInclude Include="src\login_zpacket.h" />
     <ClInclude Include="src\log_thread.h" />
     <ClInclude Include="src\main_thread.h" />
+    <ClInclude Include="src\main_timers.h" />
     <ClInclude Include="src\player_profile_packet_struct.h" />
     <ClInclude Include="src\ringbuf.h" />
     <ClInclude Include="src\structs_container.h" />
@@ -226,6 +227,7 @@
     <ClCompile Include="src\log_thread.c" />
     <ClCompile Include="src\main.c" />
     <ClCompile Include="src\main_thread.c" />
+    <ClCompile Include="src\main_timers.c" />
     <ClCompile Include="src\ringbuf.c" />
     <ClCompile Include="src\timer.c" />
     <ClCompile Include="src\tlg_packet.c" />

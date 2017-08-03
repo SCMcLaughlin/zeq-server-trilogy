@@ -599,7 +599,7 @@ static void login_thread_handle_packet(LoginThread* login, ZPacket* zpacket)
         break;
 
     default:
-        log_writef(login->logQueue, login->logId, "WARNING: login_thread_handle_packet: received unexpected login opcode: %04x", zpacket->udp.zToServerPacket.opcode);
+        log_writef(login->logQueue, login->logId, "WARNING: login_thread_handle_packet: received unexpected login opcode: 0x%04x", zpacket->udp.zToServerPacket.opcode);
         break;
     }
     

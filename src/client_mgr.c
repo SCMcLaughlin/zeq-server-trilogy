@@ -10,13 +10,14 @@ int cmgr_init(MainThread* mt)
     RingBuf* mainQueue = mt_get_queue(mt);
     RingBuf* dbQueue = mt_get_db_queue(mt);
     int dbId = mt_get_db_id(mt);
+    ZPacket zpacket;
     int rc;
     
     cmgr->guildCount = 0;
     
     cmgr->guilds = NULL;
 
-    rc = db_queue_query(dbQueue, mainQueue, dbId, 0, ZOP_DB_QueryMainGuildList, NULL);
+    rc = db_queue_query(dbQueue, mainQueue, dbId, 0, ZOP_DB_QueryMainGuildList, &zpacket);
     if (rc) goto ret;
 
 ret:
