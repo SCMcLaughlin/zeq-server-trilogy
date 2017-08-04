@@ -55,7 +55,7 @@ static uint32_t packet_calc_length_and_frag_count(uint32_t length, uint16_t* fra
 
         /*
             The idea here is to leave enough space in our buffer to spread out all the fragments
-            in-place, with large enough caps to allow for the largest possible variable-sized header
+            in-place, with large enough gaps to allow for the largest possible variable-sized header
             as well as the CRC footer, in each fragment.
         */
 

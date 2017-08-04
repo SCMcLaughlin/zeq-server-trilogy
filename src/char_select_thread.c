@@ -71,7 +71,7 @@ static bool cs_thread_drop_client(CharSelectThread* cs, CharSelectClient* client
     {
         uint32_t ip = cmd.udp.zDropClient.ipAddress.ip;
         
-        log_writef(cs->logQueue, cs->logId, "cs_thread_drop_client: failed to inform UdpThread to drop client from %u.%u.%u.%u:%u, keeping client alive for now",
+        log_writef(cs->logQueue, cs->logId, "WARNING: cs_thread_drop_client: failed to inform UdpThread to drop client from %u.%u.%u.%u:%u, keeping client alive for now",
             (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, cmd.udp.zDropClient.ipAddress.port);
     
         return false;
@@ -618,8 +618,124 @@ drop_client:
     cs_thread_drop_client(cs, client);
 }
 
+static bool cs_thread_create_character_is_valid(CharCreateData* data)
+{
+    uint32_t classIndex = data->classId - 1;
+    uint32_t raceIndex = data->raceId - 1;
+    uint32_t totalExpected, total, maxSpendableOneStat;
+    int i;
+
+#define classes_bitmap(war, clr, pal, rng, shd, dru, mnk, brd, rog, shm, nec, wiz, mag, enc)    \
+    ((war << 0) | (clr << 1) | (pal << 2) | (rng << 3) | (shd << 4) | (dru << 5) | (mnk << 6) | (brd << 7) | (rog << 8) | (shm << 9) | (nec << 10) | (wiz << 11) | (mag << 12) | (enc << 13))
+    static const uint16_t classesByRace[13] = {
+        /*             WAR    CLR    PAL    RNG    SHD    DRU    MNK    BRD    ROG    SHM    NEC    WIZ    MAG    ENC */
+        classes_bitmap(true,  true,  true,  true,  true,  true,  true,  true,  true,  false, true,  true,  true,  true ),   /* Human */
+        classes_bitmap(true,  false, false, false, false, false, false, false, true,  true,  false, false, false, false),   /* Barbarian */
+        classes_bitmap(false, true,  true,  false, true,  false, false, false, false, false, true,  true,  true,  true ),   /* Erudite */
+        classes_bitmap(true,  false, false, true,  false, true,  false, true,  true,  false, false, false, false, false),   /* Wood Elf */
+        classes_bitmap(false, true,  true,  false, false, false, false, false, false, false, false, true,  true,  true ),   /* High Elf */
+        classes_bitmap(true,  true,  false, false, true,  false, false, false, true,  false, true,  true,  true,  true ),   /* Dark Elf */
+        classes_bitmap(true,  false, true,  true,  false, true,  false, true,  true,  false, false, false, false, false),   /* Half Elf */
+        classes_bitmap(true,  true,  true,  false, false, false, false, false, true,  false, false, false, false, false),   /* Dwarf */
+        classes_bitmap(true,  false, false, false, true,  false, false, false, false, true,  false, false, false, false),   /* Troll */
+        classes_bitmap(true,  false, false, false, true,  false, false, false, false, true,  false, false, false, false),   /* Ogre */
+        classes_bitmap(true,  true,  true,  true,  false, true,  false, false, true,  false, false, false, false, false),   /* Halfling */
+        classes_bitmap(true,  true,  false, false, false, false, false, false, true,  false, true,  true,  true,  true ),   /* Gnome */
+        classes_bitmap(true,  false, false, false, true,  false, true,  false, false, true,  true,  false, false, false)    /* Iksar */
+    };
+#undef classes_bitmap
+
+    static const uint8_t baseStatsByRace[13][7] = {
+        /*                 STR  STA  CHA  DEX  INT  AGI  WIS */
+        /* Human     */ {  75,  75,  75,  75,  75,  75,  75 },
+        /* Barbarian */ { 103,  95,  55,  70,  60,  82,  70 },
+        /* Erudite   */ {  60,  70,  70,  70, 107,  70,  83 },
+        /* Wood Elf  */ {  65,  65,  75,  80,  75,  95,  80 },
+        /* High Elf  */ {  55,  65,  80,  70,  92,  85,  95 },
+        /* Dark Elf  */ {  60,  65,  60,  75,  99,  90,  83 },
+        /* Half Elf  */ {  70,  70,  75,  85,  75,  90,  60 },
+        /* Dwarf     */ {  90,  90,  45,  90,  60,  70,  83 },
+        /* Troll     */ { 108, 109,  40,  75,  52,  83,  60 },
+        /* Ogre      */ { 130, 122,  37,  70,  60,  70,  67 },
+        /* Halfling  */ {  70,  75,  50,  90,  67,  95,  80 },
+        /* Gnome     */ {  60,  70,  60,  85,  98,  85,  67 },
+        /* Iksar     */ {  70,  70,  55,  85,  75,  90,  80 }
+    };
+
+    static const uint8_t statBonusesByClass[14][7] = {
+        /*                    STR STA CHA DEX INT AGI WIS */
+        /* Warrior      */  { 10, 10,  0,  0,  0,  5,  0 },
+        /* Cleric       */  {  5,  5,  0,  0,  0,  0, 10 },
+        /* Paladin      */  { 10,  5, 10,  0,  0,  0,  5 },
+        /* Ranger       */  {  5, 10,  0,  0,  0, 10,  5 },
+        /* ShadowKnight */  { 10,  5,  5,  0, 10,  0,  0 },
+        /* Druid        */  {  0, 10,  0,  0,  0,  0, 10 },
+        /* Monk         */  {  5,  5,  0, 10,  0, 10,  0 },
+        /* Bard         */  {  5,  0, 10, 10,  0,  0,  0 },
+        /* Rogue        */  {  0,  0,  0, 10,  0, 10,  0 },
+        /* Shaman       */  {  0,  5,  5,  0,  0,  0, 10 },
+        /* Necromancer  */  {  0,  0,  0, 10, 10,  0,  0 },
+        /* Wizard       */  {  0, 10,  0,  0, 10,  0,  0 },
+        /* Magician     */  {  0, 10,  0,  0, 10,  0,  0 },
+        /* Enchanter    */  {  0,  0, 10,  0, 10,  0,  0 }
+    };
+
+    static const uint8_t spendableStatPointsByClass[14] = {
+        25, /* Warrior */
+        30, /* Cleric */
+        20, /* Paladin */
+        20, /* Ranger */
+        20, /* ShadowKnight */
+        30, /* Druid */
+        20, /* Monk */
+        25, /* Bard */
+        30, /* Rogue */
+        30, /* Shaman */
+        30, /* Necromancer */
+        30, /* Wizard */
+        30, /* Magician */
+        30  /* Enchanter */
+    };
+
+    /* Iksar index correction */
+    if (raceIndex > 12)
+        raceIndex = 12;
+
+    /* Is the race/class combination valid? */
+    if (classIndex > 14 || (classesByRace[raceIndex] & (1 << classIndex)) == 0)
+        return false;
+
+    totalExpected = spendableStatPointsByClass[classIndex];
+    total = 0;
+    maxSpendableOneStat = totalExpected;
+
+    if (maxSpendableOneStat > 25)
+        maxSpendableOneStat = 25;
+
+    for (i = 0; i < 7; i++)
+    {
+        uint32_t statValue = data->stats[i];
+        uint32_t statTotal = baseStatsByRace[raceIndex][i] + statBonusesByClass[classIndex][i];
+
+        /* Does this stat exceed the maximum possible value for this race and class? */
+        if (statValue > (statTotal + maxSpendableOneStat))
+            return false;
+
+        totalExpected += statTotal;
+        total += statValue;
+    }
+
+    /* Do they have more stat points overall than should be possible? */
+    if (total > totalExpected)
+        return false;
+
+    return true;
+}
+
 static int cs_thread_handle_op_create_character(CharSelectThread* cs, CharSelectClient* client, ZPacket* zpacket)
 {
+    CharCreateData data;
+    const char* shortName;
     Aligned a;
 
     aligned_init(&a, zpacket->udp.zToServerPacket.data, zpacket->udp.zToServerPacket.length);
@@ -627,7 +743,164 @@ static int cs_thread_handle_op_create_character(CharSelectThread* cs, CharSelect
     if (!csc_is_authed(client) || !csc_is_name_approved(client) || aligned_remaining_data(&a) < sizeof(PSCS_PlayerProfile))
         return ERR_Invalid;
 
-    return ERR_None;
+    /* name */
+    aligned_read_buffer(&a, data.name, sizeof(data.name));
+    /* surname */
+    aligned_advance_by(&a, sizeof_field(PSCS_PlayerProfile, surname));
+    /* genderId */
+    data.genderId = (uint8_t)aligned_read_uint16(&a);
+    /* raceId */
+    data.raceId = aligned_read_int16(&a);
+    /* classId */
+    data.classId = (uint8_t)aligned_read_uint16(&a);
+    /* level, experience, trainingPoints, currentMana */
+    aligned_advance_by(&a,
+        sizeof_field(PSCS_PlayerProfile, level)             +
+        sizeof_field(PSCS_PlayerProfile, experience)        +
+        sizeof_field(PSCS_PlayerProfile, trainingPoints)    +
+        sizeof_field(PSCS_PlayerProfile, currentMana));
+    /* faceId */
+    data.faceId = aligned_read_uint8(&a);
+    /* unknownA */
+    aligned_advance_by(&a, sizeof_field(PSCS_PlayerProfile, unknownA));
+    /* currentHp */
+    data.currentHp = (uint8_t)aligned_read_int16(&a);
+    /* unknownB */
+    aligned_advance_by(&a, sizeof_field(PSCS_PlayerProfile, unknownB));
+    /* STR */
+    data.STR = aligned_read_uint8(&a);
+    /* STA */
+    data.STA = aligned_read_uint8(&a);
+    /* CHA */
+    data.CHA = aligned_read_uint8(&a);
+    /* DEX */
+    data.DEX = aligned_read_uint8(&a);
+    /* INT */
+    data.INT = aligned_read_uint8(&a);
+    /* AGI */
+    data.AGI = aligned_read_uint8(&a);
+    /* WIS */
+    data.WIS = aligned_read_uint8(&a);
+    /* languages, unknownC, mainInventory, buffs, baggedItems, spellbook, memmedSpellIds, unknownD */
+    aligned_advance_by(&a,
+        sizeof_field(PSCS_PlayerProfile, languages)                     +
+        sizeof_field(PSCS_PlayerProfile, unknownC)                      +
+        sizeof_field(PSCS_PlayerProfile, mainInventoryItemIds)          +
+        sizeof_field(PSCS_PlayerProfile, mainInventoryInternalUnused)   +
+        sizeof_field(PSCS_PlayerProfile, mainInventoryItemProperties)   +
+        sizeof_field(PSCS_PlayerProfile, buffs)                         +
+        sizeof_field(PSCS_PlayerProfile, baggedItemIds)                 +
+        sizeof_field(PSCS_PlayerProfile, baggedItemProperties)          +
+        sizeof_field(PSCS_PlayerProfile, spellbook)                     +
+        sizeof_field(PSCS_PlayerProfile, memmedSpellIds)                +
+        sizeof_field(PSCS_PlayerProfile, unknownD));
+    
+    /* fixme: none of the loc and zone data coming from the client should be trusted */
+    
+    /* y */
+    data.y = aligned_read_float(&a);
+    /* x */
+    data.x = aligned_read_float(&a);
+    /* z */
+    data.z = aligned_read_float(&a);
+    /* heading */
+    data.heading = aligned_read_float(&a);
+    /* zoneShortName */
+    shortName = aligned_current_type(&a, const char);
+    data.zoneId = zone_id_by_short_name(shortName, str_len_bounded(shortName, ZEQ_PP_MAX_ZONE_SHORT_NAME_LENGTH));
+    aligned_advance_by(&a, ZEQ_PP_MAX_ZONE_SHORT_NAME_LENGTH);
+
+    /* lots of stuff */
+    aligned_advance_by(&a,
+        sizeof_field(PSCS_PlayerProfile, unknownEDefault100)    +
+        sizeof_field(PSCS_PlayerProfile, coins)                 +
+        sizeof_field(PSCS_PlayerProfile, coinsBank)             +
+        sizeof_field(PSCS_PlayerProfile, coinsCursor)           +
+        sizeof_field(PSCS_PlayerProfile, skills)                +
+        sizeof_field(PSCS_PlayerProfile, unknownF)              +
+        sizeof_field(PSCS_PlayerProfile, autoSplit)             +
+        sizeof_field(PSCS_PlayerProfile, pvpEnabled)            +
+        sizeof_field(PSCS_PlayerProfile, unknownG)              +
+        sizeof_field(PSCS_PlayerProfile, isGM)                  +
+        sizeof_field(PSCS_PlayerProfile, unknownH)              +
+        sizeof_field(PSCS_PlayerProfile, disciplinesReady)      +
+        sizeof_field(PSCS_PlayerProfile, unknownI)              +
+        sizeof_field(PSCS_PlayerProfile, hunger)                +
+        sizeof_field(PSCS_PlayerProfile, thirst)                +
+        sizeof_field(PSCS_PlayerProfile, unknownJ));
+
+    /* bindZoneShortName[5] */
+    shortName = aligned_current_type(&a, const char);
+    data.bindPoint[0].zoneId = zone_id_by_short_name(shortName, str_len_bounded(shortName, ZEQ_PP_MAX_BIND_POINT_ZONE_SHORT_NAME_LENGTH));
+    aligned_advance_by(&a, ZEQ_PP_MAX_BIND_POINT_ZONE_SHORT_NAME_LENGTH);
+
+    shortName = aligned_current_type(&a, const char);
+    data.bindPoint[1].zoneId = zone_id_by_short_name(shortName, str_len_bounded(shortName, ZEQ_PP_MAX_BIND_POINT_ZONE_SHORT_NAME_LENGTH));
+    aligned_advance_by(&a, ZEQ_PP_MAX_BIND_POINT_ZONE_SHORT_NAME_LENGTH);
+
+    shortName = aligned_current_type(&a, const char);
+    data.bindPoint[2].zoneId = zone_id_by_short_name(shortName, str_len_bounded(shortName, ZEQ_PP_MAX_BIND_POINT_ZONE_SHORT_NAME_LENGTH));
+    aligned_advance_by(&a, ZEQ_PP_MAX_BIND_POINT_ZONE_SHORT_NAME_LENGTH);
+
+    shortName = aligned_current_type(&a, const char);
+    data.bindPoint[3].zoneId = zone_id_by_short_name(shortName, str_len_bounded(shortName, ZEQ_PP_MAX_BIND_POINT_ZONE_SHORT_NAME_LENGTH));
+    aligned_advance_by(&a, ZEQ_PP_MAX_BIND_POINT_ZONE_SHORT_NAME_LENGTH);
+
+    shortName = aligned_current_type(&a, const char);
+    data.bindPoint[4].zoneId = zone_id_by_short_name(shortName, str_len_bounded(shortName, ZEQ_PP_MAX_BIND_POINT_ZONE_SHORT_NAME_LENGTH));
+    aligned_advance_by(&a, ZEQ_PP_MAX_BIND_POINT_ZONE_SHORT_NAME_LENGTH);
+
+    /* bankInventoryItemProperties, bankedBaggedItemProperties, unknownK */
+    aligned_advance_by(&a,
+        sizeof_field(PSCS_PlayerProfile, bankInventoryItemProperties)   +
+        sizeof_field(PSCS_PlayerProfile, bankBaggedItemProperties)      +
+        sizeof_field(PSCS_PlayerProfile, unknownK)                      +
+        sizeof_field(PSCS_PlayerProfile, unknownL));
+
+    /* bindLocY[5] */
+    data.bindPoint[0].y = aligned_read_float(&a);
+    data.bindPoint[1].y = aligned_read_float(&a);
+    data.bindPoint[2].y = aligned_read_float(&a);
+    data.bindPoint[3].y = aligned_read_float(&a);
+    data.bindPoint[4].y = aligned_read_float(&a);
+
+    /* bindLocX[5] */
+    data.bindPoint[0].x = aligned_read_float(&a);
+    data.bindPoint[1].x = aligned_read_float(&a);
+    data.bindPoint[2].x = aligned_read_float(&a);
+    data.bindPoint[3].x = aligned_read_float(&a);
+    data.bindPoint[4].x = aligned_read_float(&a);
+
+    /* bindLocZ[5] */
+    data.bindPoint[0].z = aligned_read_float(&a);
+    data.bindPoint[1].z = aligned_read_float(&a);
+    data.bindPoint[2].z = aligned_read_float(&a);
+    data.bindPoint[3].z = aligned_read_float(&a);
+    data.bindPoint[4].z = aligned_read_float(&a);
+
+    /* More stuff */
+    aligned_advance_by(&a,
+        sizeof_field(PSCS_PlayerProfile, bindLocHeading)                +
+        sizeof_field(PSCS_PlayerProfile, bankInventoryInternalUnused)   +
+        sizeof_field(PSCS_PlayerProfile, unknownM)                      +
+        sizeof_field(PSCS_PlayerProfile, unixTimeA)                     +
+        sizeof_field(PSCS_PlayerProfile, unknownN)                      +
+        sizeof_field(PSCS_PlayerProfile, unknownODefault1)              +
+        sizeof_field(PSCS_PlayerProfile, unknownP)                      +
+        sizeof_field(PSCS_PlayerProfile, bankInventoryItemIds)          +
+        sizeof_field(PSCS_PlayerProfile, bankBaggedItemIds));
+
+    /* deity */
+    data.deityId = aligned_read_uint16(&a);
+
+    /* Verify char creation data validity */
+    if (cs_thread_create_character_is_valid(&data))
+    {
+        /*fixme: do query here*/
+        return ERR_None;
+    }
+
+    return ERR_Invalid;
 }
 
 static int cs_thread_handle_op_wear_change(CharSelectThread* cs, CharSelectClient* client, ZPacket* zpacket)
@@ -764,7 +1037,7 @@ static void cs_thread_handle_packet(CharSelectThread* cs, ZPacket* zpacket)
         uint32_t ip = csc_get_ip(client);
         uint16_t port = csc_get_port(client);
         
-        log_writef(cs->logQueue, cs->logId, "cs_thread_handle_packet: got error %s while processing packet with opcode %s from client from %u.%u.%u.%u:%u, disconnecting them to maintain consistency",
+        log_writef(cs->logQueue, cs->logId, "ERROR: cs_thread_handle_packet: got error %s while processing packet with opcode %s from client from %u.%u.%u.%u:%u, disconnecting them to maintain consistency",
             enum2str_err(rc), enum2str_char_select_opcode(opcode), (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, port);
         
         cs_thread_drop_client(cs, client);
@@ -825,7 +1098,7 @@ static void cs_thread_handle_login_auth(CharSelectThread* cs, ZPacket* zpacket)
     return;
     
 fail:
-    log_writef(cs->logQueue, cs->logId, "cs_thread_handle_login_auth: out of memory while adding auth for account id %lli", accountId);
+    log_writef(cs->logQueue, cs->logId, "ERROR: cs_thread_handle_login_auth: out of memory while adding auth for account id %lli", accountId);
 }
 
 static void cs_thread_check_auth_timeouts(CharSelectThread* cs)
@@ -935,7 +1208,7 @@ static void cs_thread_proc(void* ptr)
         
         if (rc)
         {
-            log_writef(cs->logQueue, cs->logId, "cs_thread_proc: ringbuf_wait_for_packet() returned error: %s", enum2str_err(rc));
+            log_writef(cs->logQueue, cs->logId, "ERROR: cs_thread_proc: ringbuf_wait_for_packet() returned error: %s", enum2str_err(rc));
             break;
         }
         

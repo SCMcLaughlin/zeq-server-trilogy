@@ -231,7 +231,7 @@ static bool db_thread_create_database(DbThread* db, DbInst* inst, ZPacket* zpack
     
     if (!schema)
     {
-        log_writef(db->logQueue, db->logId, "db_thread_open_database: failed to open schema \"%s\"", sbuf_str(zpacket->db.zOpen.schemaPath));
+        log_writef(db->logQueue, db->logId, "ERROR: db_thread_open_database: failed to open schema \"%s\"", sbuf_str(zpacket->db.zOpen.schemaPath));
         goto error;
     }
 
@@ -243,7 +243,7 @@ static bool db_thread_create_database(DbThread* db, DbInst* inst, ZPacket* zpack
     
     if (rc != SQLITE_OK)
     {
-        log_writef(db->logQueue, db->logId, "db_thread_open_database: failed to create database file \"%s\", reason: \"%s\"",
+        log_writef(db->logQueue, db->logId, "ERROR: db_thread_open_database: failed to create database file \"%s\", reason: \"%s\"",
             sbuf_str(zpacket->db.zOpen.path), sqlite3_errstr(rc));
         goto error;
     }
@@ -251,7 +251,7 @@ static bool db_thread_create_database(DbThread* db, DbInst* inst, ZPacket* zpack
     rc = db_thread_exec(db, inst->db, sbuf_str(schema));
     if (rc)
     {
-        log_writef(db->logQueue, db->logId, "db_thread_open_database: failed to write schema from \"%s\"", sbuf_str(zpacket->db.zOpen.schemaPath));
+        log_writef(db->logQueue, db->logId, "ERROR: db_thread_open_database: failed to write schema from \"%s\"", sbuf_str(zpacket->db.zOpen.schemaPath));
         goto error_open;
     }
     
@@ -307,7 +307,7 @@ static void db_thread_open_database(DbThread* db, ZPacket* zpacket)
     {
         if (rc != SQLITE_CANTOPEN)
         {
-            log_writef(db->logQueue, db->logId, "db_thread_open_database: failed to open database file \"%s\", reason: \"%s\"",
+            log_writef(db->logQueue, db->logId, "ERROR: db_thread_open_database: failed to open database file \"%s\", reason: \"%s\"",
                 sbuf_str(zpacket->db.zOpen.path), sqlite3_errstr(rc));
             goto error;
         }
@@ -333,7 +333,7 @@ error:
     
     if (rc)
     {
-        log_writef(db->logQueue, db->logId, "db_thread_open_database: ringbuf_push() failed: %s", enum2str_err(rc));
+        log_writef(db->logQueue, db->logId, "ERROR: db_thread_open_database: ringbuf_push() failed: %s", enum2str_err(rc));
     }
     
 finish:
@@ -558,7 +558,7 @@ void db_reply(DbThread* db, ZPacket* zpacket, ZPacket* reply)
     
     if (rc)
     {
-        log_writef(db->logQueue, db->logId, "db_reply: ringbuf_push() failed: %s", enum2str_err(rc));
+        log_writef(db->logQueue, db->logId, "ERROR: db_reply: ringbuf_push() failed: %s", enum2str_err(rc));
     }
 }
 
@@ -615,7 +615,7 @@ bool db_prepare(DbThread* db, sqlite3* sqlite, sqlite3_stmt** stmt, const char* 
         return true;
     }
     
-    log_writef(db->logQueue, db->logId, "db_prepare: sqlite3_prepare_v2() failed, reason: \"%s\", SQL: \"%s\"",
+    log_writef(db->logQueue, db->logId, "ERROR: db_prepare: sqlite3_prepare_v2() failed, reason: \"%s\", SQL: \"%s\"",
         sqlite3_errstr(rc), sql);
     return false;
 }
@@ -637,7 +637,7 @@ int db_read(DbThread* db, sqlite3_stmt* stmt)
             return rc;
         
         default:
-            log_writef(db->logQueue, db->logId, "db_read: sqlite3_step() failed, reason: \"%s\"", sqlite3_errstr(rc));
+            log_writef(db->logQueue, db->logId, "ERROR: db_read: sqlite3_step() failed, reason: \"%s\"", sqlite3_errstr(rc));
             return SQLITE_ERROR;
         }
     }
@@ -659,11 +659,11 @@ bool db_write(DbThread* db, sqlite3_stmt* stmt)
             return true;
         
         case SQLITE_ROW:
-            log_write_literal(db->logQueue, db->logId, "db_write: sqlite3_step() returned SQLITE_ROW, indicating data was SELECTed; is this a misconfigured READ query?");
+            log_write_literal(db->logQueue, db->logId, "WARNING: db_write: sqlite3_step() returned SQLITE_ROW, indicating data was SELECTed; is this a misconfigured READ query?");
             goto error;
         
         default:
-            log_writef(db->logQueue, db->logId, "db_write: sqlite3_step() failed, reason: \"%s\"", sqlite3_errstr(rc));
+            log_writef(db->logQueue, db->logId, "ERROR: db_write: sqlite3_step() failed, reason: \"%s\"", sqlite3_errstr(rc));
             goto error;
         }
     }
@@ -679,7 +679,7 @@ bool db_bind_int(DbThread* db, sqlite3_stmt* stmt, int col, int val)
     if (rc != SQLITE_OK)
     {
         ret = false;
-        log_writef(db->logQueue, db->logId, "db_bind_int: sqlite3_bind_int() failed, reason: \"%s\"", sqlite3_errstr(rc)); 
+        log_writef(db->logQueue, db->logId, "ERROR: db_bind_int: sqlite3_bind_int() failed, reason: \"%s\"", sqlite3_errstr(rc)); 
     }
     
     return ret;
@@ -693,7 +693,7 @@ bool db_bind_int64(DbThread* db, sqlite3_stmt* stmt, int col, int64_t val)
     if (rc != SQLITE_OK)
     {
         ret = false;
-        log_writef(db->logQueue, db->logId, "db_bind_int64: sqlite3_bind_int64() failed, reason: \"%s\"", sqlite3_errstr(rc)); 
+        log_writef(db->logQueue, db->logId, "ERROR: db_bind_int64: sqlite3_bind_int64() failed, reason: \"%s\"", sqlite3_errstr(rc)); 
     }
     
     return ret;
@@ -707,7 +707,7 @@ bool db_bind_double(DbThread* db, sqlite3_stmt* stmt, int col, double val)
     if (rc != SQLITE_OK)
     {
         ret = false;
-        log_writef(db->logQueue, db->logId, "db_bind_double: sqlite3_bind_double() failed, reason: \"%s\"", sqlite3_errstr(rc)); 
+        log_writef(db->logQueue, db->logId, "ERROR: db_bind_double: sqlite3_bind_double() failed, reason: \"%s\"", sqlite3_errstr(rc)); 
     }
     
     return ret;
@@ -721,7 +721,7 @@ bool db_bind_string(DbThread* db, sqlite3_stmt* stmt, int col, const char* str, 
     if (rc != SQLITE_OK)
     {
         ret = false;
-        log_writef(db->logQueue, db->logId, "db_bind_text: sqlite3_bind_text() failed, reason: \"%s\"", sqlite3_errstr(rc)); 
+        log_writef(db->logQueue, db->logId, "ERROR: db_bind_text: sqlite3_bind_text() failed, reason: \"%s\"", sqlite3_errstr(rc)); 
     }
     
     return ret;
@@ -735,7 +735,7 @@ bool db_bind_blob(DbThread* db, sqlite3_stmt* stmt, int col, const void* data, i
     if (rc != SQLITE_OK)
     {
         ret = false;
-        log_writef(db->logQueue, db->logId, "db_bind_blob: sqlite3_bind_blob() failed, reason: \"%s\"", sqlite3_errstr(rc)); 
+        log_writef(db->logQueue, db->logId, "ERROR: db_bind_blob: sqlite3_bind_blob() failed, reason: \"%s\"", sqlite3_errstr(rc)); 
     }
     
     return ret;
@@ -749,7 +749,7 @@ bool db_bind_null(DbThread* db, sqlite3_stmt* stmt, int col)
     if (rc != SQLITE_OK)
     {
         ret = false;
-        log_writef(db->logQueue, db->logId, "db_bind_null: sqlite3_bind_null() failed, reason: \"%s\"", sqlite3_errstr(rc));
+        log_writef(db->logQueue, db->logId, "ERROR: db_bind_null: sqlite3_bind_null() failed, reason: \"%s\"", sqlite3_errstr(rc));
     }
     
     return ret;

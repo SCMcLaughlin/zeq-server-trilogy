@@ -4,6 +4,11 @@
 
 #include "define.h"
 
+int zone_id_init();
+void zone_id_deinit();
+
+int zone_id_by_short_name(const char* shortName, uint32_t len);
+#define zone_id_by_short_name_sbuf(sbuf) zone_id_by_short_name(sbuf_str((sbuf)), sbuf_length((sbuf)))
 const char* zone_short_name_by_id(int id);
 const char* zone_long_name_by_id(int id);
 
