@@ -177,6 +177,12 @@
     <ClInclude Include="src\main_timers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\util_hash_tbl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\hash.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\bit.c">
@@ -276,6 +282,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\main_timers.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\util_hash_tbl.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\hash.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

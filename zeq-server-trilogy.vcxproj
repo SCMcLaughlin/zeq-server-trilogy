@@ -178,6 +178,7 @@
     <ClInclude Include="src\enum_login_server_rank.h" />
     <ClInclude Include="src\enum_login_server_status.h" />
     <ClInclude Include="src\enum_zop.h" />
+    <ClInclude Include="src\hash.h" />
     <ClInclude Include="src\login_client.h" />
     <ClInclude Include="src\login_crypto.h" />
     <ClInclude Include="src\login_packet_struct.h" />
@@ -198,6 +199,7 @@
     <ClInclude Include="src\util_atomic.h" />
     <ClInclude Include="src\util_clock.h" />
     <ClInclude Include="src\util_file.h" />
+    <ClInclude Include="src\util_hash_tbl.h" />
     <ClInclude Include="src\util_ipv4.h" />
     <ClInclude Include="src\util_random.h" />
     <ClInclude Include="src\util_semaphore.h" />
@@ -221,6 +223,7 @@
     <ClCompile Include="src\db_thread.c" />
     <ClCompile Include="src\db_write.c" />
     <ClCompile Include="src\enum2str.c" />
+    <ClCompile Include="src\hash.c" />
     <ClCompile Include="src\login_client.c" />
     <ClCompile Include="src\login_crypto.c" />
     <ClCompile Include="src\login_thread.c" />
@@ -235,6 +238,7 @@
     <ClCompile Include="src\udp_thread.c" />
     <ClCompile Include="src\util_atomic_win32.cpp" />
     <ClCompile Include="src\util_clock_win32.c" />
+    <ClCompile Include="src\util_hash_tbl.c" />
     <ClCompile Include="src\util_ipv4.c" />
     <ClCompile Include="src\util_random.c" />
     <ClCompile Include="src\util_semaphore_win32.c" />
