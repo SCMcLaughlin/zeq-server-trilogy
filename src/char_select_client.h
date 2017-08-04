@@ -32,4 +32,6 @@ uint8_t csc_get_weapon_material_id(CharSelectClient* csc, uint32_t index, uint32
 void csc_set_name_approved(CharSelectClient* csc, bool value);
 bool csc_is_name_approved(CharSelectClient* csc);
 
+int64_t csc_get_account_id(CharSelectClient* csc);
+
 #endif/*CHAR_SELECT_CLIENT_H*/

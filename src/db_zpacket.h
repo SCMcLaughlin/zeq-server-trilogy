@@ -38,6 +38,12 @@ typedef struct {
 } DBQ_CSCharacterNameAvailable;
 
 typedef struct {
+    void*           client;
+    int64_t         accountId;
+    CharCreateData* data;
+} DBQ_CSCharacterCreate;
+
+typedef struct {
     int         dbId;
     int         queryId;    /* User-supplied tracking value, not used internally by the DB system */
     int         zop;
@@ -47,6 +53,7 @@ typedef struct {
         DBQ_LoginNewAccount             qLoginNewAccount;
         DBQ_CSCharacterInfo             qCSCharacterInfo;
         DBQ_CSCharacterNameAvailable    qCSCharacterNameAvailable;
+        DBQ_CSCharacterCreate           qCSCharacterCreate;
     };
 } DB_ZQuery;
 
@@ -89,6 +96,10 @@ typedef struct {
 } DBR_CSCharacterNameAvailable;
 
 typedef struct {
+    void*   client;
+} DBR_CSCharacterCreate;
+
+typedef struct {
     int         queryId;    /* User-supplied tracking value, not used internally by the DB system */
     bool        hadError;
     bool        hadErrorUnprocessed;
@@ -98,6 +109,7 @@ typedef struct {
         DBR_LoginNewAccount             rLoginNewAccount;
         DBR_CSCharacterInfo             rCSCharacterInfo;
         DBR_CSCharacterNameAvailable    rCSCharacterNameAvailable;
+        DBR_CSCharacterCreate           rCSCharacterCreate;
     };
 } DB_ZResult;
 

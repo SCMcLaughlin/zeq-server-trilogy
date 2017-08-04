@@ -162,6 +162,7 @@ const char* enum2str_zop(int e)
     case ZOP_DB_QueryLoginNewAccount: ret = "ZOP_DB_QueryLoginNewAccount"; break;
     case ZOP_DB_QueryCSCharacterInfo: ret = "ZOP_DB_QueryCSCharacterInfo"; break;
     case ZOP_DB_QueryCSCharacterNameAvailable: ret = "ZOP_DB_QueryCSCharacterNameAvailable"; break;
+    case ZOP_DB_QueryCSCharacterCreate: ret = "ZOP_DB_QueryCSCharacterCreate"; break;
     case ZOP_LOGIN_TerminateThread: ret = "ZOP_LOGIN_TerminateThread"; break;
     case ZOP_LOGIN_NewServer: ret = "ZOP_LOGIN_NewServer"; break;
     case ZOP_LOGIN_RemoveServer: ret = "ZOP_LOGIN_RemoveServer"; break;

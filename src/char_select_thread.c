@@ -213,11 +213,20 @@ static int cs_thread_check_db_error(CharSelectThread* cs, CharSelectClient* clie
     return ERR_None;
 }
 
+static int cs_thread_trigger_send_char_info(CharSelectThread* cs, CharSelectClient* client, int64_t accountId)
+{
+    ZPacket zpacket;
+
+    zpacket.db.zQuery.qCSCharacterInfo.client = client;
+    zpacket.db.zQuery.qCSCharacterInfo.accountId = accountId;
+
+    return db_queue_query(cs->dbQueue, cs->csQueue, cs->dbId, cs->nextQueryId++, ZOP_DB_QueryCSCharacterInfo, &zpacket);
+}
+
 static int cs_thread_add_authed_client(CharSelectThread* cs, CharSelectClient* client, int64_t accountId, const char* sessionKey)
 {
     RingBuf* udpQueue = cs->udpQueue;
     uint32_t index = cs->clientCount;
-    ZPacket zpacket;
     int rc = ERR_OutOfMemory;
     
     if (bit_is_pow2_or_zero(index))
@@ -244,10 +253,7 @@ static int cs_thread_add_authed_client(CharSelectThread* cs, CharSelectClient* c
     if (rc) goto fail;
     
     /* Query the DB for char select data */
-    zpacket.db.zQuery.qCSCharacterInfo.client = client;
-    zpacket.db.zQuery.qCSCharacterInfo.accountId = accountId;
-    
-    rc = db_queue_query(cs->dbQueue, cs->csQueue, cs->dbId, cs->nextQueryId++, ZOP_DB_QueryCSCharacterInfo, &zpacket);
+    rc = cs_thread_trigger_send_char_info(cs, client, accountId);
     if (rc) goto fail;
     
     csc_set_auth_data(client, accountId, sessionKey);
@@ -583,11 +589,20 @@ static int cs_thread_handle_op_name_approval(CharSelectThread* cs, CharSelectCli
     return rc;
 }
 
+static int cs_thread_send_name_approval(CharSelectThread* cs, CharSelectClient* client, bool isAvailable)
+{
+    TlgPacket* packet = packet_create(OP_CS_NameApproval, 1);
+    if (!packet) return ERR_OutOfMemory;
+
+    packet_data(packet)[0] = (uint8_t)isAvailable;
+
+    return csc_schedule_packet(client, cs->udpQueue, packet);
+}
+
 static void cs_thread_handle_db_name_approval(CharSelectThread* cs, ZPacket* zpacket)
 {
     CharSelectClient* client = (CharSelectClient*)zpacket->db.zResult.rCSCharacterInfo.client;
     bool isAvailable = zpacket->db.zResult.rCSCharacterNameAvailable.isNameAvailable;
-    TlgPacket* packet;
     int rc;
 
     switch (cs_thread_check_db_error(cs, client, zpacket, FUNC_NAME))
@@ -603,12 +618,7 @@ static void cs_thread_handle_db_name_approval(CharSelectThread* cs, ZPacket* zpa
     if (!csc_is_authed(client))
         goto drop_client;
 
-    packet = packet_create(OP_CS_NameApproval, 1);
-    if (!packet) goto drop_client;
-
-    packet_data(packet)[0] = (uint8_t)isAvailable;
-
-    rc = csc_schedule_packet(client, cs->udpQueue, packet);
+    rc = cs_thread_send_name_approval(cs, client, isAvailable);
     if (rc) goto drop_client;
 
     csc_set_name_approved(client, isAvailable);
@@ -896,11 +906,60 @@ static int cs_thread_handle_op_create_character(CharSelectThread* cs, CharSelect
     /* Verify char creation data validity */
     if (cs_thread_create_character_is_valid(&data))
     {
-        /*fixme: do query here*/
-        return ERR_None;
+        ZPacket query;
+        int rc;
+
+        query.db.zQuery.qCSCharacterCreate.client = client;
+        query.db.zQuery.qCSCharacterCreate.accountId = csc_get_account_id(client);
+        query.db.zQuery.qCSCharacterCreate.data = alloc_type(CharCreateData);
+
+        if (!query.db.zQuery.qCSCharacterCreate.data)
+            return ERR_OutOfMemory;
+
+        memcpy(query.db.zQuery.qCSCharacterCreate.data, &data, sizeof(data));
+
+        rc = db_queue_query(cs->dbQueue, cs->csQueue, cs->dbId, cs->nextQueryId++, ZOP_DB_QueryCSCharacterCreate, &query);
+
+        if (rc)
+            free(query.db.zQuery.qCSCharacterCreate.data);
+
+        return rc;
     }
 
     return ERR_Invalid;
+}
+
+static void cs_thread_handle_db_character_create(CharSelectThread* cs, ZPacket* zpacket)
+{
+    CharSelectClient* client = (CharSelectClient*)zpacket->db.zResult.rCSCharacterCreate.client;
+    int rc;
+
+    if (zpacket->db.zResult.hadErrorUnprocessed)
+    {
+        log_writef(cs->logQueue, cs->logId, "WARNING: %s: database reported error, query unprocessed", FUNC_NAME);
+        return;
+    }
+
+    if (!cs_thread_is_client_valid(cs, client))
+    {
+        log_writef(cs->logQueue, cs->logId, "WARNING: %s: received result for CharSelectClient that no longer exists", FUNC_NAME);
+        return;
+    }
+
+    /* Reset the name approval flag, applies to this character creation attempt only */
+    csc_set_name_approved(client, false);
+
+    if (zpacket->db.zResult.hadError)
+    {
+        rc = cs_thread_send_name_approval(cs, client, false);
+    }
+    else
+    {
+        rc = cs_thread_trigger_send_char_info(cs, client, csc_get_account_id(client));
+    }
+
+    if (rc)
+        cs_thread_drop_client(cs, client);
 }
 
 static int cs_thread_handle_op_wear_change(CharSelectThread* cs, CharSelectClient* client, ZPacket* zpacket)
@@ -1249,6 +1308,11 @@ static void cs_thread_proc(void* ptr)
             break;
 
         case ZOP_DB_QueryCSCharacterNameAvailable:
+            cs_thread_handle_db_name_approval(cs, &zpacket);
+            break;
+
+        case ZOP_DB_QueryCSCharacterCreate:
+            cs_thread_handle_db_character_create(cs, &zpacket);
             break;
         
         default:

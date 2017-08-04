@@ -116,3 +116,8 @@ bool csc_is_name_approved(CharSelectClient* csc)
 {
     return csc->isNameApproved;
 }
+
+int64_t csc_get_account_id(CharSelectClient* csc)
+{
+    return csc->accountId;
+}

@@ -161,6 +161,7 @@ static void db_thread_destruct_zpacket(DbThread* db, ZPacket* zpacket)
         break;
     
     case ZOP_DB_QueryLoginNewAccount:
+    case ZOP_DB_QueryCSCharacterCreate:
         dbw_destruct(db, zpacket, zop);
         break;
     
@@ -444,6 +445,7 @@ static void db_thread_proc(void* ptr)
                 break;
 
             case ZOP_DB_QueryLoginNewAccount:
+            case ZOP_DB_QueryCSCharacterCreate:
                 db_thread_queue_query(db, &zpacket, zop, true);
                 break;
 
