@@ -57,9 +57,9 @@ static void dbw_cs_character_create(DbThread* db, sqlite3* sqlite, ZPacket* zpac
     run = db_prepare_literal(db, sqlite, &stmt,
         "INSERT INTO character "
             "(account_id, name, gender, race, class, face, current_hp, base_str, base_sta, base_cha, base_dex,"
-            " base_int, base_agi, base_wis, deity, zone_id, x, y, z, heading) ",
-        "VALUES ",
-            "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            " base_int, base_agi, base_wis, deity, zone_id, x, y, z, heading, creation_time) "
+        "VALUES "
+            "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))");
     
     if (run)
     {
