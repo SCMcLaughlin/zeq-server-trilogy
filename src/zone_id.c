@@ -42,7 +42,6 @@ int zone_id_init()
     add(23, "erudnint");
     add(24, "erudnext");
     add(25, "nektulos");
-    add(25, "nektulos");
     add(26, "cshome");
     add(27, "lavastorm");
     add(28, "nektropos");

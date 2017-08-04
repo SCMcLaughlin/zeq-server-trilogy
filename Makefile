@@ -28,12 +28,14 @@ _OBJECTS=               \
  db_thread              \
  db_write               \
  enum2str               \
+ hash                   \
  log_thread             \
  login_client           \
  login_crypto           \
  login_thread           \
  main                   \
  main_thread            \
+ main_timers            \
  ringbuf                \
  timer                  \
  tlg_packet             \
@@ -41,6 +43,7 @@ _OBJECTS=               \
  udp_thread             \
  util_atomic_posix      \
  util_clock_posix       \
+ util_hash_tbl          \
  util_ipv4              \
  util_random            \
  util_semaphore_posix   \
