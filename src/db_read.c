@@ -253,7 +253,7 @@ static void dbr_cs_character_name_available(DbThread* db, sqlite3* sqlite, ZPack
     reply.db.zResult.rCSCharacterNameAvailable.client = zpacket->db.zQuery.qCSCharacterNameAvailable.client;
 
     run = db_prepare_literal(db, sqlite, &stmt,
-        "SELECT rowid FROM character WHERE name = ?");
+        "SELECT 1 FROM character WHERE name = ?");
 
     if (run && db_bind_string_sbuf(db, stmt, 0, zpacket->db.zQuery.qCSCharacterNameAvailable.name))
     {
@@ -273,6 +273,96 @@ static void dbr_cs_character_name_available(DbThread* db, sqlite3* sqlite, ZPack
         }
     }
 
+    db_reply(db, zpacket, &reply);
+    sqlite3_finalize(stmt);
+}
+
+static void dbr_main_load_character(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
+{
+    sqlite3_stmt* stmt = NULL;
+    ZPacket reply;
+    bool run;
+
+    reply.db.zResult.queryId = zpacket->db.zQuery.queryId;
+    reply.db.zResult.hadError = true;
+    reply.db.zResult.hadErrorUnprocessed = false;
+    reply.db.zResult.rMainLoadCharacter.client = zpacket->db.zQuery.qMainLoadCharacter.client;
+    reply.db.zResult.rMainLoadCharacter.data = NULL;
+
+    run = db_prepare_literal(db, sqlite, &stmt,
+        "SELECT "
+            "character_id, surname, level, class, race, gender, face, deity, x, y, z, heading, current_hp, current_mana, current_endurance, experience, training_points, "
+            "base_str, base_sta, base_dex, base_agi, base_int, base_wis, base_cha, guild_id, guild_rank, harmtouch_timestamp, discipline_timestamp, "
+            "pp, gp, sp, cp, pp_cursor, gp_cursor, sp_cursor, cp_cursor, pp_bank, gp_bank, sp_bank, cp_bank, hunger, thirst, is_gm, anon, drunkeness, "
+            "strftime('%s', creation_time) "
+        "FROM character WHERE name = ? AND account_id = ?");
+
+    if (run && db_bind_string_sbuf(db, stmt, 0, zpacket->db.zQuery.qMainLoadCharacter.name) && db_bind_int64(db, stmt, 1, zpacket->db.zQuery.qMainLoadCharacter.accountId))
+    {
+        if (db_read(db, stmt) == SQLITE_ROW)
+        {
+            ClientLoadData_Character* data = alloc_type(ClientLoadData_Character);
+            if (!data) goto done;
+
+            reply.db.zResult.rMainLoadCharacter.data = data;
+
+            data->charId = db_fetch_int64(stmt, 0);
+            data->surname = db_fetch_string_copy(stmt, 1);
+            data->level = (uint8_t)db_fetch_int(stmt, 2);
+            data->classId = (uint8_t)db_fetch_int(stmt, 3);
+            data->raceId = (uint16_t)db_fetch_int(stmt, 4);
+            data->genderId = (uint8_t)db_fetch_int(stmt, 5);
+            data->faceId = (uint8_t)db_fetch_int(stmt, 6);
+            data->deityId = (uint16_t)db_fetch_int(stmt, 7);
+            data->loc.x = (float)db_fetch_double(stmt, 8);
+            data->loc.y = (float)db_fetch_double(stmt, 9);
+            data->loc.z = (float)db_fetch_double(stmt, 10);
+            data->loc.heading = (float)db_fetch_double(stmt, 11);
+            data->currentHp = db_fetch_int64(stmt, 12);
+            data->currentMana = db_fetch_int64(stmt, 13);
+            data->currentEndurance = db_fetch_int64(stmt, 14);
+            data->experience = db_fetch_int64(stmt, 15);
+            data->trainingPoints = (uint16_t)db_fetch_int(stmt, 16);
+            data->STR = (uint8_t)db_fetch_int(stmt, 17);
+            data->STA = (uint8_t)db_fetch_int(stmt, 18);
+            data->DEX = (uint8_t)db_fetch_int(stmt, 19);
+            data->AGI = (uint8_t)db_fetch_int(stmt, 20);
+            data->INT = (uint8_t)db_fetch_int(stmt, 21);
+            data->WIS = (uint8_t)db_fetch_int(stmt, 22);
+            data->CHA = (uint8_t)db_fetch_int(stmt, 23);
+            data->guildId = (uint32_t)db_fetch_int64(stmt, 24);
+            data->guildRank = (uint8_t)db_fetch_int(stmt, 25);
+            data->harmtouchTimestamp = (uint64_t)db_fetch_int64(stmt, 26);
+            data->disciplineTimestamp = (uint64_t)db_fetch_int64(stmt, 27);
+            data->coin.pp = (uint32_t)db_fetch_int(stmt, 28);
+            data->coin.gp = (uint32_t)db_fetch_int(stmt, 29);
+            data->coin.sp = (uint32_t)db_fetch_int(stmt, 30);
+            data->coin.cp = (uint32_t)db_fetch_int(stmt, 31);
+            data->coinCursor.pp = (uint32_t)db_fetch_int(stmt, 32);
+            data->coinCursor.gp = (uint32_t)db_fetch_int(stmt, 33);
+            data->coinCursor.sp = (uint32_t)db_fetch_int(stmt, 34);
+            data->coinCursor.cp = (uint32_t)db_fetch_int(stmt, 35);
+            data->coinBank.pp = (uint32_t)db_fetch_int(stmt, 36);
+            data->coinBank.gp = (uint32_t)db_fetch_int(stmt, 37);
+            data->coinBank.sp = (uint32_t)db_fetch_int(stmt, 38);
+            data->coinBank.cp = (uint32_t)db_fetch_int(stmt, 39);
+            data->hunger = (uint16_t)db_fetch_int(stmt, 40);
+            data->thirst = (uint16_t)db_fetch_int(stmt, 41);
+            data->isGM = db_fetch_int(stmt, 42) ? true : false;
+            data->anon = (uint8_t)db_fetch_int(stmt, 43);
+            data->drunkeness = (uint16_t)db_fetch_int(stmt, 44);
+            data->creationTimestamp = (uint64_t)db_fetch_int64(stmt, 45);
+
+            /*
+                surname may be NULL if this character doesn't have one. We expect this, not considering it an error.
+                However, if the character does have a surname and we have an out of memory error, we will implicitly be missing it here.
+            */
+            sbuf_grab(data->surname);
+            reply.db.zResult.hadError = false;
+        }
+    }
+
+done:
     db_reply(db, zpacket, &reply);
     sqlite3_finalize(stmt);
 }
@@ -299,6 +389,10 @@ void dbr_dispatch(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
     case ZOP_DB_QueryCSCharacterNameAvailable:
         dbr_cs_character_name_available(db, sqlite, zpacket);
         break;
+
+    case ZOP_DB_QueryMainLoadCharacter:
+        dbr_main_load_character(db, sqlite, zpacket);
+        break;
     
     default:
         log_writef(db_get_log_queue(db), db_get_log_id(db), "WARNING: dbr_dispatch: received unexpected zop: %s", enum2str_zop(zop));
@@ -321,6 +415,10 @@ void dbr_destruct(DbThread* db, ZPacket* zpacket, int zop)
 
     case ZOP_DB_QueryCSCharacterNameAvailable:
         zpacket->db.zQuery.qCSCharacterNameAvailable.name = sbuf_drop(zpacket->db.zQuery.qCSCharacterNameAvailable.name);
+        break;
+
+    case ZOP_DB_QueryMainLoadCharacter:
+        zpacket->db.zQuery.qMainLoadCharacter.name = sbuf_drop(zpacket->db.zQuery.qMainLoadCharacter.name);
         break;
     
     /* No data to destruct */

@@ -163,6 +163,8 @@
     <ClInclude Include="src\char_select_thread.h" />
     <ClInclude Include="src\char_select_zpacket.h" />
     <ClInclude Include="src\class_id.h" />
+    <ClInclude Include="src\client.h" />
+    <ClInclude Include="src\client_load_data.h" />
     <ClInclude Include="src\client_mgr.h" />
     <ClInclude Include="src\crc.h" />
     <ClInclude Include="src\db_read.h" />
@@ -181,7 +183,9 @@
     <ClInclude Include="src\enum_login_server_status.h" />
     <ClInclude Include="src\enum_zop.h" />
     <ClInclude Include="src\gender_id.h" />
+    <ClInclude Include="src\guild.h" />
     <ClInclude Include="src\hash.h" />
+    <ClInclude Include="src\loc.h" />
     <ClInclude Include="src\login_client.h" />
     <ClInclude Include="src\login_crypto.h" />
     <ClInclude Include="src\login_packet_struct.h" />
@@ -191,6 +195,8 @@
     <ClInclude Include="src\main_thread.h" />
     <ClInclude Include="src\main_timers.h" />
     <ClInclude Include="src\main_zpacket.h" />
+    <ClInclude Include="src\misc_struct.h" />
+    <ClInclude Include="src\mob.h" />
     <ClInclude Include="src\player_profile_packet_struct.h" />
     <ClInclude Include="src\race_id.h" />
     <ClInclude Include="src\ringbuf.h" />
@@ -224,6 +230,7 @@
     <ClCompile Include="src\char_select_client.c" />
     <ClCompile Include="src\char_select_thread.c" />
     <ClCompile Include="src\class_id.c" />
+    <ClCompile Include="src\client.c" />
     <ClCompile Include="src\client_mgr.c" />
     <ClCompile Include="src\crc.c" />
     <ClCompile Include="src\db_read.c" />
@@ -240,6 +247,7 @@
     <ClCompile Include="src\main.c" />
     <ClCompile Include="src\main_thread.c" />
     <ClCompile Include="src\main_timers.c" />
+    <ClCompile Include="src\mob.c" />
     <ClCompile Include="src\race_id.c" />
     <ClCompile Include="src\ringbuf.c" />
     <ClCompile Include="src\timer.c" />

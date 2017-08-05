@@ -1075,6 +1075,10 @@ static int cs_thread_handle_op_enter(CharSelectThread* cs, CharSelectClient* cli
     ZPacket toMain;
     int rc;
 
+    /* Don't let the client try to queue multiple zone ins at once */
+    if (csc_is_zoning(client))
+        return ERR_Again;
+
     aligned_init(&a, zpacket->udp.zToServerPacket.data, zpacket->udp.zToServerPacket.length);
 
     len = aligned_remaining_data(&a);
@@ -1100,8 +1104,14 @@ static int cs_thread_handle_op_enter(CharSelectThread* cs, CharSelectClient* cli
 
     rc = ringbuf_push(cs->mainQueue, ZOP_MAIN_ZoneFromCharSelect, &toMain);
 
-    if (rc)
+    if (rc == ERR_None)
+    {
+        csc_set_is_zoning(client, true);
+    }
+    else
+    {
         sbuf_drop(toMain.main.zZoneFromCharSelect.name);
+    }
 
     return rc;
 invalid:

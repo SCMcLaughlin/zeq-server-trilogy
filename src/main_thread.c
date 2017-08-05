@@ -197,6 +197,9 @@ static void mt_process_commands(MainThread* mt, RingBuf* mainQueue)
             cmgr_handle_guild_list(mt, &zpacket);
             break;
 
+        case ZOP_DB_QueryMainLoadCharacter:
+            break;
+
         case ZOP_MAIN_ZoneFromCharSelect:
             mt_handle_zone_from_char_select(mt, &zpacket);
             break;

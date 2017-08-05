@@ -9,6 +9,7 @@ struct CharSelectClient {
     bool        authed;
     bool        isNameApproved;
     bool        isLocal;
+    bool        isZoning;
     IpAddr      ipAddress;
     int64_t     accountId;
     char        sessionKey[16];
@@ -22,6 +23,7 @@ CharSelectClient* csc_init(ZPacket* zpacket)
     csc->authed = false;
     csc->isNameApproved = false;
     csc->isLocal = ip_is_local(zpacket->udp.zNewClient.ipAddress.ip);
+    csc->isZoning = false;
     csc->ipAddress = zpacket->udp.zNewClient.ipAddress;
     csc->accountId = -1;
     return csc;
@@ -128,4 +130,14 @@ int64_t csc_get_account_id(CharSelectClient* csc)
 bool csc_is_local(CharSelectClient* csc)
 {
     return csc->isLocal;
+}
+
+void csc_set_is_zoning(CharSelectClient* csc, bool value)
+{
+    csc->isZoning = value;
+}
+
+bool csc_is_zoning(CharSelectClient* csc)
+{
+    return csc->isZoning;
 }

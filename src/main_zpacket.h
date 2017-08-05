@@ -10,7 +10,6 @@ typedef struct {
     StaticBuffer*   name;
     int64_t         accountId;
     bool            isLocal;
-    int             zoneId; /* Not authoritative, just taken as a hint */
 } Main_ZZoneFromCharSelect;
 
 typedef union {

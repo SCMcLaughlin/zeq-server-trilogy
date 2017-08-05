@@ -5,6 +5,7 @@
 #include "define.h"
 #include "buffer.h"
 #include "char_select_data.h"
+#include "client_load_data.h"
 #include "guild.h"
 #include "ringbuf.h"
 #include "login_crypto.h"
@@ -48,6 +49,14 @@ typedef struct {
     StaticBuffer*   name;
 } DBQ_CSCharacterDelete;
 
+/* MainThread */
+
+typedef struct {
+    void*           client;
+    int64_t         accountId;
+    StaticBuffer*   name;
+} DBQ_MainLoadCharacter;
+
 typedef struct {
     int         dbId;
     int         queryId;    /* User-supplied tracking value, not used internally by the DB system */
@@ -60,6 +69,7 @@ typedef struct {
         DBQ_CSCharacterNameAvailable    qCSCharacterNameAvailable;
         DBQ_CSCharacterCreate           qCSCharacterCreate;
         DBQ_CSCharacterDelete           qCSCharacterDelete;
+        DBQ_MainLoadCharacter           qMainLoadCharacter;
     };
 } DB_ZQuery;
 
@@ -105,6 +115,13 @@ typedef struct {
     void*   client;
 } DBR_CSCharacterCreate;
 
+/* MainThread */
+
+typedef struct {
+    void*                       client;
+    ClientLoadData_Character*   data;
+} DBR_MainLoadCharacter;
+
 typedef struct {
     int         queryId;    /* User-supplied tracking value, not used internally by the DB system */
     bool        hadError;
@@ -116,6 +133,7 @@ typedef struct {
         DBR_CSCharacterInfo             rCSCharacterInfo;
         DBR_CSCharacterNameAvailable    rCSCharacterNameAvailable;
         DBR_CSCharacterCreate           rCSCharacterCreate;
+        DBR_MainLoadCharacter           rMainLoadCharacter;
     };
 } DB_ZResult;
 

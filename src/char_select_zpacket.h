@@ -24,10 +24,15 @@ typedef struct {
     StaticBuffer*   motd;
 } CharSelect_ZZoneSuccess;
 
+typedef struct {
+    void*   client;
+} CharSelect_ZZoneFailure;
+
 typedef union {
     CharSelect_ZAddGuild    zAddGuild;
     CharSelect_ZLoginAuth   zLoginAuth;
     CharSelect_ZZoneSuccess zZoneSuccess;
+    CharSelect_ZZoneFailure zZoneFailure;
 } CharSelect_ZPacket;
 
 #endif/*CHAR_SELECT_ZPACKET_H*/

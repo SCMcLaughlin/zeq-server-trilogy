@@ -31,6 +31,7 @@ enum ZOP
     ZOP_DB_QueryCSCharacterNameAvailable,
     ZOP_DB_QueryCSCharacterCreate,
     ZOP_DB_QueryCSCharacterDelete,
+    ZOP_DB_QueryMainLoadCharacter,
     /* Login thread */
     ZOP_LOGIN_TerminateThread,
     ZOP_LOGIN_NewServer,
