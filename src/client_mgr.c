@@ -190,7 +190,7 @@ static int cmgr_check_loading_db_error(MainThread* mt, Client* client, ZPacket* 
     if (!cmgr_is_loading_client_valid(mt, client, out))
     {
         log_writef(mt_get_log_queue(mt), mt_get_log_id(mt), "WARNING: %s: received database result for CharSelectClient that no longer exists", funcName);
-        return ERR_Invalid;
+        return ERR_NotFound;
     }
 
     if (zpacket->db.zResult.hadError)
@@ -225,6 +225,15 @@ static void cmgr_drop_loading_client(MainThread* mt, Client* client)
     }
 }
 
+static void cmgr_drop_load_data_character(ClientLoadData_Character* data)
+{
+    if (data)
+    {
+        data->surname = sbuf_drop(data->surname);
+        free(data);
+    }
+}
+
 void cmgr_handle_load_character(MainThread* mt, ZPacket* zpacket)
 {
     Client* client = (Client*)zpacket->db.zResult.rMainLoadCharacter.client;
@@ -234,6 +243,10 @@ void cmgr_handle_load_character(MainThread* mt, ZPacket* zpacket)
     switch (cmgr_check_loading_db_error(mt, client, zpacket, &loading, FUNC_NAME))
     {
     case ERR_Invalid:
+        return;
+
+    case ERR_NotFound:
+        cmgr_drop_load_data_character(data);
         return;
 
     case ERR_Generic:
@@ -258,11 +271,7 @@ void cmgr_handle_load_character(MainThread* mt, ZPacket* zpacket)
     return;
 
 drop_client:
-    if (data)
-    {
-        data->surname = sbuf_drop(data->surname);
-        free(data);
-    }
+    cmgr_drop_load_data_character(data);
 drop_only:
     cmgr_drop_loading_client(mt, client);
 }

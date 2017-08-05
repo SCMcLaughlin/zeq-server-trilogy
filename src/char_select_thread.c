@@ -206,7 +206,7 @@ static int cs_thread_check_db_error(CharSelectThread* cs, CharSelectClient* clie
     if (!cs_thread_is_client_valid(cs, client))
     {
         log_writef(cs->logQueue, cs->logId, "WARNING: %s: received database result for CharSelectClient that no longer exists", funcName);
-        return ERR_Invalid;
+        return ERR_NotFound;
     }
     
     if (zpacket->db.zResult.hadError)
@@ -518,6 +518,9 @@ static void cs_thread_handle_db_character_info(CharSelectThread* cs, ZPacket* zp
     switch (cs_thread_check_db_error(cs, client, zpacket, FUNC_NAME))
     {
     case ERR_Invalid:
+        return;
+
+    case ERR_NotFound:
         goto free_data;
     
     case ERR_Generic:
@@ -613,6 +616,9 @@ static void cs_thread_handle_db_name_approval(CharSelectThread* cs, ZPacket* zpa
     switch (cs_thread_check_db_error(cs, client, zpacket, FUNC_NAME))
     {
     case ERR_Invalid:
+    case ERR_NotFound:
+        return;
+
     case ERR_Generic:
         goto drop_client;
 
