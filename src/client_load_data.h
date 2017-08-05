@@ -43,6 +43,8 @@ typedef struct {
     uint8_t         anon;
     uint16_t        drunkeness;
     uint64_t        creationTimestamp;
+    int             zoneId;
+    int             instId;
 } ClientLoadData_Character;
 
 #endif/*CLIENT_LOAD_DATA_H*/

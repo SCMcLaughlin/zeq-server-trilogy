@@ -15,6 +15,8 @@ typedef struct {
     Client*     client;
     void*       csClient;
     int         queriesCompleted;
+    int16_t     zoneId;
+    int16_t     instId;
 } ClientLoading;
 
 typedef struct ClientMgr {

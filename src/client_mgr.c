@@ -247,6 +247,9 @@ void cmgr_handle_load_character(MainThread* mt, ZPacket* zpacket)
     if (!data) goto drop_only;
 
     loading->queriesCompleted = 1;
+    loading->zoneId = (int16_t)data->zoneId;
+    loading->instId = (int16_t)data->instId;
+
     client_load_character_data(client, data);
 
     /* Do subsequent queries, now that we have the character id to use */
