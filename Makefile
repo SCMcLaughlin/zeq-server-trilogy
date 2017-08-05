@@ -22,12 +22,16 @@ _OBJECTS=               \
  buffer                 \
  char_select_client     \
  char_select_thread     \
+ class_id               \
+ client                 \
  client_mgr             \
  crc                    \
  db_read                \
  db_thread              \
  db_write               \
+ deity_id               \
  enum2str               \
+ gender_id              \
  hash                   \
  log_thread             \
  login_client           \
@@ -36,6 +40,8 @@ _OBJECTS=               \
  main                   \
  main_thread            \
  main_timers            \
+ mob                    \
+ race_id                \
  ringbuf                \
  timer                  \
  tlg_packet             \
@@ -50,7 +56,8 @@ _OBJECTS=               \
  util_socket_lib        \
  util_str               \
  util_thread_posix      \
- zone_id
+ zone_id                \
+ zone_mgr
 
 OBJECTS= $(patsubst %,build/%.o,$(_OBJECTS))
 

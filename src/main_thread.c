@@ -175,11 +175,6 @@ MainThread* mt_destroy(MainThread* mt)
     return NULL;
 }
 
-static void mt_handle_zone_from_char_select(MainThread* mt, ZPacket* zpacket)
-{
-
-}
-
 static void mt_process_commands(MainThread* mt, RingBuf* mainQueue)
 {
     ZPacket zpacket;
@@ -198,10 +193,11 @@ static void mt_process_commands(MainThread* mt, RingBuf* mainQueue)
             break;
 
         case ZOP_DB_QueryMainLoadCharacter:
+            cmgr_handle_load_character(mt, &zpacket);
             break;
 
         case ZOP_MAIN_ZoneFromCharSelect:
-            mt_handle_zone_from_char_select(mt, &zpacket);
+            cmgr_handle_zone_from_char_select(mt, &zpacket);
             break;
 
         default:

@@ -227,7 +227,6 @@ static void cmgr_drop_loading_client(MainThread* mt, Client* client)
 
 void cmgr_handle_load_character(MainThread* mt, ZPacket* zpacket)
 {
-    ClientMgr* cmgr = mt_get_cmgr(mt);
     Client* client = (Client*)zpacket->db.zResult.rMainLoadCharacter.client;
     ClientLoadData_Character* data = zpacket->db.zResult.rMainLoadCharacter.data;
     ClientLoading* loading;
