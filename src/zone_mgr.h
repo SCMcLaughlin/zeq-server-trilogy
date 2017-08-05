@@ -5,22 +5,34 @@
 #include "define.h"
 #include "buffer.h"
 #include "client.h"
+#include "ringbuf.h"
+#include "zone_thread.h"
 
 struct MainThread;
 
 typedef struct {
     int16_t     zoneId;
     int16_t     instId;
+    uint8_t     ztIndex;
+} ZoneThreadByZoneId;
+
+typedef struct {
+    ZoneThread* zt;
+    RingBuf*    ztQueue;
     uint16_t    port;
-} PortByZoneId;
+    uint16_t    zoneCount;
+    uint32_t    clientCount;
+} ZoneThreadWithQueue;
 
 typedef struct ZoneMgr {
-    uint32_t        zoneCount;
-    uint8_t         maxZoneThreads;
-    uint16_t        nextZoneThreadPort;
-    PortByZoneId*   portsByZoneId;
-    StaticBuffer*   remoteIpAddress;
-    StaticBuffer*   localIpAddress;
+    uint32_t                zoneCount;
+    uint8_t                 maxZoneThreads;
+    uint8_t                 zoneThreadCount;
+    uint16_t                nextZoneThreadPort;
+    ZoneThreadWithQueue*    zoneThreads;
+    ZoneThreadByZoneId*     ztByZoneId;
+    StaticBuffer*           remoteIpAddress;
+    StaticBuffer*           localIpAddress;
 } ZoneMgr;
 
 int zmgr_init(struct MainThread* mt);

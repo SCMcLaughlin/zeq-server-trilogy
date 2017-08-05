@@ -4,7 +4,9 @@
 
 #include "define.h"
 #include "buffer.h"
+#include "log_thread.h"
 #include "ringbuf.h"
+#include "udp_thread.h"
 
 struct ClientMgr;
 struct ZoneMgr;
@@ -18,6 +20,9 @@ void mt_main_loop(MainThread* mt);
 
 struct ClientMgr* mt_get_cmgr(MainThread* mt);
 struct ZoneMgr* mt_get_zmgr(MainThread* mt);
+
+LogThread* mt_get_log_thread(MainThread* mt);
+UdpThread* mt_get_udp_thread(MainThread* mt);
 
 RingBuf* mt_get_queue(MainThread* mt);
 RingBuf* mt_get_db_queue(MainThread* mt);

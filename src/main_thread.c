@@ -264,6 +264,16 @@ ZoneMgr* mt_get_zmgr(MainThread* mt)
     return &mt->zmgr;
 }
 
+LogThread* mt_get_log_thread(MainThread* mt)
+{
+    return mt->log;
+}
+
+UdpThread* mt_get_udp_thread(MainThread* mt)
+{
+    return mt->udp;
+}
+
 RingBuf* mt_get_queue(MainThread* mt)
 {
     return mt->mainQueue;
