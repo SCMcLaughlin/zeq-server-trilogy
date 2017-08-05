@@ -88,3 +88,8 @@ StaticBuffer* client_name_sbuf(Client* client)
 {
     return client->mob.name;
 }
+
+bool client_is_local(Client* client)
+{
+    return client->isLocal;
+}

@@ -55,6 +55,7 @@ struct CharSelectThread {
     TlgPacket*          packetEnter;
     TlgPacket*          packetExpansionInfo;
     TlgPacket*          packetGuildList;
+    TlgPacket*          packetZoneUnavailable;
     TlgPacket*          packetEcho1;
     TlgPacket*          packetEcho2;
     TlgPacket*          packetEcho3;
@@ -1277,6 +1278,19 @@ fail:
     log_writef(cs->logQueue, cs->logId, "ERROR: cs_thread_handle_login_auth: out of memory while adding auth for account id %lli", accountId);
 }
 
+static void cs_thread_handle_zone_failure(CharSelectThread* cs, ZPacket* zpacket)
+{
+    CharSelectClient* client = (CharSelectClient*)zpacket->cs.zZoneFailure.client;
+    
+    if (!cs_thread_is_client_valid(cs, client))
+    {
+        log_writef(cs->logQueue, cs->logId, "WARNING: cs_thread_handle_zone_failure: received zone attempt response for client that no longer exists");
+        return;
+    }
+    
+    csc_schedule_packet(client, cs->udpQueue, cs->packetZoneUnavailable);
+}
+
 static void cs_thread_check_auth_timeouts(CharSelectThread* cs)
 {
     uint64_t curTime = clock_milliseconds();
@@ -1420,6 +1434,10 @@ static void cs_thread_proc(void* ptr)
             cs_thread_check_auth_timeouts(cs);
             break;
         
+        case ZOP_CS_ZoneFailure:
+            cs_thread_handle_zone_failure(cs, &zpacket);
+            break;
+        
         case ZOP_DB_QueryCSCharacterInfo:
             cs_thread_handle_db_character_info(cs, &zpacket);
             break;
@@ -1461,6 +1479,14 @@ static int cs_create_cached_packets(CharSelectThread* cs)
     
     aligned_init(&a, packet_data(cs->packetExpansionInfo), packet_length(cs->packetExpansionInfo));
     aligned_write_uint32(&a, 1 | 2); /* Bitfield: 1 = Kunark, 2 = Velious, 4 = Luclin */
+    
+    /* Zone unavailable */
+    cs->packetZoneUnavailable = packet_create_type(OP_CS_ZoneUnavailable, PSCS_ZoneUnavailable);
+    if (!cs->packetZoneUnavailable) goto fail;
+    packet_grab(cs->packetZoneUnavailable);
+    
+    aligned_init(&a, packet_data(cs->packetZoneUnavailable), packet_length(cs->packetZoneUnavailable));
+    aligned_write_snprintf_and_advance_by(&a, CHAR_SELECT_MAX_ZONE_SHORTNAME_LENGTH, "qeynos"); /* The actual shortname used here does not matter */
     
     /* Zero-length echo packets */
     cs->packetEcho1 = packet_create_opcode_only(OP_CS_Echo1);
@@ -1518,6 +1544,7 @@ CharSelectThread* cs_create(RingBuf* mainQueue, LogThread* log, RingBuf* dbQueue
     cs->packetEnter = NULL;
     cs->packetExpansionInfo = NULL;
     cs->packetGuildList = NULL;
+    cs->packetZoneUnavailable = NULL;
     cs->packetEcho1 = NULL;
     cs->packetEcho2 = NULL;
     cs->packetEcho3 = NULL;
@@ -1564,12 +1591,14 @@ CharSelectThread* cs_destroy(CharSelectThread* cs)
         cs->packetEnter = packet_drop(cs->packetEnter);
         cs->packetExpansionInfo = packet_drop(cs->packetExpansionInfo);
         cs->packetGuildList = packet_drop(cs->packetGuildList);
+        cs->packetZoneUnavailable = packet_drop(cs->packetZoneUnavailable);
         cs->packetEcho1 = packet_drop(cs->packetEcho1);
         cs->packetEcho2 = packet_drop(cs->packetEcho2);
         cs->packetEcho3 = packet_drop(cs->packetEcho3);
         cs->packetEcho4 = packet_drop(cs->packetEcho4);
         cs->packetEcho5 = packet_drop(cs->packetEcho5);
         
+        log_close_file(cs->logQueue, cs->logId);
         free(cs);
     }
     

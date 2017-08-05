@@ -3,6 +3,7 @@
 #define MAIN_THREAD_H
 
 #include "define.h"
+#include "buffer.h"
 #include "ringbuf.h"
 
 struct ClientMgr;
@@ -25,5 +26,7 @@ RingBuf* mt_get_cs_queue(MainThread* mt);
 
 int mt_get_db_id(MainThread* mt);
 int mt_get_log_id(MainThread* mt);
+
+StaticBuffer* mt_get_motd(MainThread* mt);
 
 #endif/*MAIN_THREAD_H*/

@@ -372,6 +372,22 @@ int log_open_file(LogThread* log, int* outLogId, const char* path, int len)
     return log_write_op(log->logQueue, ZOP_LOG_OpenFile, logId, path, len);
 }
 
+int log_open_filef(LogThread* log, int* outLogId, const char* fmt, ...)
+{
+    char buf[1024];
+    int len;
+    va_list args;
+    
+    va_start(args, fmt);
+    len = vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+    
+    if (len <= 0 || len >= (int)sizeof(buf))
+        return ERR_Generic;
+    
+    return log_open_file(log, outLogId, buf, len);
+}
+
 int log_close_file(RingBuf* logQueue, int logId)
 {
     return log_write_op_sbuf(logQueue, ZOP_LOG_CloseFile, logId, NULL);

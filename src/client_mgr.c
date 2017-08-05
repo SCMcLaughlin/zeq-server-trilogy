@@ -4,8 +4,11 @@
 #include "db_thread.h"
 #include "main_thread.h"
 #include "util_alloc.h"
+#include "zone_mgr.h"
 #include "enum_zop.h"
 #include "enum2str.h"
+
+#define CMGR_NUM_CLIENT_LOAD_QUERIES 1
 
 int cmgr_init(MainThread* mt)
 {
@@ -234,6 +237,97 @@ static void cmgr_drop_load_data_character(ClientLoadData_Character* data)
     }
 }
 
+static int cmgr_add_client(MainThread* mt, Client* client, ClientLoading* loading)
+{
+    ClientMgr* cmgr = mt_get_cmgr(mt);
+    ClientLoading* loadingClients;
+    uint32_t n;
+    uint32_t i;
+    
+    /* Add to main list */
+    i = cmgr->clientCount;
+    
+    if (bit_is_pow2_or_zero(i))
+    {
+        uint32_t cap = (i == 0) ? 1 : i * 2;
+        Client** clients = realloc_array_type(cmgr->clients, cap, Client*);
+        
+        if (!clients) return ERR_OutOfMemory;
+        
+        cmgr->clients = clients;
+    }
+    
+    cmgr->clients[i] = client;
+    
+    /* Pop and swap */
+    loadingClients = cmgr->loadingClients;
+    n = cmgr->loadingClientCount;
+    i = (uint32_t)(loading - loadingClients); /* This gives us the array index */
+    
+    n--;
+    loadingClients[i] = loadingClients[n];
+    cmgr->loadingClientCount = n;
+    
+    return ERR_None;
+}
+
+static void cmgr_check_client_load_complete(MainThread* mt, Client* client, ClientLoading* loading)
+{
+    ZoneMgr* zmgr;
+    ZPacket zpacket;
+    uint16_t port;
+    bool isLocal;
+    int rc;
+    
+    if (loading->queriesCompleted != CMGR_NUM_CLIENT_LOAD_QUERIES)
+        return;
+    
+    /*
+        Load completed, things we need to do:
+        1) Hand the Client off to the ZoneMgr and get the port of the zone they are going to in return
+        2) Inform the CharSelectThread about the successful zone with the target IP and port
+        3) Remove the ClientLoading entry for this Client and put them into the main client list
+    */
+    
+    isLocal = client_is_local(client);
+    
+    rc = zmgr_add_client_from_char_select(mt, client, loading->zoneId, loading->instId, &port);
+    if (rc) goto drop_client;
+    
+    /* IT IS NO LONGER SAFE TO DEREFERENCE THE CLIENT PAST THIS POINT */
+    
+    zmgr = mt_get_zmgr(mt);
+    
+    zpacket.cs.zZoneSuccess.client = loading->csClient;
+    zpacket.cs.zZoneSuccess.zoneId = loading->zoneId;
+    zpacket.cs.zZoneSuccess.port = to_network_uint16(port);
+    zpacket.cs.zZoneSuccess.ipAddress = (isLocal) ? zmgr_local_ip(zmgr) : zmgr_remote_ip(zmgr);
+    zpacket.cs.zZoneSuccess.motd = mt_get_motd(mt);
+    
+    sbuf_grab(zpacket.cs.zZoneSuccess.ipAddress);
+    sbuf_grab(zpacket.cs.zZoneSuccess.motd);
+    
+    rc = ringbuf_push(mt_get_cs_queue(mt), ZOP_CS_ZoneSuccess, &zpacket);
+    if (rc)
+    {
+        sbuf_drop(zpacket.cs.zZoneSuccess.ipAddress);
+        sbuf_drop(zpacket.cs.zZoneSuccess.motd);
+        goto drop_client;
+    }
+    
+    rc = cmgr_add_client(mt, client, loading);
+    if (rc)
+    {
+        log_writef(mt_get_log_queue(mt), mt_get_log_id(mt), "ERROR: cmgr_check_client_load_complete: out of memory while adding client to ClientMgr client list");
+        goto drop_client;
+    }
+    
+    return;
+    
+drop_client:
+    cmgr_drop_loading_client(mt, client);
+}
+
 void cmgr_handle_load_character(MainThread* mt, ZPacket* zpacket)
 {
     Client* client = (Client*)zpacket->db.zResult.rMainLoadCharacter.client;
@@ -266,6 +360,7 @@ void cmgr_handle_load_character(MainThread* mt, ZPacket* zpacket)
 
     /* Do subsequent queries, now that we have the character id to use */
     /*fixme: add these*/
+    cmgr_check_client_load_complete(mt, client, loading); /*remove later*/
 
     free(data);
     return;

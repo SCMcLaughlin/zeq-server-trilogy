@@ -56,8 +56,10 @@ _OBJECTS=               \
  util_socket_lib        \
  util_str               \
  util_thread_posix      \
+ zone                   \
  zone_id                \
- zone_mgr
+ zone_mgr               \
+ zone_thread
 
 OBJECTS= $(patsubst %,build/%.o,$(_OBJECTS))
 

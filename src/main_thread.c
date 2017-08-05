@@ -1,5 +1,6 @@
 
 #include "main_thread.h"
+#include "buffer.h"
 #include "char_select_thread.h"
 #include "client_mgr.h"
 #include "db_thread.h"
@@ -29,7 +30,8 @@ struct MainThread {
     RingBuf*            mainQueue;
     RingBuf*            logQueue;
     RingBuf*            dbQueue;
-    Timer*              timerCSAuthTimeouts; /*fixme: start this and make the callback*/
+    Timer*              timerCSAuthTimeouts;
+    StaticBuffer*       motd;
     int                 dbId;
     int                 logId;
     int                 loginServerId;
@@ -61,6 +63,13 @@ MainThread* mt_create()
     memset(mt, 0, sizeof(MainThread));
     
     timer_pool_init(&mt->timerPool);
+    
+    mt->motd = sbuf_create_from_literal("Welcome to ZEQ!");
+    if (!mt->motd)
+    {
+        fprintf(stderr, "ERROR: mt_create: failed to create default MotD string via sbuf_create_from_literal()\n");
+        goto fail;
+    }
     
     mt->mainQueue = ringbuf_create_type(ZPacket, 1024);
     if (!mt->mainQueue)
@@ -166,6 +175,7 @@ MainThread* mt_destroy(MainThread* mt)
         }
 
         mt->mainQueue = ringbuf_destroy(mt->mainQueue);
+        mt->motd = sbuf_drop(mt->motd);
         timer_pool_deinit(&mt->timerPool);
         cmgr_deinit(&mt->cmgr);
         zmgr_deinit(&mt->zmgr);
@@ -201,7 +211,7 @@ static void mt_process_commands(MainThread* mt, RingBuf* mainQueue)
             break;
 
         default:
-            log_writef(mt->logQueue, mt->logId, "WARNING: mt_process_commands: received unexpected zop : %s", enum2str_zop(zop));
+            log_writef(mt->logQueue, mt->logId, "WARNING: mt_process_commands: received unexpected zop: %s", enum2str_zop(zop));
             break;
         }
     }
@@ -238,6 +248,7 @@ void mt_main_loop(MainThread* mt)
     for (;;)
     {
         mt_process_commands(mt, mainQueue);
+        timer_pool_execute_callbacks(&mt->timerPool);
 
         clock_sleep(25);
     }
@@ -281,4 +292,9 @@ int mt_get_db_id(MainThread* mt)
 int mt_get_log_id(MainThread* mt)
 {
     return mt->logId;
+}
+
+StaticBuffer* mt_get_motd(MainThread* mt)
+{
+    return mt->motd;
 }

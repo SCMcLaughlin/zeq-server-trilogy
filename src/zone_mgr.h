@@ -4,6 +4,7 @@
 
 #include "define.h"
 #include "buffer.h"
+#include "client.h"
 
 struct MainThread;
 
@@ -15,6 +16,8 @@ typedef struct {
 
 typedef struct ZoneMgr {
     uint32_t        zoneCount;
+    uint8_t         maxZoneThreads;
+    uint16_t        nextZoneThreadPort;
     PortByZoneId*   portsByZoneId;
     StaticBuffer*   remoteIpAddress;
     StaticBuffer*   localIpAddress;
@@ -23,7 +26,7 @@ typedef struct ZoneMgr {
 int zmgr_init(struct MainThread* mt);
 void zmgr_deinit(ZoneMgr* zmgr);
 
-int zmgr_start_zone_if_not_up(struct MainThread* mt, int zoneId, int instId);
+int zmgr_add_client_from_char_select(struct MainThread* mt, Client* client, int zoneId, int instId, uint16_t* outPort);
 
 StaticBuffer* zmgr_remote_ip(ZoneMgr* zmgr);
 StaticBuffer* zmgr_local_ip(ZoneMgr* zmgr);

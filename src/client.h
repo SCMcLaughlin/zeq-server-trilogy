@@ -15,4 +15,6 @@ void client_load_character_data(Client* client, ClientLoadData_Character* data);
 
 StaticBuffer* client_name_sbuf(Client* client);
 
+bool client_is_local(Client* client);
+
 #endif/*CLIENT_H*/
