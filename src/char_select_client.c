@@ -2,11 +2,13 @@
 #include "char_select_client.h"
 #include "define_netcode.h"
 #include "udp_thread.h"
+#include "util_ipv4.h"
 #include "enum_zop.h"
 
 struct CharSelectClient {
     bool        authed;
     bool        isNameApproved;
+    bool        isLocal;
     IpAddr      ipAddress;
     int64_t     accountId;
     char        sessionKey[16];
@@ -18,9 +20,10 @@ CharSelectClient* csc_init(ZPacket* zpacket)
     CharSelectClient* csc = (CharSelectClient*)zpacket->udp.zNewClient.clientObject;
     
     csc->authed = false;
+    csc->isNameApproved = false;
+    csc->isLocal = ip_is_local(zpacket->udp.zNewClient.ipAddress.ip);
     csc->ipAddress = zpacket->udp.zNewClient.ipAddress;
     csc->accountId = -1;
-
     return csc;
 }
 
@@ -120,4 +123,9 @@ bool csc_is_name_approved(CharSelectClient* csc)
 int64_t csc_get_account_id(CharSelectClient* csc)
 {
     return csc->accountId;
+}
+
+bool csc_is_local(CharSelectClient* csc)
+{
+    return csc->isLocal;
 }

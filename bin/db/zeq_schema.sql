@@ -21,7 +21,7 @@ CREATE INDEX idx_account_name ON account (name);
 CREATE TABLE character (
     character_id            INTEGER PRIMARY KEY,
     account_id              INT,
-    name                    TEXT    UNIQUE,
+    name                    TEXT,
     surname                 TEXT,
     level                   INT     DEFAULT 1,
     class                   INT     DEFAULT 1,
@@ -30,7 +30,7 @@ CREATE TABLE character (
     instance_id             INT     DEFAULT 0,
     gender                  INT     DEFAULT 0,
     face                    INT     DEFAULT 0,
-    deity                   INT     DEFAULT 140,
+    deity                   INT     DEFAULT 396,
     x                       REAL    DEFAULT 0,
     y                       REAL    DEFAULT 0,
     z                       REAL    DEFAULT 0,

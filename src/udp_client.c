@@ -33,7 +33,7 @@ static void udpc_report_disconnect(UdpThread* udp, UdpClient* udpc, int zop)
     
     if (rc)
     {
-        log_writef(udp_get_log_queue(udp), udp_get_log_id(udp), "udpc_report_disconnect: ringbuf_push() failed for zop %s with error %s", enum2str_zop(zop), enum2str_err(rc));
+        log_writef(udp_get_log_queue(udp), udp_get_log_id(udp), "ERROR: udpc_report_disconnect: ringbuf_push() failed for zop %s with error %s", enum2str_zop(zop), enum2str_err(rc));
     }
 }
 
@@ -48,7 +48,7 @@ void udpc_linkdead(UdpThread* udp, UdpClient* udpc)
     uint16_t port = udpc->ipAddr.port;
     
     log_writef(udp_get_log_queue(udp), udp_get_log_id(udp), "UDP client from %u.%u.%u.%u:%u is LINKDEAD",
-        (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, port);
+        (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, to_host_uint16(port));
     
     udpc_report_disconnect(udp, udpc, ZOP_UDP_ClientLinkdead);
 }
@@ -72,7 +72,7 @@ bool udpc_send_disconnect(UdpThread* udp, UdpClient* udpc)
     dis.crc = crc_calc32_network(&dis, sizeof(dis));
     
     log_writef(udp_get_log_queue(udp), udp_get_log_id(udp), "Disconnecting UDP client from %u.%u.%u.%u:%u",
-        (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, port);
+        (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, to_host_uint16(port));
     
     udpc_report_disconnect(udp, udpc, ZOP_UDP_ClientDisconnect);
     
@@ -95,7 +95,7 @@ void udpc_recv_packet(UdpThread* udp, UdpClient* udpc, Aligned* a, uint16_t opco
         
         if (!data)
         {
-            log_writef(udp_get_log_queue(udp), udp_get_log_id(udp), "udpc_recv_packet: allocation failed for packet data with length %u", length);
+            log_writef(udp_get_log_queue(udp), udp_get_log_id(udp), "ERROR: udpc_recv_packet: allocation failed for packet data with length %u", length);
             return;
         }
         
@@ -132,7 +132,7 @@ void udpc_recv_packet_no_copy(UdpThread* udp, UdpClient* udpc, Aligned* a, uint1
     
     if (rc)
     {
-        log_writef(udp_get_log_queue(udp), udp_get_log_id(udp), "udpc_recv_packet_no_copy: ringbuf_push() failed, error: %s", enum2str_err(rc));
+        log_writef(udp_get_log_queue(udp), udp_get_log_id(udp), "ERROR: udpc_recv_packet_no_copy: ringbuf_push() failed, error: %s", enum2str_err(rc));
         if (data) free(data);
     }
 }

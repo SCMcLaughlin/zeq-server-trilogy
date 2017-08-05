@@ -298,7 +298,7 @@ static int login_thread_check_db_error(LoginThread* login, LoginClient* loginc, 
     
     if (!login_thread_is_client_valid(login, loginc))
     {
-        log_writef(login->logQueue, login->logId, "WARNING: %s: received result for LoginClient that no longer exists", funcName);
+        log_writef(login->logQueue, login->logId, "WARNING: %s: received database result for LoginClient that no longer exists", funcName);
         return ERR_Invalid;
     }
     
@@ -865,7 +865,7 @@ RingBuf* login_get_queue(LoginThread* login)
     return login->loginQueue;
 }
 
-int login_add_server(LoginThread* login, int* outServerId, const char* name, const char* remoteIp, const char* localIp, int8_t rank, int8_t status, bool isLocal)
+int login_add_server(LoginThread* login, int* outServerId, const char* name, StaticBuffer* remoteIp, StaticBuffer* localIp, int8_t rank, int8_t status, bool isLocal)
 {
     ZPacket zpacket;
     int serverId;
@@ -884,8 +884,8 @@ int login_add_server(LoginThread* login, int* outServerId, const char* name, con
     zpacket.login.zNewServer.serverId = serverId;
     
     zpacket.login.zNewServer.serverName = sbuf_create(name, (uint32_t)strlen(name));
-    zpacket.login.zNewServer.remoteIpAddr = (remoteIp) ? sbuf_create(remoteIp, (uint32_t)strlen(remoteIp)) : login->loopbackAddr;
-    zpacket.login.zNewServer.localIpAddr = (localIp) ? sbuf_create(localIp, (uint32_t)strlen(localIp)) : login->loopbackAddr;
+    zpacket.login.zNewServer.remoteIpAddr = (remoteIp) ? remoteIp : login->loopbackAddr;
+    zpacket.login.zNewServer.localIpAddr = (localIp) ? localIp : login->loopbackAddr;
     
     sbuf_grab(zpacket.login.zNewServer.serverName);
     sbuf_grab(zpacket.login.zNewServer.remoteIpAddr);

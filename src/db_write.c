@@ -99,6 +99,32 @@ static void dbw_cs_character_create(DbThread* db, sqlite3* sqlite, ZPacket* zpac
     sqlite3_finalize(stmt);
 }
 
+static void dbw_cs_character_delete(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
+{
+    sqlite3_stmt* stmt = NULL;
+    ZPacket reply;
+    bool run;
+
+    reply.db.zResult.queryId = zpacket->db.zQuery.queryId;
+    reply.db.zResult.hadError = true;
+    reply.db.zResult.hadErrorUnprocessed = false;
+    reply.db.zResult.rCSCharacterCreate.client = zpacket->db.zQuery.qCSCharacterCreate.client;
+
+    run = db_prepare_literal(db, sqlite, &stmt,
+        "DELETE FROM character WHERE name = ? AND account_id = ?");
+
+    if (run && db_bind_string_sbuf(db, stmt, 0, zpacket->db.zQuery.qCSCharacterDelete.name) && db_bind_int64(db, stmt, 1, zpacket->db.zQuery.qCSCharacterDelete.accountId))
+    {
+        if (db_write(db, stmt))
+        {
+            reply.db.zResult.hadError = false;
+        }
+    }
+
+    db_reply(db, zpacket, &reply);
+    sqlite3_finalize(stmt);
+}
+
 void dbw_dispatch(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
 {
     uint64_t timer = clock_microseconds();
@@ -112,6 +138,10 @@ void dbw_dispatch(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
 
     case ZOP_DB_QueryCSCharacterCreate:
         dbw_cs_character_create(db, sqlite, zpacket);
+        break;
+
+    case ZOP_DB_QueryCSCharacterDelete:
+        dbw_cs_character_delete(db, sqlite, zpacket);
         break;
     
     default:
@@ -135,6 +165,10 @@ void dbw_destruct(DbThread* db, ZPacket* zpacket, int zop)
 
     case ZOP_DB_QueryCSCharacterCreate:
         free(zpacket->db.zQuery.qCSCharacterCreate.data);
+        break;
+
+    case ZOP_DB_QueryCSCharacterDelete:
+        zpacket->db.zQuery.qCSCharacterDelete.name = sbuf_drop(zpacket->db.zQuery.qCSCharacterDelete.name);
         break;
     
     default:

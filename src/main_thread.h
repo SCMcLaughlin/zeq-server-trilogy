@@ -6,6 +6,7 @@
 #include "ringbuf.h"
 
 struct ClientMgr;
+struct ZoneMgr;
 
 typedef struct MainThread MainThread;
 
@@ -15,6 +16,7 @@ MainThread* mt_destroy(MainThread* mt);
 void mt_main_loop(MainThread* mt);
 
 struct ClientMgr* mt_get_cmgr(MainThread* mt);
+struct ZoneMgr* mt_get_zmgr(MainThread* mt);
 
 RingBuf* mt_get_queue(MainThread* mt);
 RingBuf* mt_get_db_queue(MainThread* mt);

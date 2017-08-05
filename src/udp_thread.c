@@ -56,7 +56,7 @@ static bool udp_thread_open_socket(UdpThread* udp, sock_t* outSock, uint16_t por
 
     if (sock == INVALID_SOCKET)
     {
-        log_write_literal(udp->logQueue, udp->logId, "udp_thread_open_socket: socket() syscall failed");
+        log_write_literal(udp->logQueue, udp->logId, "ERROR: udp_thread_open_socket: socket() syscall failed");
         return false;
     }
 
@@ -67,7 +67,7 @@ static bool udp_thread_open_socket(UdpThread* udp, sock_t* outSock, uint16_t por
     if (fcntl(sock, F_SETFL, O_NONBLOCK))
 #endif
     {
-        log_writef(udp->logQueue, udp->logId, "udp_thread_open_socket: failed to set non-blocking mode for socket %i", sock);
+        log_writef(udp->logQueue, udp->logId, "ERROR: udp_thread_open_socket: failed to set non-blocking mode for socket %i", sock);
         goto fail_open;
     }
 
@@ -79,7 +79,7 @@ static bool udp_thread_open_socket(UdpThread* udp, sock_t* outSock, uint16_t por
 
     if (bind(sock, (struct sockaddr*)&addr, sizeof(addr)))
     {
-        log_writef(udp->logQueue, udp->logId, "udp_thread_open_socket: bind() syscall failed for socket %i on port %u", sock, port);
+        log_writef(udp->logQueue, udp->logId, "ERROR: udp_thread_open_socket: bind() syscall failed for socket %i on port %u", sock, port);
         goto fail_open;
     }
 
@@ -109,7 +109,7 @@ static void udp_thread_open_port(UdpThread* udp, ZPacket* cmd)
 
         if (!array)
         {
-            log_writef(udp->logQueue, udp->logId, "udp_thread_open_port: out of memory while attempting to create new UdpSocket object for port %u", cmd->udp.zOpenPort.port);
+            log_writef(udp->logQueue, udp->logId, "ERROR: udp_thread_open_port: out of memory while attempting to create new UdpSocket object for port %u", cmd->udp.zOpenPort.port);
             return;
         }
 
@@ -263,7 +263,7 @@ static int udp_thread_new_client(UdpThread* udp, uint32_t clientSize, UdpClient*
     }
     
     log_writef(udp->logQueue, udp->logId, "New UDP client connection from %u.%u.%u.%u:%u",
-        (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, toCopy->ipAddr.port);
+        (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, to_host_uint16(toCopy->ipAddr.port));
     
     time = clock_milliseconds();
 
@@ -275,8 +275,8 @@ static int udp_thread_new_client(UdpThread* udp, uint32_t clientSize, UdpClient*
     udp->clientLastAckTimestamps[index] = time;
     return (int)index;
 oom:
-    log_writef(udp->logQueue, udp->logId, "udp_thread_new_client: out of memory while allocating client from %u.%u.%u.%u:%u",
-        (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, toCopy->ipAddr.port);
+    log_writef(udp->logQueue, udp->logId, "ERROR: udp_thread_new_client: out of memory while allocating client from %u.%u.%u.%u:%u",
+        (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, to_host_uint16(toCopy->ipAddr.port));
 
 queue_fail:
     if (clientObject) free(clientObject);
@@ -334,7 +334,7 @@ static void udp_thread_process_socket_reads(UdpThread* udp)
                 if (err != EAGAIN && err != EWOULDBLOCK)
             #endif
                 {
-                    log_writef(udp->logQueue, udp->logId, "udp_thread_process_socket_reads: recvfrom() syscall had unexpected errcode: %i", err);
+                    log_writef(udp->logQueue, udp->logId, "WARNING: udp_thread_process_socket_reads: recvfrom() syscall had unexpected errcode: %i", err);
                 }
                 
                 break;

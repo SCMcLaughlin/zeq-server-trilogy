@@ -162,6 +162,7 @@
     <ClInclude Include="src\char_select_packet_struct.h" />
     <ClInclude Include="src\char_select_thread.h" />
     <ClInclude Include="src\char_select_zpacket.h" />
+    <ClInclude Include="src\class_id.h" />
     <ClInclude Include="src\client_mgr.h" />
     <ClInclude Include="src\crc.h" />
     <ClInclude Include="src\db_read.h" />
@@ -170,6 +171,7 @@
     <ClInclude Include="src\db_zpacket.h" />
     <ClInclude Include="src\define.h" />
     <ClInclude Include="src\define_netcode.h" />
+    <ClInclude Include="src\deity_id.h" />
     <ClInclude Include="src\enum2str.h" />
     <ClInclude Include="src\enum_account_status.h" />
     <ClInclude Include="src\enum_char_select_opcode.h" />
@@ -178,6 +180,7 @@
     <ClInclude Include="src\enum_login_server_rank.h" />
     <ClInclude Include="src\enum_login_server_status.h" />
     <ClInclude Include="src\enum_zop.h" />
+    <ClInclude Include="src\gender_id.h" />
     <ClInclude Include="src\hash.h" />
     <ClInclude Include="src\login_client.h" />
     <ClInclude Include="src\login_crypto.h" />
@@ -187,7 +190,9 @@
     <ClInclude Include="src\log_thread.h" />
     <ClInclude Include="src\main_thread.h" />
     <ClInclude Include="src\main_timers.h" />
+    <ClInclude Include="src\main_zpacket.h" />
     <ClInclude Include="src\player_profile_packet_struct.h" />
+    <ClInclude Include="src\race_id.h" />
     <ClInclude Include="src\ringbuf.h" />
     <ClInclude Include="src\structs_container.h" />
     <ClInclude Include="src\timer.h" />
@@ -208,6 +213,7 @@
     <ClInclude Include="src\util_thread.h" />
     <ClInclude Include="src\win32_posix_define.h" />
     <ClInclude Include="src\zone_id.h" />
+    <ClInclude Include="src\zone_mgr.h" />
     <ClInclude Include="src\zpacket.h" />
   </ItemGroup>
   <ItemGroup>
@@ -217,12 +223,15 @@
     <ClCompile Include="src\buffer.c" />
     <ClCompile Include="src\char_select_client.c" />
     <ClCompile Include="src\char_select_thread.c" />
+    <ClCompile Include="src\class_id.c" />
     <ClCompile Include="src\client_mgr.c" />
     <ClCompile Include="src\crc.c" />
     <ClCompile Include="src\db_read.c" />
     <ClCompile Include="src\db_thread.c" />
     <ClCompile Include="src\db_write.c" />
+    <ClCompile Include="src\deity_id.c" />
     <ClCompile Include="src\enum2str.c" />
+    <ClCompile Include="src\gender_id.c" />
     <ClCompile Include="src\hash.c" />
     <ClCompile Include="src\login_client.c" />
     <ClCompile Include="src\login_crypto.c" />
@@ -231,6 +240,7 @@
     <ClCompile Include="src\main.c" />
     <ClCompile Include="src\main_thread.c" />
     <ClCompile Include="src\main_timers.c" />
+    <ClCompile Include="src\race_id.c" />
     <ClCompile Include="src\ringbuf.c" />
     <ClCompile Include="src\timer.c" />
     <ClCompile Include="src\tlg_packet.c" />
@@ -246,6 +256,7 @@
     <ClCompile Include="src\util_str.c" />
     <ClCompile Include="src\util_thread_win32.c" />
     <ClCompile Include="src\zone_id.c" />
+    <ClCompile Include="src\zone_mgr.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

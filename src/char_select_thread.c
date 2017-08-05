@@ -2,8 +2,12 @@
 #include "char_select_thread.h"
 #include "aligned.h"
 #include "bit.h"
+#include "class_id.h"
 #include "char_select_client.h"
 #include "db_thread.h"
+#include "deity_id.h"
+#include "gender_id.h"
+#include "race_id.h"
 #include "tlg_packet.h"
 #include "util_alloc.h"
 #include "util_clock.h"
@@ -42,6 +46,7 @@ struct CharSelectThread {
     uint64_t*           clientAwaitingAuthTimeouts;
     Guild*              guildList;
     RingBuf*            csQueue;
+    RingBuf*            mainQueue;
     RingBuf*            udpQueue;
     RingBuf*            dbQueue;
     RingBuf*            logQueue;
@@ -200,7 +205,7 @@ static int cs_thread_check_db_error(CharSelectThread* cs, CharSelectClient* clie
     
     if (!cs_thread_is_client_valid(cs, client))
     {
-        log_writef(cs->logQueue, cs->logId, "WARNING: %s: received result for CharSelectClient that no longer exists", funcName);
+        log_writef(cs->logQueue, cs->logId, "WARNING: %s: received database result for CharSelectClient that no longer exists", funcName);
         return ERR_Invalid;
     }
     
@@ -920,8 +925,16 @@ static int cs_thread_handle_op_create_character(CharSelectThread* cs, CharSelect
 
         rc = db_queue_query(cs->dbQueue, cs->csQueue, cs->dbId, cs->nextQueryId++, ZOP_DB_QueryCSCharacterCreate, &query);
 
-        if (rc)
+        if (rc == ERR_None)
+        {
+            log_writef(cs->logQueue, cs->logId, "Creating character \"%s\" with race %s, gender %s, class %s, deity %s and starting zone %s (%s) for account id %lli",
+                data.name, race_id_to_str(data.raceId), gender_id_to_str(data.genderId), class_id_to_str(data.classId), deity_id_to_str(data.deityId),
+                zone_long_name_by_id(data.zoneId), zone_short_name_by_id(data.zoneId), csc_get_account_id(client));
+        }
+        else
+        {
             free(query.db.zQuery.qCSCharacterCreate.data);
+        }
 
         return rc;
     }
@@ -942,7 +955,7 @@ static void cs_thread_handle_db_character_create(CharSelectThread* cs, ZPacket* 
 
     if (!cs_thread_is_client_valid(cs, client))
     {
-        log_writef(cs->logQueue, cs->logId, "WARNING: %s: received result for CharSelectClient that no longer exists", FUNC_NAME);
+        log_writef(cs->logQueue, cs->logId, "WARNING: %s: received database result for CharSelectClient that no longer exists", FUNC_NAME);
         return;
     }
 
@@ -960,6 +973,45 @@ static void cs_thread_handle_db_character_create(CharSelectThread* cs, ZPacket* 
 
     if (rc)
         cs_thread_drop_client(cs, client);
+}
+
+static int cs_thread_handle_op_delete_character(CharSelectThread* cs, CharSelectClient* client, ZPacket* zpacket)
+{
+    const char* name;
+    uint32_t len;
+    Aligned a;
+    ZPacket query;
+    int rc;
+
+    aligned_init(&a, zpacket->udp.zToServerPacket.data, zpacket->udp.zToServerPacket.length);
+
+    len = aligned_remaining_data(&a);
+
+    if (!csc_is_authed(client) || len < 2)
+        goto invalid;
+
+    name = aligned_current_type(&a, const char);
+    len = str_len_bounded(name, (int)len);
+
+    if (len == 0)
+        goto invalid;
+
+    query.db.zQuery.qCSCharacterDelete.accountId = csc_get_account_id(client);
+    query.db.zQuery.qCSCharacterDelete.name = sbuf_create(name, len);
+
+    if (!query.db.zQuery.qCSCharacterDelete.name)
+        return ERR_OutOfMemory;
+
+    sbuf_grab(query.db.zQuery.qCSCharacterDelete.name);
+
+    rc = db_queue_query(cs->dbQueue, cs->csQueue, cs->dbId, cs->nextQueryId++, ZOP_DB_QueryCSCharacterDelete, &query);
+
+    if (rc)
+        sbuf_drop(query.db.zQuery.qCSCharacterDelete.name);
+
+    return rc;
+invalid:
+    return ERR_Invalid;
 }
 
 static int cs_thread_handle_op_wear_change(CharSelectThread* cs, CharSelectClient* client, ZPacket* zpacket)
@@ -1013,6 +1065,47 @@ static int cs_thread_handle_op_wear_change(CharSelectThread* cs, CharSelectClien
     }
 
     return ERR_None;
+}
+
+static int cs_thread_handle_op_enter(CharSelectThread* cs, CharSelectClient* client, ZPacket* zpacket)
+{
+    const char* name;
+    uint32_t len;
+    Aligned a;
+    ZPacket toMain;
+    int rc;
+
+    aligned_init(&a, zpacket->udp.zToServerPacket.data, zpacket->udp.zToServerPacket.length);
+
+    len = aligned_remaining_data(&a);
+
+    if (!csc_is_authed(client) || len < 2)
+        goto invalid;
+
+    name = aligned_current_type(&a, const char);
+    len = str_len_bounded(name, (int)len);
+
+    if (len == 0)
+        goto invalid;
+
+    toMain.main.zZoneFromCharSelect.client = client;
+    toMain.main.zZoneFromCharSelect.accountId = csc_get_account_id(client);
+    toMain.main.zZoneFromCharSelect.isLocal = csc_is_local(client);
+    toMain.main.zZoneFromCharSelect.name = sbuf_create(name, len);
+
+    if (!toMain.main.zZoneFromCharSelect.name)
+        return ERR_OutOfMemory;
+
+    sbuf_grab(toMain.main.zZoneFromCharSelect.name);
+
+    rc = ringbuf_push(cs->mainQueue, ZOP_MAIN_ZoneFromCharSelect, &toMain);
+
+    if (rc)
+        sbuf_drop(toMain.main.zZoneFromCharSelect.name);
+
+    return rc;
+invalid:
+    return ERR_Invalid;
 }
 
 static int cs_thread_handle_op_echo(CharSelectThread* cs, CharSelectClient* client, uint16_t opcode)
@@ -1069,9 +1162,17 @@ static void cs_thread_handle_packet(CharSelectThread* cs, ZPacket* zpacket)
     case OP_CS_CreateCharacter:
         rc = cs_thread_handle_op_create_character(cs, client, zpacket);
         break;
+
+    case OP_CS_DeleteCharacter:
+        rc = cs_thread_handle_op_delete_character(cs, client, zpacket);
+        break;
     
     case OP_CS_WearChange:
         rc = cs_thread_handle_op_wear_change(cs, client, zpacket);
+        break;
+
+    case OP_CS_Enter:
+        rc = cs_thread_handle_op_enter(cs, client, zpacket);
         break;
 
     case OP_CS_Echo1:
@@ -1371,7 +1472,7 @@ fail:
     return ERR_OutOfMemory;
 }
 
-CharSelectThread* cs_create(LogThread* log, RingBuf* dbQueue, int dbId, UdpThread* udp)
+CharSelectThread* cs_create(RingBuf* mainQueue, LogThread* log, RingBuf* dbQueue, int dbId, UdpThread* udp)
 {
     CharSelectThread* cs = alloc_type(CharSelectThread);
     ZPacket zpacket;
@@ -1392,6 +1493,7 @@ CharSelectThread* cs_create(LogThread* log, RingBuf* dbQueue, int dbId, UdpThrea
     cs->clientAwaitingAuthTimeouts = NULL;
     cs->guildList = NULL;
     cs->csQueue = NULL;
+    cs->mainQueue = mainQueue;
     cs->udpQueue = udp_get_queue(udp);
     cs->dbQueue = dbQueue;
     cs->logQueue = log_get_queue(log);

@@ -44,6 +44,11 @@ typedef struct {
 } DBQ_CSCharacterCreate;
 
 typedef struct {
+    int64_t         accountId;
+    StaticBuffer*   name;
+} DBQ_CSCharacterDelete;
+
+typedef struct {
     int         dbId;
     int         queryId;    /* User-supplied tracking value, not used internally by the DB system */
     int         zop;
@@ -54,6 +59,7 @@ typedef struct {
         DBQ_CSCharacterInfo             qCSCharacterInfo;
         DBQ_CSCharacterNameAvailable    qCSCharacterNameAvailable;
         DBQ_CSCharacterCreate           qCSCharacterCreate;
+        DBQ_CSCharacterDelete           qCSCharacterDelete;
     };
 } DB_ZQuery;
 

@@ -12,6 +12,7 @@
 #include "udp_thread.h"
 #include "util_alloc.h"
 #include "util_clock.h"
+#include "zone_mgr.h"
 #include "zpacket.h"
 #include "enum_zop.h"
 #include "enum2str.h"
@@ -33,6 +34,7 @@ struct MainThread {
     int                 logId;
     int                 loginServerId;
     ClientMgr           cmgr;
+    ZoneMgr             zmgr;
 };
 
 static int mt_start_timers(MainThread* mt)
@@ -52,7 +54,7 @@ MainThread* mt_create()
 
     if (!mt)
     {
-        fprintf(stderr, "mt_create: failed to allocate MainThread object\n");
+        fprintf(stderr, "ERROR: mt_create: failed to allocate MainThread object\n");
         goto fail_alloc;
     }
 
@@ -63,7 +65,7 @@ MainThread* mt_create()
     mt->mainQueue = ringbuf_create_type(ZPacket, 1024);
     if (!mt->mainQueue)
     {
-        fprintf(stderr, "mt_create: failed to create RingBuf object for MainThread\n");
+        fprintf(stderr, "ERROR: mt_create: failed to create RingBuf object for MainThread\n");
         goto fail;
     }
 
@@ -71,7 +73,7 @@ MainThread* mt_create()
     mt->log = log_create();
     if (!mt->log)
     {
-        fprintf(stderr, "mt_create: failed to create LogThread object\n");
+        fprintf(stderr, "ERROR: mt_create: failed to create LogThread object\n");
         goto fail;
     }
 
@@ -79,14 +81,14 @@ MainThread* mt_create()
     rc = log_open_file_literal(mt->log, &mt->logId, MAIN_THREAD_LOG_PATH);
     if (rc)
     {
-        fprintf(stderr, "mt_create: failed to open log file for MainThread at '" MAIN_THREAD_LOG_PATH "': %s\n", enum2str_err(rc));
+        fprintf(stderr, "ERROR: mt_create: failed to open log file for MainThread at '" MAIN_THREAD_LOG_PATH "': %s\n", enum2str_err(rc));
         goto fail;
     }
     
     mt->db = db_create(mt->log);
     if (!mt->db)
     {
-        fprintf(stderr, "mt_create: failed to create DbThread object\n");
+        fprintf(stderr, "ERROR: mt_create: failed to create DbThread object\n");
         goto fail;
     }
     
@@ -94,35 +96,42 @@ MainThread* mt_create()
     rc = db_open_literal(mt->db, mt->mainQueue, &mt->dbId, DB_THREAD_DB_PATH_DEFAULT, DB_THREAD_DB_SCHEMA_PATH_DEFAULT);
     if (rc)
     {
-        fprintf(stderr, "mt_create: failed to open database file '" DB_THREAD_DB_PATH_DEFAULT "', schema '" DB_THREAD_DB_SCHEMA_PATH_DEFAULT "': %s\n", enum2str_err(rc));
+        fprintf(stderr, "ERROR: mt_create: failed to open database file '" DB_THREAD_DB_PATH_DEFAULT "', schema '" DB_THREAD_DB_SCHEMA_PATH_DEFAULT "': %s\n", enum2str_err(rc));
         goto fail;
     }
 
     mt->udp = udp_create(mt->log);
     if (!mt->udp)
     {
-        fprintf(stderr, "mt_create: failed to create UdpThread object\n");
+        fprintf(stderr, "ERROR: mt_create: failed to create UdpThread object\n");
         goto fail;
     }
     
-    mt->cs = cs_create(mt->log, mt->dbQueue, mt->dbId, mt->udp);
+    mt->cs = cs_create(mt->mainQueue, mt->log, mt->dbQueue, mt->dbId, mt->udp);
     if (!mt->cs)
     {
-        fprintf(stderr, "mt_create: failed to create CharSelectThread object\n");
+        fprintf(stderr, "ERROR: mt_create: failed to create CharSelectThread object\n");
         goto fail;
     }
 
     rc = cmgr_init(mt);
     if (rc)
     {
-        fprintf(stderr, "mt_create: cmgr_init() failed: %s\n", enum2str_err(rc));
+        fprintf(stderr, "ERROR: mt_create: cmgr_init() failed: %s\n", enum2str_err(rc));
+        goto fail;
+    }
+
+    rc = zmgr_init(mt);
+    if (rc)
+    {
+        fprintf(stderr, "ERROR: mt_create: zmgr_init() failed: %s\n", enum2str_err(rc));
         goto fail;
     }
 
     rc = mt_start_timers(mt);
     if (rc)
     {
-        fprintf(stderr, "mt_create: mt_start_timers() failed: %s\n", enum2str_err(rc));
+        fprintf(stderr, "ERROR: mt_create: mt_start_timers() failed: %s\n", enum2str_err(rc));
         goto fail;
     }
 
@@ -159,10 +168,16 @@ MainThread* mt_destroy(MainThread* mt)
         mt->mainQueue = ringbuf_destroy(mt->mainQueue);
         timer_pool_deinit(&mt->timerPool);
         cmgr_deinit(&mt->cmgr);
+        zmgr_deinit(&mt->zmgr);
         free(mt);
     }
 
     return NULL;
+}
+
+static void mt_handle_zone_from_char_select(MainThread* mt, ZPacket* zpacket)
+{
+
 }
 
 static void mt_process_commands(MainThread* mt, RingBuf* mainQueue)
@@ -180,6 +195,10 @@ static void mt_process_commands(MainThread* mt, RingBuf* mainQueue)
         {
         case ZOP_DB_QueryMainGuildList:
             cmgr_handle_guild_list(mt, &zpacket);
+            break;
+
+        case ZOP_MAIN_ZoneFromCharSelect:
+            mt_handle_zone_from_char_select(mt, &zpacket);
             break;
 
         default:
@@ -210,7 +229,7 @@ void mt_main_loop(MainThread* mt)
         return;
     }
     
-    rc = login_add_server(mt->login, &mt->loginServerId, "ZEQ Test", NULL, "127.0.0.1", LOGIN_SERVER_RANK_Standard, LOGIN_SERVER_STATUS_Up, true);
+    rc = login_add_server(mt->login, &mt->loginServerId, "ZEQ Test", zmgr_remote_ip(&mt->zmgr), zmgr_local_ip(&mt->zmgr), LOGIN_SERVER_RANK_Standard, LOGIN_SERVER_STATUS_Up, true);
     if (rc)
     {
         fprintf(stderr, "login_add_server() failed: %s\n", enum2str_err(rc));
@@ -228,6 +247,11 @@ void mt_main_loop(MainThread* mt)
 ClientMgr* mt_get_cmgr(MainThread* mt)
 {
     return &mt->cmgr;
+}
+
+ZoneMgr* mt_get_zmgr(MainThread* mt)
+{
+    return &mt->zmgr;
 }
 
 RingBuf* mt_get_queue(MainThread* mt)

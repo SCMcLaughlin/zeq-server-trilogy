@@ -9,7 +9,7 @@
 
 typedef struct CharSelectThread CharSelectThread;
 
-CharSelectThread* cs_create(LogThread* log, RingBuf* dbQueue, int dbId, UdpThread* udp);
+CharSelectThread* cs_create(RingBuf* mainQueue, LogThread* log, RingBuf* dbQueue, int dbId, UdpThread* udp);
 CharSelectThread* cs_destroy(CharSelectThread* cs);
 
 RingBuf* cs_get_queue(CharSelectThread* cs);

@@ -163,6 +163,7 @@ const char* enum2str_zop(int e)
     case ZOP_DB_QueryCSCharacterInfo: ret = "ZOP_DB_QueryCSCharacterInfo"; break;
     case ZOP_DB_QueryCSCharacterNameAvailable: ret = "ZOP_DB_QueryCSCharacterNameAvailable"; break;
     case ZOP_DB_QueryCSCharacterCreate: ret = "ZOP_DB_QueryCSCharacterCreate"; break;
+    case ZOP_DB_QueryCSCharacterDelete: ret = "ZOP_DB_QueryCSCharacterDelete"; break;
     case ZOP_LOGIN_TerminateThread: ret = "ZOP_LOGIN_TerminateThread"; break;
     case ZOP_LOGIN_NewServer: ret = "ZOP_LOGIN_NewServer"; break;
     case ZOP_LOGIN_RemoveServer: ret = "ZOP_LOGIN_RemoveServer"; break;
@@ -172,6 +173,9 @@ const char* enum2str_zop(int e)
     case ZOP_CS_AddGuild: ret = "ZOP_CS_AddGuild"; break;
     case ZOP_CS_LoginAuth: ret = "ZOP_CS_LoginAuth"; break;
     case ZOP_CS_CheckAuthTimeouts: ret = "ZOP_CS_CheckAuthTimeouts"; break;
+    case ZOP_CS_ZoneSuccess: ret = "ZOP_CS_ZoneSuccess"; break;
+    case ZOP_CS_ZoneFailure: ret = "ZOP_CS_ZoneFailure"; break;
+    case ZOP_MAIN_ZoneFromCharSelect: ret = "ZOP_MAIN_ZoneFromCharSelect"; break;
     case ZOP_COUNT: ret = "ZOP_COUNT"; break;
     default: ret = "UNKNOWN"; break;
     }

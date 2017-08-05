@@ -56,7 +56,7 @@ static int db_thread_exec(DbThread* db, sqlite3* sqlite, const char* sql)
     
     if (errmsg)
     {
-        log_writef(db->logQueue, db->logId, "db_thread_exec: sqlite3_exec failed for SQL: \"%s\" with error message: \"%s\"", sql, errmsg);
+        log_writef(db->logQueue, db->logId, "ERROR: db_thread_exec: sqlite3_exec failed for SQL: \"%s\" with error message: \"%s\"", sql, errmsg);
         sqlite3_free(errmsg);
         rc = ERR_Library;
     }
@@ -162,6 +162,7 @@ static void db_thread_destruct_zpacket(DbThread* db, ZPacket* zpacket)
     
     case ZOP_DB_QueryLoginNewAccount:
     case ZOP_DB_QueryCSCharacterCreate:
+    case ZOP_DB_QueryCSCharacterDelete:
         dbw_destruct(db, zpacket, zop);
         break;
     
@@ -446,6 +447,7 @@ static void db_thread_proc(void* ptr)
 
             case ZOP_DB_QueryLoginNewAccount:
             case ZOP_DB_QueryCSCharacterCreate:
+            case ZOP_DB_QueryCSCharacterDelete:
                 db_thread_queue_query(db, &zpacket, zop, true);
                 break;
 

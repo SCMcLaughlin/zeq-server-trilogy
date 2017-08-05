@@ -30,6 +30,7 @@ enum ZOP
     ZOP_DB_QueryCSCharacterInfo,
     ZOP_DB_QueryCSCharacterNameAvailable,
     ZOP_DB_QueryCSCharacterCreate,
+    ZOP_DB_QueryCSCharacterDelete,
     /* Login thread */
     ZOP_LOGIN_TerminateThread,
     ZOP_LOGIN_NewServer,
@@ -41,6 +42,10 @@ enum ZOP
     ZOP_CS_AddGuild,
     ZOP_CS_LoginAuth,
     ZOP_CS_CheckAuthTimeouts,
+    ZOP_CS_ZoneSuccess,
+    ZOP_CS_ZoneFailure,
+    /* Main thread */
+    ZOP_MAIN_ZoneFromCharSelect,
     ZOP_COUNT
 };
 
