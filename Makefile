@@ -48,6 +48,7 @@ _OBJECTS=               \
  udp_client             \
  udp_thread             \
  util_atomic_posix      \
+ util_clock_common      \
  util_clock_posix       \
  util_hash_tbl          \
  util_ipv4              \

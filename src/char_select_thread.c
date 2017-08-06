@@ -1278,9 +1278,89 @@ fail:
     log_writef(cs->logQueue, cs->logId, "ERROR: cs_thread_handle_login_auth: out of memory while adding auth for account id %lli", accountId);
 }
 
+static void cs_thread_handle_zone_success(CharSelectThread* cs, ZPacket* zpacket)
+{
+    CharSelectClient* client = (CharSelectClient*)zpacket->cs.zZoneSuccess.client;
+    NorrathTime nTime;
+    RingBuf* udpQueue;
+    TlgPacket* packet;
+    Aligned a;
+    int rc;
+    
+    if (!cs_thread_is_client_valid(cs, client))
+    {
+        log_writef(cs->logQueue, cs->logId, "WARNING: cs_thread_handle_zone_success: received zone attempt response for client that no longer exists");
+        return;
+    }
+    
+    udpQueue = cs->udpQueue;
+    
+    /* Message of the Day */
+    /*fixme: motd can be cached, rarely changes*/
+    packet = packet_create(OP_CS_MessageOfTheDay, sbuf_length(zpacket->cs.zZoneSuccess.motd) + 1);
+    if (!packet) goto drop_client;
+    
+    aligned_init(&a, packet_data(packet), packet_length(packet));
+    aligned_write_snprintf_and_advance_by(&a, aligned_remaining_space(&a), "%s", sbuf_str(zpacket->cs.zZoneSuccess.motd));
+    
+    rc = csc_schedule_packet(client, udpQueue, packet);
+    if (rc) goto drop_client;
+    
+    /* Time of day */
+    clock_calc_norrath_time(&nTime);
+    
+    packet = packet_create_type(OP_CS_TimeOfDay, PSCS_TimeOfDay);
+    if (!packet) goto drop_client;
+    
+    aligned_init(&a, packet_data(packet), packet_length(packet));
+    
+    /* PSCS_TimeOfDay */
+    /* hour */
+    aligned_write_uint8(&a, nTime.hour);
+    /* minute */
+    aligned_write_uint8(&a, nTime.minute);
+    /* day */
+    aligned_write_uint8(&a, nTime.day);
+    /* month */
+    aligned_write_uint8(&a, nTime.month);
+    /* year */
+    aligned_write_uint8(&a, nTime.year);
+    
+    rc = csc_schedule_packet(client, udpQueue, packet);
+    if (rc) goto drop_client;
+    
+    /* Zone address */
+    packet = packet_create_type(OP_CS_ZoneAddress, PSCS_ZoneAddress);
+    if (!packet) goto drop_client;
+    
+    aligned_init(&a, packet_data(packet), packet_length(packet));
+    
+    /* PSCS_ZoneAddress */
+    /* ipAddress */
+    aligned_write_snprintf_and_advance_by(&a, CHAR_SELECT_MAX_ZONE_IP_LENGTH, "%s", sbuf_str(zpacket->cs.zZoneSuccess.ipAddress));
+    /* zoneShortName */
+    aligned_write_snprintf_and_advance_by(&a, CHAR_SELECT_MAX_ZONE_ADDRESS_SHORTNAME_LENGTH, "%s", zone_short_name_by_id(zpacket->cs.zZoneSuccess.zoneId));
+    /* port */
+    aligned_write_uint16(&a, zpacket->cs.zZoneSuccess.port); /* Already in network byte order */
+    
+    rc = csc_schedule_packet(client, udpQueue, packet);
+    if (rc) goto drop_client;
+    
+    /*fixme: remove this client from CharSelect? Or just let the UDP thread disconnect indication handle it?*/
+    
+    goto finish;
+    
+drop_client:
+    cs_thread_drop_client(cs, client);
+finish:
+    sbuf_drop(zpacket->cs.zZoneSuccess.ipAddress);
+    sbuf_drop(zpacket->cs.zZoneSuccess.motd);
+}
+
 static void cs_thread_handle_zone_failure(CharSelectThread* cs, ZPacket* zpacket)
 {
     CharSelectClient* client = (CharSelectClient*)zpacket->cs.zZoneFailure.client;
+    int rc;
     
     if (!cs_thread_is_client_valid(cs, client))
     {
@@ -1288,7 +1368,13 @@ static void cs_thread_handle_zone_failure(CharSelectThread* cs, ZPacket* zpacket
         return;
     }
     
-    csc_schedule_packet(client, cs->udpQueue, cs->packetZoneUnavailable);
+    rc = csc_schedule_packet(client, cs->udpQueue, cs->packetZoneUnavailable);
+    if (rc) goto drop_client;
+    
+    return;
+    
+drop_client:
+    cs_thread_drop_client(cs, client);
 }
 
 static void cs_thread_check_auth_timeouts(CharSelectThread* cs)
@@ -1432,6 +1518,10 @@ static void cs_thread_proc(void* ptr)
         
         case ZOP_CS_CheckAuthTimeouts:
             cs_thread_check_auth_timeouts(cs);
+            break;
+        
+        case ZOP_CS_ZoneSuccess:
+            cs_thread_handle_zone_success(cs, &zpacket);
             break;
         
         case ZOP_CS_ZoneFailure:

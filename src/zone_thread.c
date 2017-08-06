@@ -34,6 +34,12 @@ static void zt_process_commands(ZoneThread* zt, RingBuf* ztQueue)
         
         switch (zop)
         {
+        case ZOP_ZONE_CreateZone:
+            break;
+        
+        case ZOP_ZONE_AddClient:
+            break;
+        
         default:
             log_writef(zt->logQueue, zt->logId, "WARNING: zt_process_commands: received unexpected zop: %s", enum2str_zop(zop));
             break;

@@ -4,6 +4,8 @@
 #include "main_thread.h"
 #include "util_alloc.h"
 #include "zone_thread.h"
+#include "zpacket.h"
+#include "enum_zop.h"
 
 #define ZONE_MGR_FIRST_ZONE_THREAD_PORT 7000
 
@@ -83,6 +85,8 @@ static ZoneThreadWithQueue* zmgr_add_zt(MainThread* mt, ZoneMgr* zmgr, uint32_t 
     ret->zoneCount = 0;
     ret->clientCount = 0;
     
+    log_writef(mt_get_log_queue(mt), mt_get_log_id(mt), "Started ZoneThread %u using port %u", index, port);
+    
     zmgr->zoneThreadCount = index + 1;
     return ret;
     
@@ -134,8 +138,10 @@ static ZoneThreadWithQueue* zmgr_get_or_start_zone(MainThread* mt, int zoneId, i
     ZoneMgr* zmgr = mt_get_zmgr(mt);
     ZoneThreadByZoneId* ztByZoneId = zmgr->ztByZoneId;
     ZoneThreadWithQueue* zt;
+    ZPacket zpacket;
     uint32_t n = zmgr->zoneCount;
     uint32_t i;
+    int rc;
     
     /* Check if we have this zone running already */
     for (i = 0; i < n; i++)
@@ -169,7 +175,16 @@ static ZoneThreadWithQueue* zmgr_get_or_start_zone(MainThread* mt, int zoneId, i
     ztByZoneId->ztIndex = (uint8_t)(zt - zmgr->zoneThreads); /* This gives us the array index */
     
     /* Inform the target ZoneThread it needs to start a Zone with these ids */
-    /*fixme: make the zpacket for this*/
+    zpacket.zone.zCreateZone.zoneId = zoneId;
+    zpacket.zone.zCreateZone.instId = instId;
+    
+    rc = ringbuf_push(zt->ztQueue, ZOP_ZONE_CreateZone, &zpacket);
+    if (rc)
+    {
+        log_writef(mt_get_log_queue(mt), mt_get_log_id(mt), "ERROR: zmgr_get_or_start_zone: failed to inform ZoneThread %u to start zoneId %i, instId %i",
+            ztByZoneId->ztIndex, zoneId, instId);
+        return NULL;
+    }
     
     zt->zoneCount++;
     zmgr->zoneCount = n + 1;
@@ -179,15 +194,19 @@ static ZoneThreadWithQueue* zmgr_get_or_start_zone(MainThread* mt, int zoneId, i
 int zmgr_add_client_from_char_select(MainThread* mt, Client* client, int zoneId, int instId, uint16_t* outPort)
 {
     ZoneThreadWithQueue* zt = zmgr_get_or_start_zone(mt, zoneId, instId);
+    ZPacket zpacket;
     
     if (!zt) return ERR_OutOfMemory;
     
     *outPort = zt->port;
     
     zt->clientCount++;
-    /*fixme: send Client to zone*/
     
-    return ERR_None;
+    zpacket.zone.zAddClient.zoneId = zoneId;
+    zpacket.zone.zAddClient.instId = instId;
+    zpacket.zone.zAddClient.client = client;
+    
+    return ringbuf_push(zt->ztQueue, ZOP_ZONE_AddClient, &zpacket);
 }
 
 StaticBuffer* zmgr_remote_ip(ZoneMgr* zmgr)

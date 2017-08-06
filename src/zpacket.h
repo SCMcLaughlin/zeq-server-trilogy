@@ -7,6 +7,7 @@
 #include "login_zpacket.h"
 #include "main_zpacket.h"
 #include "udp_zpacket.h"
+#include "zone_zpacket.h"
 
 typedef union {
     CharSelect_ZPacket  cs;
@@ -14,6 +15,7 @@ typedef union {
     Login_ZPacket       login;
     Main_ZPacket        main;
     UDP_ZPacket         udp;
+    Zone_ZPacket        zone;
 } ZPacket;
 
 #endif/*ZPACKET_H*/

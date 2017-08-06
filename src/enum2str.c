@@ -177,6 +177,8 @@ const char* enum2str_zop(int e)
     case ZOP_CS_ZoneSuccess: ret = "ZOP_CS_ZoneSuccess"; break;
     case ZOP_CS_ZoneFailure: ret = "ZOP_CS_ZoneFailure"; break;
     case ZOP_MAIN_ZoneFromCharSelect: ret = "ZOP_MAIN_ZoneFromCharSelect"; break;
+    case ZOP_ZONE_CreateZone: ret = "ZOP_ZONE_CreateZone"; break;
+    case ZOP_ZONE_AddClient: ret = "ZOP_ZONE_AddClient"; break;
     case ZOP_COUNT: ret = "ZOP_COUNT"; break;
     default: ret = "UNKNOWN"; break;
     }

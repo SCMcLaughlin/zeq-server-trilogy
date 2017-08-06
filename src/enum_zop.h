@@ -47,6 +47,9 @@ enum ZOP
     ZOP_CS_ZoneFailure,
     /* Main thread */
     ZOP_MAIN_ZoneFromCharSelect,
+    /* Zone thread */
+    ZOP_ZONE_CreateZone,
+    ZOP_ZONE_AddClient,
     ZOP_COUNT
 };
 
