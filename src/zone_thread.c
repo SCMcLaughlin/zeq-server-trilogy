@@ -55,11 +55,12 @@ typedef struct {
 typedef struct {
     IpAddr  ipAddr;
     Client* client;
-} StubToClient;
+} ClientTransitional;
 
 struct ZoneThread {
     uint32_t                clientCount;
     uint32_t                npcCount;
+    uint32_t                clientTransitionalCount;
     uint32_t                clientExpectedCount;
     uint32_t                clientUnconfirmedCount;
     uint32_t                zoneCount;
@@ -69,6 +70,7 @@ struct ZoneThread {
     Client**                clients;
     ZoneId*                 zoneIds;
     HashTbl                 tblValidClientPtrs;
+    ClientTransitional*     clientsTransitional;
     ClientExpectedIpName*   clientsExpectedLookup;
     ClientExpected*         clientsExpected;
     ClientExpectedIpName*   clientsUnconfirmedLookup;
@@ -322,9 +324,30 @@ static void zt_handle_to_server_packet_stub(ZoneThread* zt, ZPacket* zpacket, Cl
     if (data) free(data);
 }
 
+static Client* zt_get_client_transitional(ZoneThread* zt, IpAddr ipAddr)
+{
+    ClientTransitional* transitional = zt->clientsTransitional;
+    uint32_t n = zt->clientTransitionalCount;
+    uint32_t i;
+    
+    for (i = 0; i < n; i++)
+    {
+        ClientTransitional* trans = &transitional[i];
+        
+        if (trans->ipAddr.ip == ipAddr.ip && trans->ipAddr.port == ipAddr.port)
+        {
+            return trans->client;
+        }
+    }
+    
+    return NULL;
+}
+
 static void zt_handle_to_server_packet(ZoneThread* zt, ZPacket* zpacket)
 {
     void* clientObject = zpacket->udp.zToServerPacket.clientObject;
+    ClientStub* stub;
+    Client* client;
     
     /* Is clientObject a known, active Client? */
     if (tbl_has_ptr(&zt->tblValidClientPtrs, clientObject))
@@ -334,9 +357,17 @@ static void zt_handle_to_server_packet(ZoneThread* zt, ZPacket* zpacket)
     }
     
     /* Is this a transitional ClientStub which is already mapped to a Client? */
+    stub = (ClientStub*)clientObject;
+    client = zt_get_client_transitional(zt, stub->ipAddr);
+    
+    if (client)
+    {
+        /*fixme: handle*/
+        return;
+    }
     
     /* Must be an unconfirmed ClientStub, handle their packets separately */
-    zt_handle_to_server_packet_stub(zt, zpacket, (ClientStub*)clientObject);
+    zt_handle_to_server_packet_stub(zt, zpacket, stub);
 }
 
 static bool zt_process_commands(ZoneThread* zt, RingBuf* ztQueue)
@@ -416,6 +447,9 @@ ZoneThread* zt_create(RingBuf* mainQueue, LogThread* log, RingBuf* dbQueue, int 
     
     zt->clientCount = 0;
     zt->npcCount = 0;
+    zt->clientTransitionalCount = 0;
+    zt->clientExpectedCount = 0;
+    zt->clientUnconfirmedCount = 0;
     zt->zoneCount = 0;
     zt->dbId = dbId;
     zt->zones = NULL;
@@ -425,6 +459,7 @@ ZoneThread* zt_create(RingBuf* mainQueue, LogThread* log, RingBuf* dbQueue, int 
     zt->clientsExpected = NULL;
     zt->clientsUnconfirmedLookup = NULL;
     zt->clientsUnconfirmed = NULL;
+    zt->clientsTransitional = NULL;
     tbl_init_size(&zt->tblValidClientPtrs, 0);
     zt->ztQueue = NULL;
     zt->mainQueue = mainQueue;
