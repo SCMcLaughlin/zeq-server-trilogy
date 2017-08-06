@@ -6,6 +6,7 @@
 #include "buffer.h"
 #include "loc.h"
 #include "misc_struct.h"
+#include "zone.h"
 
 enum MobParentType
 {

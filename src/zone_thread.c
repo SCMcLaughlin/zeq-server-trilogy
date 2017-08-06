@@ -2,6 +2,7 @@
 #include "zone_thread.h"
 #include "aligned.h"
 #include "bit.h"
+#include "client_packet_recv.h"
 #include "define_netcode.h"
 #include "log_thread.h"
 #include "packet_struct.h"
@@ -20,6 +21,7 @@
 
 #define ZONE_THREAD_EXPECTED_CLIENT_TIMEOUT_MS 15000
 #define ZONE_THREAD_UNCONFIRMED_CLIENT_TIMEOUT_MS 15000
+#define ZONE_THREAD_CHECK_UNCONFIRMED_TIMEOUTS_MS 5000
 
 typedef struct {
     int16_t zoneId;
@@ -82,6 +84,7 @@ struct ZoneThread {
     RingBuf*                logQueue;
     LogThread*              logThread;
     TimerPool               timerPool;
+    Timer*                  timerUnconfirmedTimeouts;
 };
 
 static void zt_handle_create_zone(ZoneThread* zt, ZPacket* zpacket)
@@ -475,7 +478,7 @@ static void zt_handle_to_server_packet(ZoneThread* zt, ZPacket* zpacket)
     /* Is clientObject a known, active Client? */
     if (tbl_has_ptr(&zt->tblValidClientPtrs, clientObject))
     {
-        /*fixme: handle*/
+        client_packet_recv((Client*)clientObject, zpacket);
         return;
     }
     
@@ -485,7 +488,7 @@ static void zt_handle_to_server_packet(ZoneThread* zt, ZPacket* zpacket)
     
     if (client)
     {
-        /*fixme: handle*/
+        client_packet_recv(client, zpacket);
         return;
     }
     
@@ -493,9 +496,8 @@ static void zt_handle_to_server_packet(ZoneThread* zt, ZPacket* zpacket)
     zt_handle_to_server_packet_stub(zt, zpacket, stub);
 }
 
-static void zt_handle_client_object_replaced(ZoneThread* zt, ZPacket* zpacket)
+static void zt_remove_transitional(ZoneThread* zt, ClientStub* stub)
 {
-    ClientStub* stub = (ClientStub*)zpacket->udp.zReplaceClientObject.clientObject;
     ClientTransitional* transitional = zt->clientsTransitional;
     uint32_t n = zt->clientTransitionalCount;
     uint32_t i;
@@ -514,6 +516,60 @@ static void zt_handle_client_object_replaced(ZoneThread* zt, ZPacket* zpacket)
     }
     
     free(stub);
+}
+
+static void zt_handle_unconfirmed_client_disconnect(ZoneThread* zt, ClientStub* stub)
+{
+    ClientUnconfirmed* unconfirmed = zt->clientsUnconfirmed;
+    uint32_t n = zt->clientUnconfirmedCount;
+    uint32_t i;
+    
+    for (i = 0; i < n; i++)
+    {
+        if (unconfirmed[i].clientStub == stub)
+        {
+            ClientExpectedIpName* lookup = &zt->clientsUnconfirmedLookup[i];
+            
+            lookup->name = sbuf_drop(lookup->name);
+            
+            /* Swap and pop */
+            n--;
+            *lookup = zt->clientsUnconfirmedLookup[n];
+            unconfirmed[i] = unconfirmed[n];
+            zt->clientUnconfirmedCount = n;
+            break;
+        }
+    }
+    
+    free(stub);
+}
+
+static void zt_handle_client_disconnect(ZoneThread* zt, ZPacket* zpacket)
+{
+    void* clientObject = zpacket->udp.zClientDisconnect.clientObject;
+    ClientStub* stub;
+    Client* client;
+    
+    /* Is clientObject a known, active Client? */
+    if (tbl_has_ptr(&zt->tblValidClientPtrs, clientObject))
+    {
+        /*fixme: handle*/
+        return;
+    }
+    
+    /* Is this a transitional ClientStub which is already mapped to a Client? */
+    stub = (ClientStub*)clientObject;
+    client = zt_get_client_transitional(zt, stub);
+    
+    if (client)
+    {
+        zt_remove_transitional(zt, stub);
+        /*fixme: handle the Client*/
+        return;
+    }
+    
+    /* Must be an unconfirmed ClientStub */
+    zt_handle_unconfirmed_client_disconnect(zt, stub);
 }
 
 static bool zt_process_commands(ZoneThread* zt, RingBuf* ztQueue)
@@ -538,13 +594,14 @@ static bool zt_process_commands(ZoneThread* zt, RingBuf* ztQueue)
             break;
         
         case ZOP_UDP_ClientDisconnect:
+            zt_handle_client_disconnect(zt, &zpacket);
             break;
         
         case ZOP_UDP_ClientLinkdead:
             break;
         
         case ZOP_UDP_ReplaceClientObject:
-            zt_handle_client_object_replaced(zt, &zpacket);
+            zt_remove_transitional(zt, (ClientStub*)zpacket.udp.zReplaceClientObject.clientObject);
             break;
         
         case ZOP_ZONE_TerminateThread:
@@ -583,6 +640,67 @@ static void zt_thread_proc(void* ptr)
     }
 }
 
+static void zt_timer_check_unconfirmed_timeouts(TimerPool* pool, Timer* timer)
+{
+    ZoneThread* zt = timer_userdata_type(timer, ZoneThread);
+    ClientExpected* expected = zt->clientsExpected;
+    ClientUnconfirmed* unconfirmed;
+    uint64_t time = clock_milliseconds();
+    uint32_t n = zt->clientExpectedCount;
+    uint32_t i = 0;
+    
+    (void)pool;
+    
+    while (i < n)
+    {
+        ClientExpected* cur = &expected[i];
+        
+        if (cur->timeoutTimestamp <= time)
+        {
+            /*fixme: inform the ClientMgr*/
+            
+            /* Swap and pop */
+            n--;
+            expected[i] = expected[n];
+            zt->clientsExpectedLookup[i] = zt->clientsExpectedLookup[n];
+            continue;
+        }
+        
+        i++;
+    }
+    
+    zt->clientExpectedCount = n;
+    
+    unconfirmed = zt->clientsUnconfirmed;
+    n = zt->clientUnconfirmedCount;
+    i = 0;
+    
+    while (i < n)
+    {
+        ClientUnconfirmed* cur = &unconfirmed[i];
+        
+        if (cur->timeoutTimestamp <= time)
+        {
+            ClientExpectedIpName* lookup = &zt->clientsUnconfirmedLookup[i];
+            
+            lookup->name = sbuf_drop(lookup->name);
+            
+            /* The ClientStub itself will be freed when the UdpThread fires ClientDisconnect */
+            zt_drop_client_ip(zt, cur->clientStub->ipAddr);
+            
+            /* Swap and pop */
+            n--;
+            *lookup = zt->clientsUnconfirmedLookup[n];
+            unconfirmed[i] = unconfirmed[n];
+            continue;
+        }
+        
+        i++;
+    }
+    
+    zt->clientUnconfirmedCount = n;
+}
+
 ZoneThread* zt_create(RingBuf* mainQueue, LogThread* log, RingBuf* dbQueue, int dbId, UdpThread* udp, uint32_t index, uint16_t port)
 {
     ZoneThread* zt = alloc_type(ZoneThread);
@@ -614,6 +732,7 @@ ZoneThread* zt_create(RingBuf* mainQueue, LogThread* log, RingBuf* dbQueue, int 
     zt->dbQueue = dbQueue;
     zt->logQueue = log_get_queue(log);
     zt->logThread = log;
+    zt->timerUnconfirmedTimeouts = NULL;
     
     rc = log_open_filef(log, &zt->logId, "log/zone_thread_%u_port_%u.txt", index, port);
     if (rc) goto fail;
@@ -623,6 +742,8 @@ ZoneThread* zt_create(RingBuf* mainQueue, LogThread* log, RingBuf* dbQueue, int 
     
     rc = udp_open_port(udp, port, sizeof(ClientUnconfirmed), zt->ztQueue);
     if (rc) goto fail;
+    
+    zt->timerUnconfirmedTimeouts = timer_new(&zt->timerPool, ZONE_THREAD_CHECK_UNCONFIRMED_TIMEOUTS_MS, zt_timer_check_unconfirmed_timeouts, zt, true);
 
     rc = thread_start(zt_thread_proc, zt);
     if (rc) goto fail;

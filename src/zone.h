@@ -14,4 +14,7 @@ Zone* zone_destroy(Zone* zone);
 
 void zone_add_client(Zone* zone, struct Client* client);
 
+RingBuf* zone_log_queue(Zone* zone);
+int zone_log_id(Zone* zone);
+
 #endif/*ZONE_H*/

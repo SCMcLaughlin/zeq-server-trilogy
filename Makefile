@@ -25,6 +25,7 @@ _OBJECTS=               \
  class_id               \
  client                 \
  client_mgr             \
+ client_packet_recv     \
  crc                    \
  db_read                \
  db_thread              \

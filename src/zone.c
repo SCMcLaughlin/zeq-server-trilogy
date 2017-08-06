@@ -72,3 +72,13 @@ Zone* zone_destroy(Zone* zone)
     
     return NULL;
 }
+
+RingBuf* zone_log_queue(Zone* zone)
+{
+    return zone->logQueue;
+}
+
+int zone_log_id(Zone* zone)
+{
+    return zone->logId;
+}
