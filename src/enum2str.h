@@ -10,6 +10,7 @@ const char* enum2str_err(int e);
 const char* enum2str_login_opcode(int e);
 const char* enum2str_login_server_rank(int e);
 const char* enum2str_login_server_status(int e);
+const char* enum2str_opcode(int e);
 const char* enum2str_zop(int e);
 
 #endif/*ENUM2STR_H*/

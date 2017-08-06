@@ -6,6 +6,7 @@
 #include "enum_login_opcode.h"
 #include "enum_login_server_rank.h"
 #include "enum_login_server_status.h"
+#include "enum_opcode.h"
 #include "enum_zop.h"
 
 const char* enum2str_account_status(int e)
@@ -130,6 +131,34 @@ const char* enum2str_login_server_status(int e)
     case LOGIN_SERVER_STATUS_Up: ret = "LOGIN_SERVER_STATUS_Up"; break;
     case LOGIN_SERVER_STATUS_Down: ret = "LOGIN_SERVER_STATUS_Down"; break;
     case LOGIN_SERVER_STATUS_Locked: ret = "LOGIN_SERVER_STATUS_Locked"; break;
+    default: ret = "UNKNOWN"; break;
+    }
+    return ret;
+}
+
+const char* enum2str_opcode(int e)
+{
+    const char* ret;
+    switch (e)
+    {
+    case OP_SetDataRate: ret = "OP_SetDataRate"; break;
+    case OP_ZoneEntry: ret = "OP_ZoneEntry"; break;
+    case OP_PlayerProfile: ret = "OP_PlayerProfile"; break;
+    case OP_Weather: ret = "OP_Weather"; break;
+    case OP_InventoryRequest: ret = "OP_InventoryRequest"; break;
+    case OP_ZoneInfoRequest: ret = "OP_ZoneInfoRequest"; break;
+    case OP_ZoneInfo: ret = "OP_ZoneInfo"; break;
+    case OP_ZoneInUnknown: ret = "OP_ZoneInUnknown"; break;
+    case OP_EnterZone: ret = "OP_EnterZone"; break;
+    case OP_EnteredZoneUnknown: ret = "OP_EnteredZoneUnknown"; break;
+    case OP_Inventory: ret = "OP_Inventory"; break;
+    case OP_PositionUpdate: ret = "OP_PositionUpdate"; break;
+    case OP_ClientPositionUpdate: ret = "OP_ClientPositionUpdate"; break;
+    case OP_SpawnAppearance: ret = "OP_SpawnAppearance"; break;
+    case OP_Spawn: ret = "OP_Spawn"; break;
+    case OP_CustomMessage: ret = "OP_CustomMessage"; break;
+    case OP_SwapItem: ret = "OP_SwapItem"; break;
+    case OP_MoveCoin: ret = "OP_MoveCoin"; break;
     default: ret = "UNKNOWN"; break;
     }
     return ret;

@@ -1,15 +1,20 @@
 
 #include "zone_thread.h"
+#include "aligned.h"
 #include "bit.h"
 #include "define_netcode.h"
 #include "log_thread.h"
+#include "packet_struct.h"
 #include "timer.h"
 #include "util_alloc.h"
 #include "util_clock.h"
+#include "util_hash_tbl.h"
+#include "util_str.h"
 #include "util_thread.h"
 #include "zone.h"
 #include "zone_id.h"
 #include "zpacket.h"
+#include "enum_opcode.h"
 #include "enum_zop.h"
 #include "enum2str.h"
 
@@ -63,6 +68,7 @@ struct ZoneThread {
     Zone**                  zones;
     Client**                clients;
     ZoneId*                 zoneIds;
+    HashTbl                 tblValidClientPtrs;
     ClientExpectedIpName*   clientsExpectedLookup;
     ClientExpected*         clientsExpected;
     ClientExpectedIpName*   clientsUnconfirmedLookup;
@@ -243,6 +249,96 @@ fail:
     zt_drop_client_ip(zt, stub->ipAddr);
 }
 
+static void zt_handle_unconfirmed_client_name(ZoneThread* zt, ClientStub* stub, const char* name)
+{
+    uint32_t len = (uint32_t)str_len_bounded(name, sizeof_field(PS_ZoneEntryClient, name));
+    uint32_t ip = stub->ipAddr.ip;
+    ClientExpectedIpName* lookup = zt->clientsExpectedLookup;
+    uint32_t n = zt->clientExpectedCount;
+    uint32_t i;
+    
+    /* Check if we now match one of the expected clients */
+    for (i = 0; i < n; i++)
+    {
+        ClientExpectedIpName* check = &lookup[i];
+        
+        if (check->ip == ip && len == sbuf_length(check->name) && strncmp(name, sbuf_str(check->name), len) == 0)
+        {
+            /*fixme: handle switchover to transitional client, and tell UdpThread to switch client objects*/
+            
+            /* Swap and pop */
+            n--;
+            lookup[i] = lookup[n];
+            zt->clientsExpected[i] = zt->clientsExpected[n];
+            zt->clientExpectedCount = n;
+            /*fixme: swap and pop the unconfirmed client arrays too*/
+            return;
+        }
+    }
+    
+    /* No match, add this name to our unconfirmed client entry */
+    /*fixme: need to add a grab and drop to all instances of unconfirmed->name to support this properly*/
+}
+
+static void zt_handle_op_zone_entry_stub(ZoneThread* zt, ZPacket* zpacket, ClientStub* stub)
+{
+    Aligned a;
+    const char* name;
+    
+    aligned_init(&a, zpacket->udp.zToServerPacket.data, zpacket->udp.zToServerPacket.length);
+    
+    if (aligned_remaining_data(&a) < sizeof(PS_ZoneEntryClient))
+        return;
+    
+    /* PS_ZoneEntryClient */
+    /* checksum */
+    aligned_advance_by_sizeof(&a, uint32_t);
+    /* name */
+    name = aligned_current_type(&a, const char);
+    
+    zt_handle_unconfirmed_client_name(zt, stub, name);
+}
+
+static void zt_handle_to_server_packet_stub(ZoneThread* zt, ZPacket* zpacket, ClientStub* stub)
+{
+    uint16_t opcode = zpacket->udp.zToServerPacket.opcode;
+    byte* data = zpacket->udp.zToServerPacket.data;
+    
+    switch (opcode)
+    {
+    case OP_SetDataRate:
+        break;
+    
+    case OP_ZoneEntry:
+        zt_handle_op_zone_entry_stub(zt, zpacket, stub);
+        break;
+    
+    default:
+        log_writef(zt->logQueue, zt->logId, "WARNING: zt_handle_server_packet_stub: received unexpected or unhandled opcode: 0x%04x (%s)",
+            opcode, enum2str_opcode(opcode));
+        break;
+    }
+    
+    if (data) free(data);
+}
+
+static void zt_handle_to_server_packet(ZoneThread* zt, ZPacket* zpacket)
+{
+    void* clientObject = zpacket->udp.zToServerPacket.clientObject;
+    
+    /* Is clientObject a known, active Client? */
+    if (tbl_has_ptr(&zt->tblValidClientPtrs, clientObject))
+    {
+        /*fixme: handle*/
+        return;
+    }
+    
+    /* Is this a transitional ClientStub which is already mapped to a Client? */
+    
+    /* Must be an unconfirmed ClientStub, handle their packets separately */
+    zt_handle_to_server_packet_stub(zt, zpacket, (ClientStub*)clientObject);
+}
+
 static bool zt_process_commands(ZoneThread* zt, RingBuf* ztQueue)
 {
     ZPacket zpacket;
@@ -261,6 +357,7 @@ static bool zt_process_commands(ZoneThread* zt, RingBuf* ztQueue)
             break;
         
         case ZOP_UDP_ToServerPacket:
+            zt_handle_to_server_packet(zt, &zpacket);
             break;
         
         case ZOP_UDP_ClientDisconnect:
@@ -328,6 +425,7 @@ ZoneThread* zt_create(RingBuf* mainQueue, LogThread* log, RingBuf* dbQueue, int 
     zt->clientsExpected = NULL;
     zt->clientsUnconfirmedLookup = NULL;
     zt->clientsUnconfirmed = NULL;
+    tbl_init_size(&zt->tblValidClientPtrs, 0);
     zt->ztQueue = NULL;
     zt->mainQueue = mainQueue;
     zt->udpQueue = udp_get_queue(udp);
@@ -361,6 +459,7 @@ ZoneThread* zt_destroy(ZoneThread* zt)
     {
         zt->ztQueue = ringbuf_destroy(zt->ztQueue);
         
+        tbl_deinit(&zt->tblValidClientPtrs, NULL);
         log_close_file(zt->logQueue, zt->logId);
         free(zt);
     }

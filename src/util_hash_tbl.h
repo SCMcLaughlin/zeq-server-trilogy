@@ -37,6 +37,7 @@ void* tbl_get_int_raw(HashTbl* tbl, int64_t key);
 #define tbl_get_int(tbl, key, type) (type*)tbl_get_int_raw((tbl), (key))
 #define tbl_get_ptr(tbl, ptr, type) tbl_get_int(tbl, (intptr_t)(ptr), type)
 #define tbl_has_int(tbl, key) (tbl_get_int_raw((tbl), (key)) != NULL)
+#define tbl_has_ptr(tbl, ptr) (tbl_get_int_raw((tbl), (intptr_t)(ptr)) != NULL)
 
 StaticBuffer* tbl_get_key_str(HashTbl* tbl, const char* key, uint32_t len);
 
