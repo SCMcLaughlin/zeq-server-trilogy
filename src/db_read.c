@@ -263,7 +263,7 @@ static void dbr_cs_character_name_available(DbThread* db, sqlite3* sqlite, ZPack
         {
         case SQLITE_DONE:
             reply.db.zResult.rCSCharacterNameAvailable.isNameAvailable = true;
-            /* fallthrough */
+            fallthru;
         case SQLITE_ROW:
             reply.db.zResult.hadError = false;
             break;

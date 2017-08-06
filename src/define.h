@@ -58,9 +58,12 @@ typedef int8_t bool;
 
 #ifdef PLATFORM_WINDOWS
 # define FUNC_NAME __FUNCTION__
+# define fallthru (void)
 #else
 # define FUNC_NAME __func__
+# define fallthru __attribute__ ((fallthrough))
 #endif
+
 
 #define sizeof_field(type, name) sizeof(((type*)0)->name)
 #define free_if_exists(ptr) do { if ((ptr)) { free((ptr)); (ptr) = NULL; } } while(0)
