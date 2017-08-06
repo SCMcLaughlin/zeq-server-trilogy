@@ -28,6 +28,7 @@
 
 typedef struct {
     int64_t     accountId;
+    uint32_t    ip;
     char        sessionKey[16];
 } CharSelectAuth;
 
@@ -270,7 +271,7 @@ fail:
     return rc;
 }
 
-static bool cs_thread_is_auth_awaiting_client(CharSelectThread* cs, int64_t accountId, const char* sessionKey)
+static bool cs_thread_is_auth_awaiting_client(CharSelectThread* cs, int64_t accountId, uint32_t ip, const char* sessionKey)
 {
     CharSelectAuth* auths = cs->authsAwaitingClient;
     uint32_t n = cs->authsAwaitingClientCount;
@@ -281,7 +282,7 @@ static bool cs_thread_is_auth_awaiting_client(CharSelectThread* cs, int64_t acco
         CharSelectAuth* auth = &auths[i];
         
         /*fixme: accountId may be limited to 7 digits, should match the truncating behavior for this check*/
-        if (auth->accountId == accountId && memcmp(auth->sessionKey, sessionKey, sizeof(auth->sessionKey)) == 0)
+        if (auth->accountId == accountId && auth->ip == ip && memcmp(auth->sessionKey, sessionKey, sizeof(auth->sessionKey)) == 0)
         {
             /* Pop and swap */
             n--;
@@ -328,6 +329,7 @@ static int cs_thread_handle_op_login_info(CharSelectThread* cs, CharSelectClient
     Aligned a;
     const char* acct;
     int64_t accountId;
+    uint32_t ip;
     const char* sessionKey;
     
     aligned_init(&a, zpacket->udp.zToServerPacket.data, zpacket->udp.zToServerPacket.length);
@@ -342,9 +344,10 @@ static int cs_thread_handle_op_login_info(CharSelectThread* cs, CharSelectClient
     
     accountId = strtol(acct + 3, NULL, 10); /* Skip "LS#", extract the digits */
     sessionKey = aligned_current_type(&a, const char);
+    ip = csc_get_ip(client);
     
     /* Check if this client is already authorized (highly likely) */
-    if (cs_thread_is_auth_awaiting_client(cs, accountId, sessionKey))
+    if (cs_thread_is_auth_awaiting_client(cs, accountId, ip, sessionKey))
         return cs_thread_add_authed_client(cs, client, accountId, sessionKey);
     
     /* Client wasn't authorized... add it to the clientsAwaitingAuth queue */
@@ -1101,6 +1104,7 @@ static int cs_thread_handle_op_enter(CharSelectThread* cs, CharSelectClient* cli
 
     toMain.main.zZoneFromCharSelect.client = client;
     toMain.main.zZoneFromCharSelect.accountId = csc_get_account_id(client);
+    toMain.main.zZoneFromCharSelect.ipAddr = csc_get_ip_addr(client);
     toMain.main.zZoneFromCharSelect.isLocal = csc_is_local(client);
     toMain.main.zZoneFromCharSelect.name = sbuf_create(name, len);
 
@@ -1226,6 +1230,7 @@ static void cs_thread_handle_packet(CharSelectThread* cs, ZPacket* zpacket)
 static void cs_thread_handle_login_auth(CharSelectThread* cs, ZPacket* zpacket)
 {
     int64_t accountId = zpacket->cs.zLoginAuth.accountId;
+    uint32_t ip = zpacket->cs.zLoginAuth.ip;
     const char* sessionKey = zpacket->cs.zLoginAuth.sessionKey;
     CharSelectClient** clients = cs->clientsAwaitingAuth;
     uint32_t count = cs->clientsAwaitingAuthCount;
@@ -1236,7 +1241,7 @@ static void cs_thread_handle_login_auth(CharSelectThread* cs, ZPacket* zpacket)
     {
         CharSelectClient* client = clients[i];
         
-        if (csc_check_auth(client, accountId, sessionKey))
+        if (csc_check_auth(client, accountId, ip, sessionKey))
         {
             cs_thread_add_authed_client(cs, client, accountId, sessionKey);
             

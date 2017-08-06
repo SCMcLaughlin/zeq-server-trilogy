@@ -71,10 +71,10 @@ void csc_set_auth_data(CharSelectClient* csc, int64_t acctId, const char* sessio
     memcpy(csc->sessionKey, sessionKey, sizeof(csc->sessionKey));
 }
 
-bool csc_check_auth(CharSelectClient* csc, int64_t accountId, const char* sessionKey)
+bool csc_check_auth(CharSelectClient* csc, int64_t accountId, uint32_t ip, const char* sessionKey)
 {
     /*fixme: accountId may be limited to 7 digits, should match the truncating behavior for this check*/
-    return (csc->accountId == accountId && memcmp(csc->sessionKey, sessionKey, sizeof(csc->sessionKey)) == 0);
+    return (csc->accountId == accountId && csc->ipAddress.ip == ip && memcmp(csc->sessionKey, sessionKey, sizeof(csc->sessionKey)) == 0);
 }
 
 bool csc_is_authed(CharSelectClient* csc)

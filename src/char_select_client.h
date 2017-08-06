@@ -23,7 +23,7 @@ uint32_t csc_get_ip(CharSelectClient* csc);
 uint16_t csc_get_port(CharSelectClient* csc);
 
 void csc_set_auth_data(CharSelectClient* csc, int64_t acctId, const char* sessionKey);
-bool csc_check_auth(CharSelectClient* csc, int64_t accountId, const char* sessionKey);
+bool csc_check_auth(CharSelectClient* csc, int64_t accountId, uint32_t ip, const char* sessionKey);
 bool csc_is_authed(CharSelectClient* csc);
 
 void csc_set_weapon_material_ids(CharSelectClient* csc, CharSelectData* data);

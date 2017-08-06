@@ -1,5 +1,6 @@
 
 #include "client.h"
+#include "define_netcode.h"
 #include "mob.h"
 #include "util_alloc.h"
 
@@ -8,10 +9,11 @@ struct Client {
     StaticBuffer*   surname;
     int64_t         clientId;
     int64_t         accountId;
+    IpAddr          ipAddr;
     bool            isLocal;
 };
 
-Client* client_create_unloaded(StaticBuffer* name, int64_t accountId, bool isLocal)
+Client* client_create_unloaded(StaticBuffer* name, int64_t accountId, IpAddr ipAddr, bool isLocal)
 {
     Client* client = alloc_type(Client);
 
@@ -24,6 +26,7 @@ Client* client_create_unloaded(StaticBuffer* name, int64_t accountId, bool isLoc
     sbuf_grab(name);
 
     client->accountId = accountId;
+    client->ipAddr = ipAddr;
     client->isLocal = isLocal;
 
     return client;
@@ -84,7 +87,7 @@ void client_load_character_data(Client* client, ClientLoadData_Character* data)
     */
 }
 
-StaticBuffer* client_name_sbuf(Client* client)
+StaticBuffer* client_name(Client* client)
 {
     return client->mob.name;
 }

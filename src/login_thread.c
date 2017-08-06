@@ -552,8 +552,9 @@ static int login_thread_handle_op_session_key(LoginThread* login, LoginClient* l
     /* sessionKey */
     aligned_write_buffer(&a, sessionKey, sizeof_field(PSLogin_SessionKey, sessionKey));
     
-    /* Inform the CharSelectThread about this login with this accountId and sessionKey */
+    /* Inform the CharSelectThread about this login with this accountId, ip and sessionKey */
     zpacket.cs.zLoginAuth.accountId = loginc_get_account_id(loginc);
+    zpacket.cs.zLoginAuth.ip = loginc_get_ip(loginc);
     memcpy(zpacket.cs.zLoginAuth.sessionKey, sessionKey, sizeof_field(PSLogin_SessionKey, sessionKey));
     
     rc = ringbuf_push(login->csQueue, ZOP_CS_LoginAuth, &zpacket);

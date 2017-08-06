@@ -13,6 +13,7 @@ typedef struct {
 
 typedef struct {
     int64_t     accountId;
+    uint32_t    ip;
     char        sessionKey[16];
 } CharSelect_ZLoginAuth;
 

@@ -104,7 +104,7 @@ void cmgr_handle_zone_from_char_select(MainThread* mt, ZPacket* zpacket)
     /*fixme: decide how to handle this re: the existing client in a zone, if any*/
 
     /* Step 2: create a new, unloaded client */
-    client = client_create_unloaded(name, accountId, zpacket->main.zZoneFromCharSelect.isLocal);
+    client = client_create_unloaded(name, accountId, zpacket->main.zZoneFromCharSelect.ipAddr, zpacket->main.zZoneFromCharSelect.isLocal);
 
     if (client)
     {
