@@ -26,6 +26,7 @@ _OBJECTS=               \
  client                 \
  client_mgr             \
  client_packet_recv     \
+ client_packet_send     \
  crc                    \
  db_read                \
  db_thread              \
@@ -69,7 +70,7 @@ OBJECTS= $(patsubst %,build/%.o,$(_OBJECTS))
 # Core Linker flags
 ##############################################################################
 LFLAGS= 
-LDYNAMIC= -pthread -lrt -lm -lcrypto -lsqlite3
+LDYNAMIC= -pthread -lrt -lm -lz -lcrypto -lsqlite3
 LSTATIC= 
 
 #ifdef debug

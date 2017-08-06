@@ -1,6 +1,7 @@
 
 #include "client.h"
 #include "define_netcode.h"
+#include "misc_struct.h"
 #include "mob.h"
 #include "util_alloc.h"
 
@@ -12,6 +13,21 @@ struct Client {
     IpAddr          ipAddr;
     bool            isLocal;
     Zone*           zone;
+    int64_t         experience;
+    uint64_t        harmtouchTimestamp;
+    uint64_t        disciplineTimestamp;
+    uint64_t        creationTimestamp;
+    uint16_t        trainingPoints;
+    uint16_t        hunger;
+    uint16_t        thirst;
+    uint16_t        drunkeness;
+    uint32_t        guildId;
+    Coin            coin;
+    Coin            coinCursor;
+    Coin            coinBank;
+    bool            isGM;
+    uint8_t         anon;
+    uint8_t         guildRank;
 };
 
 Client* client_create_unloaded(StaticBuffer* name, int64_t accountId, IpAddr ipAddr, bool isLocal)
@@ -51,8 +67,10 @@ void client_load_character_data(Client* client, ClientLoadData_Character* data)
     client->surname = data->surname;
     client->mob.level = data->level;
     client->mob.classId = data->classId;
+    client->mob.baseGenderId = data->genderId;
     client->mob.genderId = data->genderId;
     client->mob.faceId = data->faceId;
+    client->mob.baseRaceId = data->raceId;
     client->mob.raceId = data->raceId;
     client->mob.deityId = data->deityId;
     client->mob.loc = data->loc;
@@ -66,28 +84,24 @@ void client_load_character_data(Client* client, ClientLoadData_Character* data)
     client->mob.baseStats.INT = data->INT;
     client->mob.baseStats.WIS = data->WIS;
     client->mob.baseStats.CHA = data->CHA;
+    
+    client->experience = data->experience;
+    client->harmtouchTimestamp = data->harmtouchTimestamp;
+    client->disciplineTimestamp = data->disciplineTimestamp;
+    client->creationTimestamp = data->creationTimestamp;
+    client->trainingPoints = data->trainingPoints;
+    client->hunger = data->hunger;
+    client->thirst = data->thirst;
+    client->drunkeness = data->drunkeness;
+    client->guildId = data->guildId;
+    client->coin = data->coin;
+    client->coinCursor = data->coinCursor;
+    client->coinBank = data->coinBank;
+    client->isGM = data->isGM;
+    client->anon = data->anon;
+    client->guildRank = data->guildRank;
 
     /*fixme: calc base resists and max hp & mana based on level, class, race*/
-
-    /*fixme: finish this*/
-    /*
-    int64_t         experience;
-    uint16_t        trainingPoints;
-
-    uint8_t         guildRank;
-    uint32_t        guildId;
-    uint64_t        harmtouchTimestamp;
-    uint64_t        disciplineTimestamp;
-    Coin            coin;
-    Coin            coinCursor;
-    Coin            coinBank;
-    uint16_t        hunger;
-    uint16_t        thirst;
-    bool            isGM;
-    uint8_t         anon;
-    uint16_t        drunkeness;
-    uint64_t        creationTimestamp;
-    */
 }
 
 StaticBuffer* client_name(Client* client)

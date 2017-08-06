@@ -14,6 +14,7 @@ struct Zone {
     int16_t     instId;
     int         logId;
     Client**    clients;
+    RingBuf*    udpQueue;
     RingBuf*    logQueue;
 };
 
@@ -34,12 +35,15 @@ void zone_add_client(Zone* zone, Client* client)
     zone->clients[index] = client;
     
     client_set_zone(client, zone);
+    
+    /*fixme: send packets: PP, ZoneEntry, weather*/
+    
     /*fixme: do other initialization here */
     
 fail:;
 }
 
-Zone* zone_create(LogThread* log, int zoneId, int instId)
+Zone* zone_create(LogThread* log, RingBuf* udpQueue, int zoneId, int instId)
 {
     Zone* zone = alloc_type(Zone);
     int rc;
@@ -51,6 +55,7 @@ Zone* zone_create(LogThread* log, int zoneId, int instId)
     zone->zoneId = (int16_t)zoneId;
     zone->instId = (int16_t)instId;
     zone->clients = NULL;
+    zone->udpQueue = udpQueue;
     zone->logQueue = log_get_queue(log);
     
     rc = log_open_filef(log, &zone->logId, "log/zone_%s_inst_%i.txt", zone_short_name_by_id(zoneId), instId);
@@ -71,6 +76,11 @@ Zone* zone_destroy(Zone* zone)
     }
     
     return NULL;
+}
+
+RingBuf* zone_udp_queue(Zone* zone)
+{
+    return zone->udpQueue;
 }
 
 RingBuf* zone_log_queue(Zone* zone)

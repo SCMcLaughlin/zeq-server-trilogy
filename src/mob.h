@@ -19,9 +19,10 @@ typedef struct {
     uint8_t         parentType;
     uint8_t         level;
     uint8_t         classId;
+    uint8_t         baseGenderId;
     uint8_t         genderId;
     uint8_t         faceId;
-    uint8_t         unused_1;
+    uint16_t        baseRaceId;
     uint16_t        raceId;
     uint16_t        deityId;    /*fixme: map this down to 8 bits?*/
     LocH            loc;

@@ -1,7 +1,9 @@
 
 #include "client_packet_recv.h"
+#include "client_packet_send.h"
 #include "log_thread.h"
 #include "zone.h"
+#include "enum_opcode.h"
 
 static void cpr_warn_unknown_opcode(Client* client, uint16_t opcode)
 {
@@ -19,6 +21,11 @@ void client_packet_recv(Client* client, ZPacket* zpacket)
     
     switch (packet.opcode)
     {
+    /* Packets to be echoed with all their content */
+    case OP_ZoneInUnknown:
+        client_send_echo_copy(client, &packet);
+        break;
+    
     default:
         cpr_warn_unknown_opcode(client, packet.opcode);
         break;

@@ -112,7 +112,7 @@ static void zt_handle_create_zone(ZoneThread* zt, ZPacket* zpacket)
     zoneId = zpacket->zone.zCreateZone.zoneId;
     instId = zpacket->zone.zCreateZone.instId;
     
-    zone = zone_create(zt->logThread, zoneId, instId);
+    zone = zone_create(zt->logThread, zt->udpQueue, zoneId, instId);
     if (!zone) goto fail;
     
     zt->zones[index] = zone;
