@@ -150,6 +150,7 @@ const char* enum2str_zop(int e)
     case ZOP_UDP_ToClientPacketImmediate: ret = "ZOP_UDP_ToClientPacketImmediate"; break;
     case ZOP_UDP_ClientDisconnect: ret = "ZOP_UDP_ClientDisconnect"; break;
     case ZOP_UDP_ClientLinkdead: ret = "ZOP_UDP_ClientLinkdead"; break;
+    case ZOP_UDP_ReplaceClientObject: ret = "ZOP_UDP_ReplaceClientObject"; break;
     case ZOP_LOG_Write: ret = "ZOP_LOG_Write"; break;
     case ZOP_LOG_OpenFile: ret = "ZOP_LOG_OpenFile"; break;
     case ZOP_LOG_CloseFile: ret = "ZOP_LOG_CloseFile"; break;
@@ -177,8 +178,9 @@ const char* enum2str_zop(int e)
     case ZOP_CS_ZoneSuccess: ret = "ZOP_CS_ZoneSuccess"; break;
     case ZOP_CS_ZoneFailure: ret = "ZOP_CS_ZoneFailure"; break;
     case ZOP_MAIN_ZoneFromCharSelect: ret = "ZOP_MAIN_ZoneFromCharSelect"; break;
+    case ZOP_ZONE_TerminateThread: ret = "ZOP_ZONE_TerminateThread"; break;
     case ZOP_ZONE_CreateZone: ret = "ZOP_ZONE_CreateZone"; break;
-    case ZOP_ZONE_AddClient: ret = "ZOP_ZONE_AddClient"; break;
+    case ZOP_ZONE_AddClientExpected: ret = "ZOP_ZONE_AddClientExpected"; break;
     case ZOP_COUNT: ret = "ZOP_COUNT"; break;
     default: ret = "UNKNOWN"; break;
     }

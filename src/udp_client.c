@@ -357,3 +357,22 @@ bool udpc_send_keep_alive_ack(UdpClient* udpc)
 {
     return udpc_send_ack(udpc, ack_get_keep_alive_ack(&udpc->ackMgr));
 }
+
+void udpc_replace_client_object(UdpThread* udp, UdpClient* udpc, void* clientObject)
+{
+    void* cur = udpc->clientObject;
+    ZPacket reply;
+    int rc;
+    
+    udpc->clientObject = clientObject;
+    
+    reply.udp.zReplaceClientObject.ipAddress = udpc->ipAddr;
+    reply.udp.zReplaceClientObject.clientObject = cur;
+    
+    rc = ringbuf_push(udpc->toServerQueue, ZOP_UDP_ReplaceClientObject, &reply);
+    
+    if (rc)
+    {
+        log_writef(udp_get_log_queue(udp), udp_get_log_id(udp), "ERROR: udpc_replace_client_object: ringbuf_push() failed with error %s", enum2str_err(rc));
+    }
+}

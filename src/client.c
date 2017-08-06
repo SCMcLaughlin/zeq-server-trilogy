@@ -25,6 +25,8 @@ Client* client_create_unloaded(StaticBuffer* name, int64_t accountId, IpAddr ipA
     mob_set_name_sbuf(&client->mob, name);
     sbuf_grab(name);
 
+    client->surname = NULL;
+    client->clientId = -1;
     client->accountId = accountId;
     client->ipAddr = ipAddr;
     client->isLocal = isLocal;
@@ -95,4 +97,24 @@ StaticBuffer* client_name(Client* client)
 bool client_is_local(Client* client)
 {
     return client->isLocal;
+}
+
+IpAddr client_ip_addr(Client* client)
+{
+    return client->ipAddr;
+}
+
+uint32_t client_ip(Client* client)
+{
+    return client->ipAddr.ip;
+}
+
+uint16_t client_port(Client* client)
+{
+    return client->ipAddr.port;
+}
+
+void client_set_port(Client* client, uint16_t port)
+{
+    client->ipAddr.port = port;
 }

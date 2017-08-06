@@ -202,11 +202,11 @@ int zmgr_add_client_from_char_select(MainThread* mt, Client* client, int zoneId,
     
     zt->clientCount++;
     
-    zpacket.zone.zAddClient.zoneId = zoneId;
-    zpacket.zone.zAddClient.instId = instId;
-    zpacket.zone.zAddClient.client = client;
+    zpacket.zone.zAddClientExpected.zoneId = zoneId;
+    zpacket.zone.zAddClientExpected.instId = instId;
+    zpacket.zone.zAddClientExpected.client = client;
     
-    return ringbuf_push(zt->ztQueue, ZOP_ZONE_AddClient, &zpacket);
+    return ringbuf_push(zt->ztQueue, ZOP_ZONE_AddClientExpected, &zpacket);
 }
 
 StaticBuffer* zmgr_remote_ip(ZoneMgr* zmgr)

@@ -38,4 +38,6 @@ void udpc_flag_last_ack(struct UdpThread* udp, UdpClient* udpc);
 bool udpc_send_pure_ack(struct UdpThread* udp, UdpClient* udpc, uint16_t ackNetworkByteOrder);
 bool udpc_send_keep_alive_ack(UdpClient* udpc);
 
+void udpc_replace_client_object(struct UdpThread* udp, UdpClient* udpc, void* clientObject);
+
 #endif/*UDP_CLIENT_H*/

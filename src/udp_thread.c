@@ -170,6 +170,16 @@ static void udp_thread_handle_drop_client(UdpThread* udp, ZPacket* cmd)
     }
 }
 
+static void udp_thread_handle_replace_client_object(UdpThread* udp, ZPacket* cmd)
+{
+    UdpClient* client = udp_thread_get_client_by_ip(udp, cmd->udp.zReplaceClientObject.ipAddress.ip, cmd->udp.zReplaceClientObject.ipAddress.port, NULL);
+    
+    if (client)
+    {
+        udpc_replace_client_object(udp, client, cmd->udp.zReplaceClientObject.clientObject);
+    }
+}
+
 static bool udp_thread_process_commands(UdpThread* udp)
 {
     RingBuf* cmdQueue = udp->udpQueue;
@@ -197,6 +207,10 @@ static bool udp_thread_process_commands(UdpThread* udp)
         
         case ZOP_UDP_DropClient:
             udp_thread_handle_drop_client(udp, &cmd);
+            break;
+        
+        case ZOP_UDP_ReplaceClientObject:
+            udp_thread_handle_replace_client_object(udp, &cmd);
             break;
 
         default:

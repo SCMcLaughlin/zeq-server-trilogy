@@ -15,6 +15,7 @@ enum ZOP
     ZOP_UDP_ToClientPacketImmediate,
     ZOP_UDP_ClientDisconnect,
     ZOP_UDP_ClientLinkdead,
+    ZOP_UDP_ReplaceClientObject,
     /* Log thread */
     ZOP_LOG_Write,
     ZOP_LOG_OpenFile,
@@ -48,8 +49,9 @@ enum ZOP
     /* Main thread */
     ZOP_MAIN_ZoneFromCharSelect,
     /* Zone thread */
+    ZOP_ZONE_TerminateThread,
     ZOP_ZONE_CreateZone,
-    ZOP_ZONE_AddClient,
+    ZOP_ZONE_AddClientExpected,
     ZOP_COUNT
 };
 

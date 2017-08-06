@@ -14,11 +14,11 @@ typedef struct {
     int     zoneId;
     int     instId;
     Client* client;
-} Zone_ZAddClient;
+} Zone_ZAddClientExpected;
 
 typedef union {
-    Zone_ZCreateZone    zCreateZone;
-    Zone_ZAddClient     zAddClient;
+    Zone_ZCreateZone        zCreateZone;
+    Zone_ZAddClientExpected zAddClientExpected;
 } Zone_ZPacket;
 
 #endif/*ZONE_ZPACKET_H*/

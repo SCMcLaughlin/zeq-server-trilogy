@@ -176,7 +176,10 @@ MainThread* mt_destroy(MainThread* mt)
 
         mt->mainQueue = ringbuf_destroy(mt->mainQueue);
         mt->motd = sbuf_drop(mt->motd);
+        
+        mt->timerCSAuthTimeouts = timer_destroy(&mt->timerPool, mt->timerCSAuthTimeouts);
         timer_pool_deinit(&mt->timerPool);
+        
         cmgr_deinit(&mt->cmgr);
         zmgr_deinit(&mt->zmgr);
         free(mt);
