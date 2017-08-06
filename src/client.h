@@ -6,6 +6,7 @@
 #include "buffer.h"
 #include "client_load_data.h"
 #include "define_netcode.h"
+#include "zone.h"
 
 typedef struct Client Client;
 
@@ -16,6 +17,8 @@ void client_load_character_data(Client* client, ClientLoadData_Character* data);
 
 StaticBuffer* client_name(Client* client);
 
+Zone* client_get_zone(Client* client);
+void client_set_zone(Client* client, Zone* zone);
 bool client_is_local(Client* client);
 IpAddr client_ip_addr(Client* client);
 uint32_t client_ip(Client* client);

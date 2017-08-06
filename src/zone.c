@@ -1,5 +1,6 @@
 
 #include "zone.h"
+#include "bit.h"
 #include "client.h"
 #include "ringbuf.h"
 #include "util_alloc.h"
@@ -16,6 +17,28 @@ struct Zone {
     RingBuf*    logQueue;
 };
 
+void zone_add_client(Zone* zone, Client* client)
+{
+    uint32_t index = zone->clientCount;
+    
+    if (bit_is_pow2_or_zero(index))
+    {
+        uint32_t cap = (index == 0) ? 1 : index * 2;
+        Client** clients = realloc_array_type(zone->clients, cap, Client*);
+        
+        if (!clients) goto fail;
+        
+        zone->clients = clients;
+    }
+    
+    zone->clients[index] = client;
+    
+    client_set_zone(client, zone);
+    /*fixme: do other initialization here */
+    
+fail:;
+}
+
 Zone* zone_create(LogThread* log, int zoneId, int instId)
 {
     Zone* zone = alloc_type(Zone);
@@ -23,8 +46,11 @@ Zone* zone_create(LogThread* log, int zoneId, int instId)
     
     if (!zone) goto fail_alloc;
     
+    zone->clientCount = 0;
+    zone->npcCount = 0;
     zone->zoneId = (int16_t)zoneId;
     zone->instId = (int16_t)instId;
+    zone->clients = NULL;
     zone->logQueue = log_get_queue(log);
     
     rc = log_open_filef(log, &zone->logId, "log/zone_%s_inst_%i.txt", zone_short_name_by_id(zoneId), instId);

@@ -32,6 +32,7 @@ typedef struct {
     CoreStats       cappedStats;    /* The stats to use for most purposes */
     CoreStats       baseStats;
     CoreStats       totalStats; /* What their stats would be if caps did not apply, used to simplify calculations */
+    Zone*           zone;
 } Mob;
 
 void mob_deinit(Mob* mob);
@@ -40,5 +41,8 @@ void mob_deinit(Mob* mob);
 #define mob_set_cur_hp_no_cap_check(mob, hp) ((mob)->currentHp = (hp))
 #define mob_set_cur_mana_no_cap_check(mob, mana) ((mob)->currentMana = (mana))
 #define mob_set_cur_endurance_no_cap_check(mob, end) ((mob)->currentEndurance = (end))
+
+#define mob_get_zone(mob) ((mob)->zone)
+#define mob_set_zone(mob, zone) ((mob)->zone = (zone))
 
 #endif/*MOB_H*/

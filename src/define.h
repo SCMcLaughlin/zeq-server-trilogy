@@ -47,6 +47,7 @@
 # define ZEQ_API extern
 #endif
 
+
 typedef uint8_t byte;
 
 #ifndef __cplusplus
@@ -58,10 +59,14 @@ typedef int8_t bool;
 
 #ifdef PLATFORM_WINDOWS
 # define FUNC_NAME __FUNCTION__
-# define fallthru (void)
 #else
 # define FUNC_NAME __func__
+#endif
+
+#if __GNUC__ >= 7
 # define fallthru __attribute__ ((fallthrough))
+#else
+# define fallthru 
 #endif
 
 

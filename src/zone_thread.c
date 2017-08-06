@@ -53,8 +53,8 @@ typedef struct {
     that brief period.
 */
 typedef struct {
-    IpAddr  ipAddr;
-    Client* client;
+    ClientStub* stub;
+    Client*     client;
 } ClientTransitional;
 
 struct ZoneThread {
@@ -124,6 +124,109 @@ fail:
     ; /*fixme: tell ZoneMgr this zone has gone down?*/
 }
 
+static Zone* zt_get_zone_by_id(ZoneThread* zt, int zoneId, int instId)
+{
+    ZoneId* zoneIds = zt->zoneIds;
+    uint32_t n = zt->zoneCount;
+    uint32_t i;
+    
+    for (i = 0; i < n; i++)
+    {
+        ZoneId* id = &zoneIds[i];
+        
+        if (id->zoneId == zoneId && id->instId == instId)
+        {
+            return zt->zones[i];
+        }
+    }
+    
+    return NULL;
+}
+
+static void zt_transition_stub(ZoneThread* zt, ClientStub* stub, ClientExpected* expected)
+{
+    Client* client = expected->client;
+    ZPacket zpacket;
+    uint32_t index;
+    Zone* zone;
+    uint32_t n;
+    int rc;
+    
+    /* Tell UdpThread to switch its clientObject from the stub to the real Client */
+    zpacket.udp.zReplaceClientObject.ipAddress = stub->ipAddr;
+    zpacket.udp.zReplaceClientObject.clientObject = client;
+    
+    rc = ringbuf_push(zt->udpQueue, ZOP_UDP_ReplaceClientObject, &zpacket);
+    if (rc) goto fail;
+    
+    /* Map the stub to the real client while we wait for that to happen */
+    index = zt->clientTransitionalCount;
+    
+    if (bit_is_pow2_or_zero(index))
+    {
+        uint32_t cap = (index == 0) ? 1 : index * 2;
+        ClientTransitional* trans = realloc_array_type(zt->clientsTransitional, cap, ClientTransitional);
+        
+        if (!trans) goto fail;
+        
+        zt->clientsTransitional = trans;
+    }
+    
+    zt->clientsTransitional[index].stub = stub;
+    zt->clientsTransitional[index].client = client;
+    
+    /* Add the Client to the main client list */
+    rc = tbl_set_ptr(&zt->tblValidClientPtrs, client, NULL);
+    if (rc) goto fail;
+    
+    index = zt->clientCount;
+    
+    if (bit_is_pow2_or_zero(index))
+    {
+        uint32_t cap = (index == 0) ? 1 : index * 2;
+        Client** clients = realloc_array_type(zt->clients, cap, Client*);
+        
+        if (!clients) goto fail;
+        
+        zt->clients = clients;
+    }
+    
+    zt->clients[index] = client;
+    
+    /* Inform the target Zone about this Client */
+    zone = zt_get_zone_by_id(zt, expected->zoneId, expected->instId);
+    if (!zone) goto fail;
+    
+    zone_add_client(zone, client);
+    
+    /* Remove the stub from the unconfirmed client list */
+    n = zt->clientUnconfirmedCount;
+    
+    if (n)
+    {
+        ClientUnconfirmed* unconfirmed = zt->clientsUnconfirmed;
+        
+        for (index = 0; index < n; index++)
+        {
+            if (unconfirmed[index].clientStub == stub)
+            {
+                ClientExpectedIpName* lookup = &zt->clientsUnconfirmedLookup[index];
+                
+                lookup->name = sbuf_drop(lookup->name);
+                
+                /* Swap and pop */
+                n--;
+                unconfirmed[index] = unconfirmed[n];
+                *lookup = zt->clientsUnconfirmedLookup[n];
+                zt->clientUnconfirmedCount = n;
+                break;
+            }
+        }
+    }
+    
+fail:;
+}
+
 static void zt_handle_add_client_expected(ZoneThread* zt, ZPacket* zpacket)
 {
     Client* client = zpacket->zone.zAddClientExpected.client;
@@ -147,7 +250,13 @@ static void zt_handle_add_client_expected(ZoneThread* zt, ZPacket* zpacket)
             
             if (unconf->name && unconf->ip == ip && len == sbuf_length(unconf->name) && strcmp(str, sbuf_str(unconf->name)) == 0)
             {
-                /*fixme: handle this*/
+                ClientExpected expected;
+                
+                expected.client = client;
+                expected.zoneId = (int16_t)zoneId;
+                expected.instId = (int16_t)instId;
+                
+                zt_transition_stub(zt, zt->clientsUnconfirmed[i].clientStub, &expected);
                 return;
             }
         }
@@ -256,6 +365,7 @@ static void zt_handle_unconfirmed_client_name(ZoneThread* zt, ClientStub* stub, 
     uint32_t len = (uint32_t)str_len_bounded(name, sizeof_field(PS_ZoneEntryClient, name));
     uint32_t ip = stub->ipAddr.ip;
     ClientExpectedIpName* lookup = zt->clientsExpectedLookup;
+    ClientUnconfirmed* unconfirmed;
     uint32_t n = zt->clientExpectedCount;
     uint32_t i;
     
@@ -266,20 +376,33 @@ static void zt_handle_unconfirmed_client_name(ZoneThread* zt, ClientStub* stub, 
         
         if (check->ip == ip && len == sbuf_length(check->name) && strncmp(name, sbuf_str(check->name), len) == 0)
         {
-            /*fixme: handle switchover to transitional client, and tell UdpThread to switch client objects*/
+            zt_transition_stub(zt, stub, &zt->clientsExpected[i]);
             
             /* Swap and pop */
             n--;
             lookup[i] = lookup[n];
             zt->clientsExpected[i] = zt->clientsExpected[n];
             zt->clientExpectedCount = n;
-            /*fixme: swap and pop the unconfirmed client arrays too*/
             return;
         }
     }
     
     /* No match, add this name to our unconfirmed client entry */
-    /*fixme: need to add a grab and drop to all instances of unconfirmed->name to support this properly*/
+    unconfirmed = zt->clientsUnconfirmed;
+    n = zt->clientUnconfirmedCount;
+    
+    for (i = 0; i < n; i++)
+    {
+        if (unconfirmed[i].clientStub == stub)
+        {
+            /* This could fail... in which case we can just wait for them to be timed out */
+            StaticBuffer* sbuf = sbuf_create(name, len);
+            
+            zt->clientsUnconfirmedLookup[i].name = sbuf;
+            sbuf_grab(sbuf);
+            break;
+        }
+    }
 }
 
 static void zt_handle_op_zone_entry_stub(ZoneThread* zt, ZPacket* zpacket, ClientStub* stub)
@@ -324,7 +447,7 @@ static void zt_handle_to_server_packet_stub(ZoneThread* zt, ZPacket* zpacket, Cl
     if (data) free(data);
 }
 
-static Client* zt_get_client_transitional(ZoneThread* zt, IpAddr ipAddr)
+static Client* zt_get_client_transitional(ZoneThread* zt, ClientStub* stub)
 {
     ClientTransitional* transitional = zt->clientsTransitional;
     uint32_t n = zt->clientTransitionalCount;
@@ -334,7 +457,7 @@ static Client* zt_get_client_transitional(ZoneThread* zt, IpAddr ipAddr)
     {
         ClientTransitional* trans = &transitional[i];
         
-        if (trans->ipAddr.ip == ipAddr.ip && trans->ipAddr.port == ipAddr.port)
+        if (trans->stub == stub)
         {
             return trans->client;
         }
@@ -358,7 +481,7 @@ static void zt_handle_to_server_packet(ZoneThread* zt, ZPacket* zpacket)
     
     /* Is this a transitional ClientStub which is already mapped to a Client? */
     stub = (ClientStub*)clientObject;
-    client = zt_get_client_transitional(zt, stub->ipAddr);
+    client = zt_get_client_transitional(zt, stub);
     
     if (client)
     {
@@ -368,6 +491,29 @@ static void zt_handle_to_server_packet(ZoneThread* zt, ZPacket* zpacket)
     
     /* Must be an unconfirmed ClientStub, handle their packets separately */
     zt_handle_to_server_packet_stub(zt, zpacket, stub);
+}
+
+static void zt_handle_client_object_replaced(ZoneThread* zt, ZPacket* zpacket)
+{
+    ClientStub* stub = (ClientStub*)zpacket->udp.zReplaceClientObject.clientObject;
+    ClientTransitional* transitional = zt->clientsTransitional;
+    uint32_t n = zt->clientTransitionalCount;
+    uint32_t i;
+    
+    /* Remove from the transitional mapping */
+    for (i = 0; i < n; i++)
+    {
+        if (transitional[i].stub == stub)
+        {
+            /* Swap and pop */
+            n--;
+            transitional[i] = transitional[n];
+            zt->clientTransitionalCount = n;
+            break;
+        }
+    }
+    
+    free(stub);
 }
 
 static bool zt_process_commands(ZoneThread* zt, RingBuf* ztQueue)
@@ -398,6 +544,7 @@ static bool zt_process_commands(ZoneThread* zt, RingBuf* ztQueue)
             break;
         
         case ZOP_UDP_ReplaceClientObject:
+            zt_handle_client_object_replaced(zt, &zpacket);
             break;
         
         case ZOP_ZONE_TerminateThread:

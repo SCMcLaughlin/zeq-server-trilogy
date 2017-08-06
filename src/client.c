@@ -11,6 +11,7 @@ struct Client {
     int64_t         accountId;
     IpAddr          ipAddr;
     bool            isLocal;
+    Zone*           zone;
 };
 
 Client* client_create_unloaded(StaticBuffer* name, int64_t accountId, IpAddr ipAddr, bool isLocal)
@@ -92,6 +93,16 @@ void client_load_character_data(Client* client, ClientLoadData_Character* data)
 StaticBuffer* client_name(Client* client)
 {
     return client->mob.name;
+}
+
+Zone* client_get_zone(Client* client)
+{
+    return mob_get_zone(&client->mob);
+}
+
+void client_set_zone(Client* client, Zone* zone)
+{
+    mob_set_zone(&client->mob, zone);
 }
 
 bool client_is_local(Client* client)
