@@ -52,6 +52,37 @@ typedef struct {
     uint8_t     unknownN[8];
 } PS_ZoneEntry;
 
+typedef struct {
+    int type;
+    int intensity;
+} PS_Weather;
+
+typedef struct {
+    char        characterName[30];
+    char        zoneShortName[20];
+    char        zoneLongName[180];
+    uint8_t     zoneType;               /* Default 0xff */
+    uint8_t     fogRed[4];
+    uint8_t     fogGreen[4];
+    uint8_t     fogBlue[4];
+    uint8_t     unknownA;
+    float       fogMinClippingDistance[4];
+    float       fogMaxClippingDistance[4];
+    float       gravity;                /* Default 0.4f */
+    uint8_t     unknownB[50];
+    uint16_t    skyType;
+    uint8_t     unknownC[8];
+    float       unknownD;               /* Default 0.75 */
+    float       safeSpotX;
+    float       safeSpotY;
+    float       safeSpotZ;
+    float       safeSpotHeading;        /* Assumed */
+    float       minZ;                   /* If a client falls below this, they are sent to the safe spot; default -32000.0f */
+    float       minClippingDistance;    /* Default 1000.0f */
+    float       maxClippingDistance;    /* Default 20000.0f */
+    uint8_t     unknownE[32];
+} PS_ZoneInfo;
+
 #pragma pack()
 
 #endif/*PACKET_STRUCT_H*/

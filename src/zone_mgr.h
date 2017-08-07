@@ -5,6 +5,7 @@
 #include "define.h"
 #include "buffer.h"
 #include "client.h"
+#include "packet_static.h"
 #include "ringbuf.h"
 #include "zone_thread.h"
 
@@ -33,6 +34,7 @@ typedef struct ZoneMgr {
     ZoneThreadByZoneId*     ztByZoneId;
     StaticBuffer*           remoteIpAddress;
     StaticBuffer*           localIpAddress;
+    StaticPackets           staticPackets;
 } ZoneMgr;
 
 int zmgr_init(struct MainThread* mt);

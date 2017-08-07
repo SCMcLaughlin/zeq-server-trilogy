@@ -5,6 +5,7 @@
 #include "client.h"
 #include "crc.h"
 #include "inventory.h"
+#include "packet_create.h"
 #include "packet_struct.h"
 #include "player_profile_packet_struct.h"
 #include "skills.h"
@@ -471,4 +472,13 @@ void client_send_zone_entry(Client* client)
     aligned_write_uint32(&a, ~crc_calc32(aligned_current(&a) + sizeof(uint32_t), aligned_size(&a) - sizeof(uint32_t)));
     
     client_schedule_packet(client, packet);
+}
+
+void client_send_weather(Client* client)
+{
+    Zone* zone = client_get_zone(client);
+    TlgPacket* packet = packet_create_weather(zone_weather_type(zone), zone_weather_intensity(zone));
+    
+    if (packet)
+        client_schedule_packet(client, packet);
 }

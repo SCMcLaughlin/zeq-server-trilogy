@@ -3,13 +3,16 @@
 #define ZONE_H
 
 #include "define.h"
+#include "loc.h"
 #include "log_thread.h"
+#include "misc_struct.h"
+#include "packet_static.h"
 
 typedef struct Zone Zone;
 
 struct Client;
 
-Zone* zone_create(LogThread* log, RingBuf* udpQueue, int zoneId, int instId);
+Zone* zone_create(LogThread* log, RingBuf* udpQueue, int zoneId, int instId, StaticPackets* staticPackets);
 Zone* zone_destroy(Zone* zone);
 
 void zone_add_client(Zone* zone, struct Client* client);
@@ -20,5 +23,19 @@ const char* zone_long_name(Zone* zone);
 RingBuf* zone_udp_queue(Zone* zone);
 RingBuf* zone_log_queue(Zone* zone);
 int zone_log_id(Zone* zone);
+
+int zone_weather_type(Zone* zone);
+int zone_weather_intensity(Zone* zone);
+
+uint16_t zone_sky_type(Zone* zone);
+uint8_t zone_type(Zone* zone);
+ZoneFog* zone_fog(Zone* zone, int n);
+float zone_gravity(Zone* zone);
+float zone_min_z(Zone* zone);
+float zone_min_clip_dist(Zone* zone);
+float zone_max_clip_dist(Zone* zone);
+LocH* zone_safe_spot(Zone* zone);
+
+StaticPackets* zone_static_packets(Zone* zone);
 
 #endif/*ZONE_H*/

@@ -1617,34 +1617,14 @@ CharSelectThread* cs_create(RingBuf* mainQueue, LogThread* log, RingBuf* dbQueue
     
     if (!cs) goto fail_alloc;
     
-    cs->clientCount = 0;
-    cs->authsAwaitingClientCount = 0;
-    cs->clientsAwaitingAuthCount = 0;
-    cs->guildCount = 0;
+    memset(cs, 0, sizeof(CharSelectThread));
+    
     cs->nextQueryId = 1;
     cs->dbId = dbId;
-    cs->clients = NULL;
-    cs->authsAwaitingClient = NULL;
-    cs->clientsAwaitingAuth = NULL;
-    cs->authAwaitingClientTimeouts = NULL;
-    cs->clientAwaitingAuthTimeouts = NULL;
-    cs->guildList = NULL;
-    cs->csQueue = NULL;
     cs->mainQueue = mainQueue;
     cs->udpQueue = udp_get_queue(udp);
     cs->dbQueue = dbQueue;
     cs->logQueue = log_get_queue(log);
-    
-    cs->packetLoginApproved = NULL;
-    cs->packetEnter = NULL;
-    cs->packetExpansionInfo = NULL;
-    cs->packetGuildList = NULL;
-    cs->packetZoneUnavailable = NULL;
-    cs->packetEcho1 = NULL;
-    cs->packetEcho2 = NULL;
-    cs->packetEcho3 = NULL;
-    cs->packetEcho4 = NULL;
-    cs->packetEcho5 = NULL;
     
     rc = log_open_file_literal(log, &cs->logId, CHAR_SELECT_THREAD_LOG_PATH);
     if (rc) goto fail;

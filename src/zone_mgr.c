@@ -2,6 +2,7 @@
 #include "zone_mgr.h"
 #include "bit.h"
 #include "main_thread.h"
+#include "packet_static.h"
 #include "util_alloc.h"
 #include "zone_thread.h"
 #include "zpacket.h"
@@ -26,6 +27,7 @@ int zmgr_init(MainThread* mt)
 {
     ZoneMgr* zmgr = mt_get_zmgr(mt);
     int threadsAvailable = zmgr_processor_thread_count();
+    int rc;
     
     if (threadsAvailable <= 0)
         threadsAvailable = 1;
@@ -47,6 +49,9 @@ int zmgr_init(MainThread* mt)
     zmgr->localIpAddress = sbuf_create_from_literal("127.0.0.1");
     if (!zmgr->localIpAddress) goto oom;
     sbuf_grab(zmgr->localIpAddress);
+    
+    rc = static_packets_init(&zmgr->staticPackets);
+    if (rc) return rc;
 
     return ERR_None;
 oom:
@@ -58,6 +63,7 @@ void zmgr_deinit(ZoneMgr* zmgr)
     free_if_exists(zmgr->ztByZoneId);
     zmgr->remoteIpAddress = sbuf_drop(zmgr->remoteIpAddress);
     zmgr->localIpAddress = sbuf_drop(zmgr->localIpAddress);
+    static_packets_deinit(&zmgr->staticPackets);
 }
 
 static ZoneThreadWithQueue* zmgr_add_zt(MainThread* mt, ZoneMgr* zmgr, uint32_t index)
@@ -76,7 +82,7 @@ static ZoneThreadWithQueue* zmgr_add_zt(MainThread* mt, ZoneMgr* zmgr, uint32_t 
     }
     
     ret = &zmgr->zoneThreads[index];
-    ret->zt = zt_create(mt_get_queue(mt), mt_get_log_thread(mt), mt_get_db_queue(mt), mt_get_db_id(mt), mt_get_udp_thread(mt), index, port);
+    ret->zt = zt_create(mt_get_queue(mt), mt_get_log_thread(mt), mt_get_db_queue(mt), mt_get_db_id(mt), mt_get_udp_thread(mt), index, port, &zmgr->staticPackets);
     
     if (!ret->zt) goto oom;
     

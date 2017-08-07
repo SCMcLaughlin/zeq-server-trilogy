@@ -26,4 +26,12 @@ typedef struct {
     uint32_t    pp, gp, sp, cp;
 } Coin;
 
+typedef struct {
+    uint8_t     red;
+    uint8_t     green;
+    uint8_t     blue;
+    float       minClippingDistance;
+    float       maxClippingDistance;
+} ZoneFog;
+
 #endif/*MISC_STRUCT_H*/

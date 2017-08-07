@@ -44,6 +44,8 @@ _OBJECTS=               \
  main_thread            \
  main_timers            \
  mob                    \
+ packet_create          \
+ packet_static          \
  race_id                \
  ringbuf                \
  skills                 \

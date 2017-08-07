@@ -744,29 +744,16 @@ LoginThread* login_create(LogThread* log, RingBuf* dbQueue, int dbId, RingBuf* u
     int rc;
 
     if (!login) goto fail_alloc;
+    
+    memset(login, 0, sizeof(LoginThread));
 
-    login->clientCount = 0;
-    login->serverCount = 0;
     login->nextQueryId = 1;
     atomic32_set(&login->nextServerId, 1);
     login->dbId = dbId;
-    login->clients = NULL;
-    login->servers = NULL;
-    login->serverLengths = NULL;
-    login->bannerMsg = NULL;
-    login->loopbackAddr = NULL;
-    login->loginQueue = NULL;
     login->udpQueue = udpQueue;
     login->csQueue = csQueue;
     login->dbQueue = dbQueue;
     login->logQueue = log_get_queue(log);
-
-    login->packetVersion = NULL;
-    login->packetBanner = NULL;
-    login->packetErrBadCredentials = NULL;
-    login->packetErrSuspended = NULL;
-    login->packetErrBanned = NULL;
-    login->packetLoginAccepted = NULL;
 
     rc = log_open_file_literal(log, &login->logId, LOGIN_THREAD_LOG_PATH);
     if (rc) goto fail;

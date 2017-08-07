@@ -5,6 +5,7 @@
 #include "client_packet_recv.h"
 #include "define_netcode.h"
 #include "log_thread.h"
+#include "packet_static.h"
 #include "packet_struct.h"
 #include "timer.h"
 #include "util_alloc.h"
@@ -85,6 +86,7 @@ struct ZoneThread {
     LogThread*              logThread;
     TimerPool               timerPool;
     Timer*                  timerUnconfirmedTimeouts;
+    StaticPackets*          staticPackets;
 };
 
 static void zt_handle_create_zone(ZoneThread* zt, ZPacket* zpacket)
@@ -112,7 +114,7 @@ static void zt_handle_create_zone(ZoneThread* zt, ZPacket* zpacket)
     zoneId = zpacket->zone.zCreateZone.zoneId;
     instId = zpacket->zone.zCreateZone.instId;
     
-    zone = zone_create(zt->logThread, zt->udpQueue, zoneId, instId);
+    zone = zone_create(zt->logThread, zt->udpQueue, zoneId, instId, zt->staticPackets);
     if (!zone) goto fail;
     
     zt->zones[index] = zone;
@@ -701,38 +703,25 @@ static void zt_timer_check_unconfirmed_timeouts(TimerPool* pool, Timer* timer)
     zt->clientUnconfirmedCount = n;
 }
 
-ZoneThread* zt_create(RingBuf* mainQueue, LogThread* log, RingBuf* dbQueue, int dbId, UdpThread* udp, uint32_t index, uint16_t port)
+ZoneThread* zt_create(RingBuf* mainQueue, LogThread* log, RingBuf* dbQueue, int dbId, UdpThread* udp, uint32_t index, uint16_t port, StaticPackets* staticPackets)
 {
     ZoneThread* zt = alloc_type(ZoneThread);
     int rc;
     
     if (!zt) goto fail_alloc;
     
+    memset(zt, 0, sizeof(ZoneThread));
+    
     timer_pool_init(&zt->timerPool);
     
-    zt->clientCount = 0;
-    zt->npcCount = 0;
-    zt->clientTransitionalCount = 0;
-    zt->clientExpectedCount = 0;
-    zt->clientUnconfirmedCount = 0;
-    zt->zoneCount = 0;
     zt->dbId = dbId;
-    zt->zones = NULL;
-    zt->clients = NULL;
-    zt->zoneIds = NULL;
-    zt->clientsExpectedLookup = NULL;
-    zt->clientsExpected = NULL;
-    zt->clientsUnconfirmedLookup = NULL;
-    zt->clientsUnconfirmed = NULL;
-    zt->clientsTransitional = NULL;
     tbl_init_size(&zt->tblValidClientPtrs, 0);
-    zt->ztQueue = NULL;
     zt->mainQueue = mainQueue;
     zt->udpQueue = udp_get_queue(udp);
     zt->dbQueue = dbQueue;
     zt->logQueue = log_get_queue(log);
     zt->logThread = log;
-    zt->timerUnconfirmedTimeouts = NULL;
+    zt->staticPackets = staticPackets;
     
     rc = log_open_filef(log, &zt->logId, "log/zone_thread_%u_port_%u.txt", index, port);
     if (rc) goto fail;
