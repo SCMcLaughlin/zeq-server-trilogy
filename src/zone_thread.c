@@ -639,6 +639,14 @@ static bool zt_process_commands(ZoneThread* zt, RingBuf* ztQueue)
     return true;
 }
 
+static void zt_thread_on_terminate(ZoneThread* zt)
+{
+    ZPacket zpacket;
+    
+    zpacket.zone.zShutDownZoneThread.zt = zt;
+    ringbuf_push(zt->mainQueue, ZOP_ZONE_TerminateThread, &zpacket);
+}
+
 static void zt_thread_proc(void* ptr)
 {
     ZoneThread* zt = (ZoneThread*)ptr;
@@ -653,6 +661,8 @@ static void zt_thread_proc(void* ptr)
         
         clock_sleep(25);
     }
+    
+    zt_thread_on_terminate(zt);
 }
 
 static void zt_timer_check_unconfirmed_timeouts(TimerPool* pool, Timer* timer)

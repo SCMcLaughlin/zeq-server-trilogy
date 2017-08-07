@@ -29,10 +29,10 @@ typedef struct {
 
 struct LogThread {
     RingBuf*    logQueue;
+    RingBuf*    mainQueue;
     LogFile*    logFiles;
     uint32_t    logFileCount;
     atomic32_t  nextLogId;
-    atomic8_t   isThreadShutDown;
 };
 
 static size_t log_thread_write_timestamp(FILE* fp)
@@ -170,6 +170,11 @@ static void log_thread_close_file(LogThread* log, LogMsg* packet)
     }
 }
 
+static void log_thread_on_terminate(LogThread* log)
+{
+    ringbuf_push(log->mainQueue, ZOP_LOG_TerminateThread, NULL);
+}
+
 static void log_thread_proc(void* ptr)
 {
     LogThread* log = (LogThread*)ptr;
@@ -208,12 +213,12 @@ static void log_thread_proc(void* ptr)
         fflush(stdout);
     #endif
     }
-
+    
 terminate:
-    atomic8_set(&log->isThreadShutDown, 1);
+    log_thread_on_terminate(log);
 }
 
-LogThread* log_create()
+LogThread* log_create(RingBuf* mainQueue)
 {
     LogThread* log = alloc_type(LogThread);
     int rc;
@@ -221,10 +226,10 @@ LogThread* log_create()
     if (!log) goto fail_alloc;
 
     log->logQueue = NULL;
+    log->mainQueue = mainQueue;
     log->logFiles = NULL;
     log->logFileCount = 0;
     atomic32_set(&log->nextLogId, 1);
-    atomic8_set(&log->isThreadShutDown, 0);
 
     log->logQueue = ringbuf_create_type(LogMsg, LOG_THREAD_MSG_QUEUE_SIZE);
     if (!log->logQueue) goto fail;
@@ -270,33 +275,11 @@ LogThread* log_destroy(LogThread* log)
     if (log)
     {
         log_close_all_files(log);
-        ringbuf_destroy_if_exists(log->logQueue);
+        log->logQueue = ringbuf_destroy(log->logQueue);
         free(log);
     }
 
     return NULL;
-}
-
-void log_shut_down(LogThread* log)
-{
-    if (log)
-    {
-        int rc = ringbuf_push(log->logQueue, ZOP_LOG_TerminateThread, NULL);
-
-        if (rc == ERR_None)
-        {
-            uint64_t timeout = clock_milliseconds() + LOG_THREAD_SHUTDOWN_TIMEOUT_MS;
-
-            for (;;)
-            {
-                if (atomic8_get(&log->isThreadShutDown) != 0)
-                    break;
-
-                if (clock_milliseconds() >= timeout)
-                    break;
-            }
-        }
-    }
 }
 
 RingBuf* log_get_queue(LogThread* log)

@@ -63,6 +63,7 @@ struct LoginThread {
     StaticBuffer*       bannerMsg;
     StaticBuffer*       loopbackAddr;
     RingBuf*            loginQueue;
+    RingBuf*            mainQueue;
     RingBuf*            udpQueue;
     RingBuf*            csQueue;
     RingBuf*            dbQueue;
@@ -618,6 +619,11 @@ static void login_thread_handle_packet(LoginThread* login, ZPacket* zpacket)
     if (data) free(data);
 }
 
+static void login_thread_on_terminate(LoginThread* login)
+{
+    ringbuf_push(login->mainQueue, ZOP_LOGIN_TerminateThread, NULL);
+}
+
 static void login_thread_proc(void* ptr)
 {
     LoginThread* login = (LoginThread*)ptr;
@@ -663,6 +669,7 @@ static void login_thread_proc(void* ptr)
             break;
         
         case ZOP_LOGIN_TerminateThread:
+            login_thread_on_terminate(login);
             return;
         
         case ZOP_LOGIN_NewServer:
@@ -738,7 +745,7 @@ fail:
     return ERR_OutOfMemory;
 }
 
-LoginThread* login_create(LogThread* log, RingBuf* dbQueue, int dbId, RingBuf* udpQueue, RingBuf* csQueue)
+LoginThread* login_create(RingBuf* mainQueue, LogThread* log, RingBuf* dbQueue, int dbId, UdpThread* udp, RingBuf* csQueue)
 {
     LoginThread* login = alloc_type(LoginThread);
     int rc;
@@ -750,7 +757,8 @@ LoginThread* login_create(LogThread* log, RingBuf* dbQueue, int dbId, RingBuf* u
     login->nextQueryId = 1;
     atomic32_set(&login->nextServerId, 1);
     login->dbId = dbId;
-    login->udpQueue = udpQueue;
+    login->mainQueue = mainQueue;
+    login->udpQueue = udp_get_queue(udp);
     login->csQueue = csQueue;
     login->dbQueue = dbQueue;
     login->logQueue = log_get_queue(log);
@@ -760,6 +768,9 @@ LoginThread* login_create(LogThread* log, RingBuf* dbQueue, int dbId, RingBuf* u
 
     login->loginQueue = ringbuf_create_type(ZPacket, 1024);
     if (!login->loginQueue) goto fail;
+    
+    rc = udp_open_port(udp, LOGIN_THREAD_UDP_PORT, loginc_sizeof(), login->loginQueue);
+    if (rc) goto fail;
     
     login->loopbackAddr = sbuf_create_from_literal("127.0.0.1");
     if (!login->loopbackAddr) goto fail;

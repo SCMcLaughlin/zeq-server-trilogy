@@ -13,7 +13,6 @@ RingBuf* ringbuf_create(uint32_t dataSize, uint32_t slotCount);
 #define ringbuf_create_type(type, slots) (ringbuf_create(sizeof(type), (slots)))
 #define ringbuf_create_no_content(slots) (ringbuf_create(0, (slots)))
 RingBuf* ringbuf_destroy(RingBuf* rb);
-#define ringbuf_destroy_if_exists(rb) do { if ((rb)) { (rb) = ringbuf_destroy((rb)); } } while(0)
 
 int ringbuf_wait(RingBuf* rb);
 int ringbuf_try_wait(RingBuf* rb);

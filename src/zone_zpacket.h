@@ -4,6 +4,7 @@
 
 #include "define.h"
 #include "client.h"
+#include "zone_thread.h"
 
 typedef struct {
     int     zoneId;
@@ -16,9 +17,14 @@ typedef struct {
     Client* client;
 } Zone_ZAddClientExpected;
 
+typedef struct {
+    ZoneThread* zt;
+} Zone_ZShutDownZoneThread;
+
 typedef union {
-    Zone_ZCreateZone        zCreateZone;
-    Zone_ZAddClientExpected zAddClientExpected;
+    Zone_ZCreateZone            zCreateZone;
+    Zone_ZAddClientExpected     zAddClientExpected;
+    Zone_ZShutDownZoneThread    zShutDownZoneThread;
 } Zone_ZPacket;
 
 #endif/*ZONE_ZPACKET_H*/

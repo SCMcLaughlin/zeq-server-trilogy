@@ -17,8 +17,11 @@
 #include "zpacket.h"
 #include "enum_zop.h"
 #include "enum2str.h"
+#include <signal.h>
 
 #define MAIN_THREAD_LOG_PATH "log/main_thread.txt"
+
+static RingBuf* sMainQueueForSigHandler;
 
 struct MainThread {
     DbThread*           db;
@@ -35,9 +38,20 @@ struct MainThread {
     int                 dbId;
     int                 logId;
     int                 loginServerId;
+    int                 shutdownState;
     ClientMgr           cmgr;
     ZoneMgr             zmgr;
 };
+
+static void mt_handle_sig_int(int sig)
+{
+    (void)sig;
+    
+    if (sMainQueueForSigHandler)
+    {
+        ringbuf_push(sMainQueueForSigHandler, ZOP_MAIN_TerminateAll, NULL);
+    }
+}
 
 static int mt_start_timers(MainThread* mt)
 {
@@ -77,9 +91,13 @@ MainThread* mt_create()
         fprintf(stderr, "ERROR: mt_create: failed to create RingBuf object for MainThread\n");
         goto fail;
     }
+    
+    /* Interrupt signal handler */
+    sMainQueueForSigHandler = mt->mainQueue;
+    signal(SIGINT, mt_handle_sig_int);
 
     /* Start the LogThread before anything else */
-    mt->log = log_create();
+    mt->log = log_create(mt->mainQueue);
     if (!mt->log)
     {
         fprintf(stderr, "ERROR: mt_create: failed to create LogThread object\n");
@@ -94,7 +112,7 @@ MainThread* mt_create()
         goto fail;
     }
     
-    mt->db = db_create(mt->log);
+    mt->db = db_create(mt->mainQueue, mt->log);
     if (!mt->db)
     {
         fprintf(stderr, "ERROR: mt_create: failed to create DbThread object\n");
@@ -109,7 +127,7 @@ MainThread* mt_create()
         goto fail;
     }
 
-    mt->udp = udp_create(mt->log);
+    mt->udp = udp_create(mt->mainQueue, mt->log);
     if (!mt->udp)
     {
         fprintf(stderr, "ERROR: mt_create: failed to create UdpThread object\n");
@@ -120,6 +138,13 @@ MainThread* mt_create()
     if (!mt->cs)
     {
         fprintf(stderr, "ERROR: mt_create: failed to create CharSelectThread object\n");
+        goto fail;
+    }
+    
+    mt->login = login_create(mt->mainQueue, mt->log, mt->dbQueue, mt->dbId, mt->udp, cs_get_queue(mt->cs));
+    if (!mt->login)
+    {
+        fprintf(stderr, "ERROR: mt_create: failed to create LoginThread object\n");
         goto fail;
     }
 
@@ -156,39 +181,98 @@ MainThread* mt_destroy(MainThread* mt)
 {
     if (mt)
     {
-        if (mt->udp)
-        {
-            udp_trigger_shutdown(mt->udp);
-            //fixme: wait here, then destroy udp
-        }
+        cmgr_deinit(&mt->cmgr);
+        zmgr_deinit(&mt->zmgr);
         
-        if (mt->db)
-        {
-            //fixme: shut down
-            mt->db = db_destroy(mt->db);
-        }
-
-        if (mt->log)
-        {
-            log_shut_down(mt->log);
-            mt->log = log_destroy(mt->log);
-        }
-
+        mt->login = login_destroy(mt->login);
+        mt->cs = cs_destroy(mt->cs);
+        mt->db = db_destroy(mt->db);
+        mt->udp = udp_destroy(mt->udp);
+        mt->log = log_destroy(mt->log);
         mt->mainQueue = ringbuf_destroy(mt->mainQueue);
         mt->motd = sbuf_drop(mt->motd);
         
         mt->timerCSAuthTimeouts = timer_destroy(&mt->timerPool, mt->timerCSAuthTimeouts);
         timer_pool_deinit(&mt->timerPool);
         
-        cmgr_deinit(&mt->cmgr);
-        zmgr_deinit(&mt->zmgr);
         free(mt);
     }
 
     return NULL;
 }
 
-static void mt_process_commands(MainThread* mt, RingBuf* mainQueue)
+static void mt_send_shutdown_signals(MainThread* mt)
+{
+    if (mt->shutdownState != 0)
+        return;
+    
+    mt->shutdownState = 1;
+    
+    log_write_literal(mt->logQueue, mt->logId, "Received ZOP_MAIN_TerminateAll signal, shutting down all threads");
+    zmgr_send_shutdown_signals(mt);
+}
+
+void mt_on_all_zone_threads_shut_down(MainThread* mt)
+{
+    if (mt->shutdownState != 1)
+        return;
+    
+    mt->shutdownState = 2;
+    log_write_literal(mt->logQueue, mt->logId, "All ZoneThreads shut down");
+    
+    ringbuf_push(login_get_queue(mt->login), ZOP_LOGIN_TerminateThread, NULL);
+}
+
+static void mt_on_login_thread_shut_down(MainThread* mt)
+{
+    if (mt->shutdownState != 2)
+        return;
+    
+    mt->shutdownState = 3;
+    log_write_literal(mt->logQueue, mt->logId, "LoginThread shut down");
+    
+    ringbuf_push(cs_get_queue(mt->cs), ZOP_CS_TerminateThread, NULL);
+}
+
+static void mt_on_cs_thread_shut_down(MainThread* mt)
+{
+    if (mt->shutdownState != 3)
+        return;
+    
+    mt->shutdownState = 4;
+    log_write_literal(mt->logQueue, mt->logId, "CharSelectThread shut down");
+    
+    /* No depedencies between the DB and UDP threads */
+    ringbuf_push(mt->dbQueue, ZOP_DB_TerminateThread, NULL);
+    ringbuf_push(udp_get_queue(mt->udp), ZOP_UDP_TerminateThread, NULL);
+}
+
+static void mt_on_db_udp_thread_shut_down(MainThread* mt, const char* which)
+{
+    if (mt->shutdownState < 4)
+        return;
+    
+    mt->shutdownState++;
+    log_writef(mt->logQueue, mt->logId, "%s shut down", which);
+    
+    if (mt->shutdownState == 6)
+    {
+        log_write_literal(mt->logQueue, mt->logId, "Telling the LogThread to shut down");
+        ringbuf_push(mt->logQueue, ZOP_LOG_TerminateThread, NULL);
+    }
+}
+
+static void mt_on_db_thread_shut_down(MainThread* mt)
+{
+    mt_on_db_udp_thread_shut_down(mt, "DbThread");
+}
+
+static void mt_on_udp_thread_shut_down(MainThread* mt)
+{
+    mt_on_db_udp_thread_shut_down(mt, "UdpThread");
+}
+
+static bool mt_process_commands(MainThread* mt, RingBuf* mainQueue)
 {
     ZPacket zpacket;
     int zop;
@@ -208,16 +292,45 @@ static void mt_process_commands(MainThread* mt, RingBuf* mainQueue)
         case ZOP_DB_QueryMainLoadCharacter:
             cmgr_handle_load_character(mt, &zpacket);
             break;
+        
+        case ZOP_MAIN_TerminateAll:
+            mt_send_shutdown_signals(mt);
+            break;
 
         case ZOP_MAIN_ZoneFromCharSelect:
             cmgr_handle_zone_from_char_select(mt, &zpacket);
             break;
+        
+        case ZOP_LOGIN_TerminateThread:
+            mt_on_login_thread_shut_down(mt);
+            break;
+        
+        case ZOP_CS_TerminateThread:
+            mt_on_cs_thread_shut_down(mt);
+            break;
+        
+        case ZOP_DB_TerminateThread:
+            mt_on_db_thread_shut_down(mt);
+            break;
+        
+        case ZOP_UDP_TerminateThread:
+            mt_on_udp_thread_shut_down(mt);
+            break;
+        
+        case ZOP_ZONE_TerminateThread:
+            zmgr_on_zone_thread_shutdown(mt, &zpacket);
+            break;
+        
+        case ZOP_LOG_TerminateThread:
+            return false;
 
         default:
             log_writef(mt->logQueue, mt->logId, "WARNING: mt_process_commands: received unexpected zop: %s", enum2str_zop(zop));
             break;
         }
     }
+    
+    return true;
 }
 
 #include "enum_login_server_rank.h"
@@ -226,20 +339,6 @@ void mt_main_loop(MainThread* mt)
 {
     RingBuf* mainQueue = mt->mainQueue;
     int rc;
-    
-    mt->login = login_create(mt->log, mt->dbQueue, mt->dbId, udp_get_queue(mt->udp), cs_get_queue(mt->cs));
-    if (!mt->login)
-    {
-        fprintf(stderr, "login_create() failed\n");
-        return;
-    }
-    
-    rc = udp_open_port(mt->udp, 5998, loginc_sizeof(), login_get_queue(mt->login));
-    if (rc)
-    {
-        fprintf(stderr, "udp_open_port() failed: %s\n", enum2str_err(rc));
-        return;
-    }
     
     rc = login_add_server(mt->login, &mt->loginServerId, "ZEQ Test", zmgr_remote_ip(&mt->zmgr), zmgr_local_ip(&mt->zmgr), LOGIN_SERVER_RANK_Standard, LOGIN_SERVER_STATUS_Up, true);
     if (rc)
@@ -250,7 +349,9 @@ void mt_main_loop(MainThread* mt)
     
     for (;;)
     {
-        mt_process_commands(mt, mainQueue);
+        if (!mt_process_commands(mt, mainQueue))
+            break;
+        
         timer_pool_execute_callbacks(&mt->timerPool);
 
         clock_sleep(25);

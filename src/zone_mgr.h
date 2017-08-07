@@ -8,6 +8,7 @@
 #include "packet_static.h"
 #include "ringbuf.h"
 #include "zone_thread.h"
+#include "zpacket.h"
 
 struct MainThread;
 
@@ -39,6 +40,8 @@ typedef struct ZoneMgr {
 
 int zmgr_init(struct MainThread* mt);
 void zmgr_deinit(ZoneMgr* zmgr);
+void zmgr_send_shutdown_signals(struct MainThread* mt);
+void zmgr_on_zone_thread_shutdown(struct MainThread* mt, ZPacket* zpacket);
 
 int zmgr_add_client_from_char_select(struct MainThread* mt, Client* client, int zoneId, int instId, uint16_t* outPort);
 

@@ -123,7 +123,7 @@ void skills_init(Skills* sk, uint8_t classId, uint16_t raceId)
         {   CANT,   CANT,   CANT,   CANT,   CANT,   CANT,   CANT,      0,   CANT,   CANT,   CANT,   CANT,   CANT,   CANT }, /* PercussionInstruments */
         {   CANT,   CANT,   CANT,   CANT,   CANT,   CANT, NOTYET, NOTYET,   CANT,   CANT,   CANT,   CANT,   CANT,   CANT }, /* Intimidation */
         {   CANT,   CANT,   CANT,   CANT,   CANT,   CANT,   CANT,   CANT,   CANT,   CANT,   CANT,   CANT,   CANT,   CANT }, /* Berserking (?) */
-        {      0,   CANT,      0,      0,      0,   CANT,   CANT,   CANT,   CANT,   CANT,   CANT,   CANT,   CANT,   CANT }, /* Taunt */
+        {      0,   CANT,      0,      0,      0,   CANT,   CANT,   CANT,   CANT,   CANT,   CANT,   CANT,   CANT,   CANT }  /* Taunt */
         /*   WAR     CLR     PAL     RNG     SHD     DRU     MNK     BRD     ROG     SHM     NEC     WIZ     MAG     ENC */
     };
 

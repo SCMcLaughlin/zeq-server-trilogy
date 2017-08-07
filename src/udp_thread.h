@@ -10,9 +10,8 @@
 
 typedef struct UdpThread UdpThread;
 
-UdpThread* udp_create(LogThread* log);
+UdpThread* udp_create(RingBuf* mainQueue, LogThread* log);
 UdpThread* udp_destroy(UdpThread* udp);
-int udp_trigger_shutdown(UdpThread* udp);
 int udp_open_port(UdpThread* udp, uint16_t port, uint32_t clientSize, RingBuf* toServerQueue);
 
 RingBuf* udp_get_queue(UdpThread* udp);

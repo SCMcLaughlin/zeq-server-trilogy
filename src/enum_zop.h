@@ -47,6 +47,7 @@ enum ZOP
     ZOP_CS_ZoneSuccess,
     ZOP_CS_ZoneFailure,
     /* Main thread */
+    ZOP_MAIN_TerminateAll,
     ZOP_MAIN_ZoneFromCharSelect,
     /* Zone thread */
     ZOP_ZONE_TerminateThread,

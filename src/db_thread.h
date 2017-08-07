@@ -14,7 +14,7 @@
 
 typedef struct DbThread DbThread;
 
-DbThread* db_create(LogThread* log);
+DbThread* db_create(RingBuf* mainQueue, LogThread* log);
 DbThread* db_destroy(DbThread* db);
 
 int db_queue_query(RingBuf* dbQueue, RingBuf* replyQueue, int dbId, int queryId, int zop, ZPacket* zpacket);

@@ -17,6 +17,7 @@ MainThread* mt_create();
 MainThread* mt_destroy(MainThread* mt);
 
 void mt_main_loop(MainThread* mt);
+void mt_on_all_zone_threads_shut_down(MainThread* mt);
 
 struct ClientMgr* mt_get_cmgr(MainThread* mt);
 struct ZoneMgr* mt_get_zmgr(MainThread* mt);

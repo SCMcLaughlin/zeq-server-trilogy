@@ -19,13 +19,9 @@ int cmgr_init(MainThread* mt)
     ZPacket zpacket;
     int rc;
     
-    cmgr->clientCount = 0;
-    cmgr->loadingClientCount = 0;
-    cmgr->guildCount = 0;
-    cmgr->clients = NULL;
-    cmgr->loadingClients = NULL;
+    /* This struct has already been memset(0)'d */
+    
     tbl_init(&cmgr->clientsByName, Client*);
-    cmgr->guilds = NULL;
 
     rc = db_queue_query(dbQueue, mainQueue, dbId, 0, ZOP_DB_QueryMainGuildList, &zpacket);
     if (rc) goto ret;

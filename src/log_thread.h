@@ -8,10 +8,8 @@
 
 typedef struct LogThread LogThread;
 
-LogThread* log_create();
+LogThread* log_create(RingBuf* mainQueue);
 LogThread* log_destroy(LogThread* log);
-/* Sends the shutdown command to the thread and blocks while the thread shuts down */
-void log_shut_down(LogThread* log);
 
 RingBuf* log_get_queue(LogThread* log);
 

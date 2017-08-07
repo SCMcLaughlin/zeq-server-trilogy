@@ -31,15 +31,11 @@ int zmgr_init(MainThread* mt)
     
     if (threadsAvailable <= 0)
         threadsAvailable = 1;
+    
+    /* This struct has already been memset(0)'d */
 
-    zmgr->zoneCount = 0;
     zmgr->maxZoneThreads = (uint8_t)threadsAvailable;
-    zmgr->zoneThreadCount = 0;
     zmgr->nextZoneThreadPort = ZONE_MGR_FIRST_ZONE_THREAD_PORT;
-    zmgr->zoneThreads = NULL;
-    zmgr->ztByZoneId = NULL;
-    zmgr->remoteIpAddress = NULL;
-    zmgr->localIpAddress = NULL;
 
     /*fixme: read these from a script/config file*/
     zmgr->remoteIpAddress = sbuf_create_from_literal("127.0.0.1");
@@ -60,10 +56,56 @@ oom:
 
 void zmgr_deinit(ZoneMgr* zmgr)
 {
+    free_if_exists(zmgr->zoneThreads);
     free_if_exists(zmgr->ztByZoneId);
     zmgr->remoteIpAddress = sbuf_drop(zmgr->remoteIpAddress);
     zmgr->localIpAddress = sbuf_drop(zmgr->localIpAddress);
     static_packets_deinit(&zmgr->staticPackets);
+}
+
+void zmgr_send_shutdown_signals(MainThread* mt)
+{
+    ZoneMgr* zmgr = mt_get_zmgr(mt);
+    ZoneThreadWithQueue* zts = zmgr->zoneThreads;
+    uint32_t n = zmgr->zoneThreadCount;
+    uint32_t i;
+    
+    if (n == 0)
+    {
+        mt_on_all_zone_threads_shut_down(mt);
+        return;
+    }
+    
+    for (i = 0; i < n; i++)
+    {
+        ringbuf_push(zts[i].ztQueue, ZOP_ZONE_TerminateThread, NULL);
+    }
+}
+
+void zmgr_on_zone_thread_shutdown(MainThread* mt, ZPacket* zpacket)
+{
+    ZoneMgr* zmgr = mt_get_zmgr(mt);
+    ZoneThreadWithQueue* zts = zmgr->zoneThreads;
+    uint32_t n = zmgr->zoneThreadCount;
+    ZoneThread* zt = zpacket->zone.zShutDownZoneThread.zt;
+    uint32_t i;
+    
+    for (i = 0; i < n; i++)
+    {
+        if (zts[i].zt == zt)
+        {
+            zt_destroy(zt);
+            
+            /* Swap and pop */
+            n--;
+            zts[i] = zts[n];
+            zmgr->zoneThreadCount = n;
+            break;
+        }
+    }
+    
+    if (n == 0)
+        mt_on_all_zone_threads_shut_down(mt);
 }
 
 static ZoneThreadWithQueue* zmgr_add_zt(MainThread* mt, ZoneMgr* zmgr, uint32_t index)

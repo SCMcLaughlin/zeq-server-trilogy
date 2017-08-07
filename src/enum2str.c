@@ -206,6 +206,7 @@ const char* enum2str_zop(int e)
     case ZOP_CS_CheckAuthTimeouts: ret = "ZOP_CS_CheckAuthTimeouts"; break;
     case ZOP_CS_ZoneSuccess: ret = "ZOP_CS_ZoneSuccess"; break;
     case ZOP_CS_ZoneFailure: ret = "ZOP_CS_ZoneFailure"; break;
+    case ZOP_MAIN_TerminateAll: ret = "ZOP_MAIN_TerminateAll"; break;
     case ZOP_MAIN_ZoneFromCharSelect: ret = "ZOP_MAIN_ZoneFromCharSelect"; break;
     case ZOP_ZONE_TerminateThread: ret = "ZOP_ZONE_TerminateThread"; break;
     case ZOP_ZONE_CreateZone: ret = "ZOP_ZONE_CreateZone"; break;

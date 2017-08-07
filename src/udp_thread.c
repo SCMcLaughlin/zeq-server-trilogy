@@ -38,7 +38,7 @@ struct UdpThread {
     uint64_t*   clientRecvTimestamps;
     uint64_t*   clientLastAckTimestamps;
     RingBuf*    udpQueue;
-    RingBuf*    statusQueue;
+    RingBuf*    mainQueue;
     RingBuf*    logQueue;
     int         logId;
     byte        recvBuffer[UDP_THREAD_BUFFER_SIZE];
@@ -490,6 +490,11 @@ static void udp_thread_cleanup_dead_clients(UdpThread* udp)
     udp->clientCount = count;
 }
 
+static void udp_thread_on_terminate(UdpThread* udp)
+{
+    ringbuf_push(udp->mainQueue, ZOP_UDP_TerminateThread, NULL);
+}
+
 static void udp_thread_proc(void* ptr)
 {
     UdpThread* udp = (UdpThread*)ptr;
@@ -509,25 +514,20 @@ static void udp_thread_proc(void* ptr)
 
         clock_sleep(25);
     }
+    
+    udp_thread_on_terminate(udp);
 }
 
-UdpThread* udp_create(LogThread* log)
+UdpThread* udp_create(RingBuf* mainQueue, LogThread* log)
 {
     UdpThread* udp = alloc_type(UdpThread);
     int rc;
 
     if (!udp) goto fail_alloc;
+    
+    memset(udp, 0, sizeof(UdpThread));
 
-    udp->sockCount = 0;
-    udp->clientCount = 0;
-    udp->sockets = NULL;
-    udp->clientAddresses = NULL;
-    udp->clients = NULL;
-    udp->clientFlags = NULL;
-    udp->clientRecvTimestamps = NULL;
-    udp->clientLastAckTimestamps = NULL;
-    udp->udpQueue = NULL;
-    udp->statusQueue = NULL;
+    udp->mainQueue = mainQueue;
     udp->logQueue = log_get_queue(log);
 
     rc = log_open_file_literal(log, &udp->logId, UDP_THREAD_LOG_PATH);
@@ -600,23 +600,12 @@ UdpThread* udp_destroy(UdpThread* udp)
         free_if_exists(udp->clientFlags);
         free_if_exists(udp->clientRecvTimestamps);
         free_if_exists(udp->clientLastAckTimestamps);
-        ringbuf_destroy_if_exists(udp->udpQueue);
-        ringbuf_destroy_if_exists(udp->statusQueue);
+        udp->udpQueue = ringbuf_destroy(udp->udpQueue);
         log_close_file(udp->logQueue, udp->logId);
         free(udp);
     }
 
     return NULL;
-}
-
-int udp_trigger_shutdown(UdpThread* udp)
-{
-    if (udp->udpQueue)
-    {
-        return ringbuf_push(udp->udpQueue, ZOP_UDP_TerminateThread, NULL);
-    }
-
-    return ERR_None;
 }
 
 int udp_open_port(UdpThread* udp, uint16_t port, uint32_t clientSize, RingBuf* toServerQueue)

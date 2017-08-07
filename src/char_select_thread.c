@@ -1475,6 +1475,11 @@ static void cs_thread_remove_client_object(CharSelectThread* cs, CharSelectClien
     }
 }
 
+static void cs_thread_on_terminate(CharSelectThread* cs)
+{
+    ringbuf_push(cs->mainQueue, ZOP_CS_TerminateThread, NULL);
+}
+
 static void cs_thread_proc(void* ptr)
 {
     CharSelectThread* cs = (CharSelectThread*)ptr;
@@ -1512,6 +1517,7 @@ static void cs_thread_proc(void* ptr)
             break;
         
         case ZOP_CS_TerminateThread:
+            cs_thread_on_terminate(cs);
             return;
 
         case ZOP_CS_AddGuild:

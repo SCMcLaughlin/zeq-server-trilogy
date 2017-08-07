@@ -31,6 +31,7 @@ struct DbThread {
     DbInst*     insts;
     DbInst*     cachedInst;
     RingBuf*    queryQueue;
+    RingBuf*    mainQueue;
     RingBuf*    logQueue;
     int         logId;
 };
@@ -396,6 +397,11 @@ static void db_thread_close_database(DbThread* db, ZPacket* zpacket)
     }
 }
 
+static void db_thread_on_terminate(DbThread* db)
+{
+    ringbuf_push(db->mainQueue, ZOP_DB_TerminateThread, NULL);
+}
+
 static void db_thread_proc(void* ptr)
 {
     DbThread* db = (DbThread*)ptr;
@@ -464,20 +470,21 @@ static void db_thread_proc(void* ptr)
 
         if (terminate) break;
     }
+    
+    db_thread_on_terminate(db);
 }
 
-DbThread* db_create(LogThread* log)
+DbThread* db_create(RingBuf* mainQueue, LogThread* log)
 {
     DbThread* db = alloc_type(DbThread);
     int rc;
 
     if (!db) goto fail_alloc;
+    
+    memset(db, 0, sizeof(DbThread));
 
-    db->instCount = 0;
     atomic32_set(&db->nextInstId, 1);
-    db->instIds = NULL;
-    db->insts = NULL;
-    db->queryQueue = NULL;
+    db->mainQueue = mainQueue;
     db->logQueue = log_get_queue(log);
 
     rc = log_open_file_literal(log, &db->logId, DB_THREAD_LOG_PATH);
