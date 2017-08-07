@@ -340,8 +340,7 @@ void cmgr_handle_load_character(MainThread* mt, ZPacket* zpacket)
         return;
 
     case ERR_NotFound:
-        cmgr_drop_load_data_character(data);
-        return;
+        goto drop_data;
 
     case ERR_Generic:
         goto drop_client;
@@ -350,7 +349,7 @@ void cmgr_handle_load_character(MainThread* mt, ZPacket* zpacket)
         break;
     }
 
-    if (!data) goto drop_only;
+    if (!data) goto drop_client;
 
     loading->queriesCompleted = 1;
     loading->zoneId = (int16_t)data->zoneId;
@@ -366,7 +365,7 @@ void cmgr_handle_load_character(MainThread* mt, ZPacket* zpacket)
     return;
 
 drop_client:
-    cmgr_drop_load_data_character(data);
-drop_only:
     cmgr_drop_loading_client(mt, client);
+drop_data:
+    cmgr_drop_load_data_character(data);
 }
