@@ -58,4 +58,12 @@ enum BodyType
     BODY_TYPE_InvisibleMan      = 66,
 };
 
+enum FlyModeType
+{
+    FLY_MODE_Grounded,
+    FLY_MODE_Flying,
+    FLY_MODE_Levitating,
+    FLY_MODE_Water,
+};
+
 #endif/*MISC_ENUM_H*/

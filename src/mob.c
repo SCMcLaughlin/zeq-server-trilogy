@@ -62,6 +62,7 @@ void mob_init_client_character(Mob* mob, ClientLoadData_Character* data)
     mob->baseRaceId = data->raceId;
     mob->raceId = data->raceId;
     mob->deityId = data->deityId;
+    mob->zoneIndex = -1;
     mob->loc = data->loc;
     mob_set_cur_hp_no_cap_check(mob, data->currentHp);
     mob_set_cur_mana_no_cap_check(mob, data->currentMana);

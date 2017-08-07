@@ -8,6 +8,7 @@
 #include "define_netcode.h"
 #include "inventory.h"
 #include "loc.h"
+#include "mob.h"
 #include "skills.h"
 #include "spellbook.h"
 #include "zone.h"
@@ -19,6 +20,7 @@ Client* client_destroy(Client* client);
 
 void client_load_character_data(Client* client, ClientLoadData_Character* data);
 
+Mob* client_mob(Client* client);
 StaticBuffer* client_name(Client* client);
 const char* client_name_str(Client* client);
 const char* client_surname_str_no_null(Client* client);
@@ -57,7 +59,7 @@ Skills* client_skills(Client* client);
 Spellbook* client_spellbook(Client* client);
 
 Zone* client_get_zone(Client* client);
-void client_set_zone(Client* client, Zone* zone);
+void client_reset_for_zone(Client* client, Zone* zone);
 bool client_is_local(Client* client);
 IpAddr client_ip_addr(Client* client);
 uint32_t client_ip(Client* client);
@@ -96,5 +98,11 @@ float client_walking_speed(Client* client);
 float client_running_speed(Client* client);
 
 BindPoint* client_bind_point(Client* client, int n);
+
+int16_t client_entity_id(Client* client);
+int client_zone_index(Client* client);
+void client_set_zone_index(Client* client, int index);
+int client_mob_zone_index(Client* client);
+void client_set_mob_zone_index(Client* client, int index);
 
 #endif/*CLIENT_H*/

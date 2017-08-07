@@ -202,7 +202,7 @@ static void zt_transition_stub(ZoneThread* zt, ClientStub* stub, ClientExpected*
     zone = zt_get_zone_by_id(zt, expected->zoneId, expected->instId);
     if (!zone) goto fail;
     
-    zone_add_client(zone, client);
+    zone_add_client_zoning_in(zone, client);
     
     /* Remove the stub from the unconfirmed client list */
     n = zt->clientUnconfirmedCount;

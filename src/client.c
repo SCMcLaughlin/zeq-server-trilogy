@@ -11,6 +11,7 @@
 
 struct Client {
     Mob             mob;
+    int             zoneIndex;
     StaticBuffer*   surname;
     int64_t         clientId;
     int64_t         accountId;
@@ -56,6 +57,7 @@ Client* client_create_unloaded(StaticBuffer* name, int64_t accountId, IpAddr ipA
 
     mob_init_client_unloaded(&client->mob, name);
 
+    client->zoneIndex = -1;
     client->surname = NULL;
     client->clientId = -1;
     client->accountId = accountId;
@@ -114,6 +116,11 @@ void client_load_character_data(Client* client, ClientLoadData_Character* data)
     skills_init(&client->skills, client->mob.classId, client->mob.baseRaceId, client->mob.level);
 
     /*fixme: calc base resists and max hp & mana based on level, class, race*/
+}
+
+Mob* client_mob(Client* client)
+{
+    return &client->mob;
 }
 
 StaticBuffer* client_name(Client* client)
@@ -299,9 +306,14 @@ Zone* client_get_zone(Client* client)
     return mob_get_zone(&client->mob);
 }
 
-void client_set_zone(Client* client, Zone* zone)
+void client_reset_for_zone(Client* client, Zone* zone)
 {
-    mob_set_zone(&client->mob, zone);
+    Mob* mob = &client->mob;
+    
+    mob_set_zone(mob, zone);
+    mob_set_entity_id(mob, -1);
+    mob_set_zone_index(mob, -1);
+    client_set_zone_index(client, -1);
 }
 
 bool client_is_local(Client* client)
@@ -462,4 +474,29 @@ float client_running_speed(Client* client)
 BindPoint* client_bind_point(Client* client, int n)
 {
     return &client->bindPoint[n];
+}
+
+int16_t client_entity_id(Client* client)
+{
+    return mob_entity_id(&client->mob);
+}
+
+int client_zone_index(Client* client)
+{
+    return client->zoneIndex;
+}
+
+void client_set_zone_index(Client* client, int index)
+{
+    client->zoneIndex = index;
+}
+
+int client_mob_zone_index(Client* client)
+{
+    return mob_zone_index(&client->mob);
+}
+
+void client_set_mob_zone_index(Client* client, int index)
+{
+    mob_set_zone_index(&client->mob, index);
 }

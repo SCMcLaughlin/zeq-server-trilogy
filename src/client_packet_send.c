@@ -88,9 +88,17 @@ static void cps_obfuscate_spawn(byte* data, uint32_t len)
 
 void client_schedule_packet(Client* client, TlgPacket* packet)
 {
-    Zone* zone = client_get_zone(client);
-    
-    udp_schedule_packet(zone_udp_queue(zone), client_ip_addr(client), packet);
+    client_schedule_packet_with_zone(client, client_get_zone(client), packet);
+}
+
+void client_schedule_packet_with_zone(Client* client, Zone* zone, TlgPacket* packet)
+{
+    client_schedule_packet_with_udp_queue(client, zone_udp_queue(zone), packet);
+}
+
+void client_schedule_packet_with_udp_queue(Client* client, RingBuf* udpQueue, TlgPacket* packet)
+{
+    udp_schedule_packet(udpQueue, client_ip_addr(client), packet);
 }
 
 void client_send_echo_copy(Client* client, ToServerPacket* packet)

@@ -4,6 +4,7 @@
 #include "client.h"
 #include "client_packet_send.h"
 #include "misc_struct.h"
+#include "mob.h"
 #include "loc.h"
 #include "ringbuf.h"
 #include "util_alloc.h"
@@ -12,7 +13,11 @@
 
 struct Zone {
     uint32_t        clientCount;
+    uint32_t        clientBroadcastAllCount;
+    uint32_t        mobCount;
     uint32_t        npcCount;
+    uint16_t        freeEntityIdCount;
+    int16_t         nextEntityId;
     int16_t         zoneId;
     int16_t         instId;
     uint16_t        skyType;
@@ -26,17 +31,87 @@ struct Zone {
     float           maxClippingDistance;
     LocH            safeSpot;
     int             logId;
+    Mob**           mobs;
     Client**        clients;
+    Client**        clientsBroadcastAll; /* Why does this exist? To ensure zone-wide packets are sent to clients that aren't fully zoned-in yet */
+    int16_t*        freeEntityIds;
     RingBuf*        udpQueue;
     RingBuf*        logQueue;
     StaticPackets*  staticPackets;
 };
 
-void zone_add_client(Zone* zone, Client* client)
+void zone_add_client_zoning_in(Zone* zone, Client* client)
+{
+    uint32_t index = zone->clientBroadcastAllCount;
+    
+    if (bit_is_pow2_or_zero(index))
+    {
+        uint32_t cap = (index == 0) ? 1 : index * 2;
+        Client** clients = realloc_array_type(zone->clientsBroadcastAll, cap, Client*);
+        
+        if (!clients) goto fail;
+        
+        zone->clientsBroadcastAll = clients;
+    }
+    
+    zone->clientsBroadcastAll[index] = client;
+    
+    client_reset_for_zone(client, zone);
+    
+    /* Send first set of packets for the client to zone in */
+    client_send_player_profile(client);
+    client_send_zone_entry(client);
+    client_send_weather(client);
+    
+fail:;
+}
+
+static int16_t zone_get_free_entity_id(Zone* zone)
+{
+    uint16_t n = zone->freeEntityIdCount;
+    
+    if (n)
+    {
+        /* Pop back */
+        n--;
+        zone->freeEntityIdCount = n;
+        return zone->freeEntityIds[n];
+    }
+    
+    return zone->nextEntityId++;
+}
+
+static int zone_add_entity_mob(Zone* zone, Mob* mob)
+{
+    uint32_t index = zone->mobCount;
+    int rc = ERR_OutOfMemory;
+    
+    if (bit_is_pow2_or_zero(index))
+    {
+        uint32_t cap = (index == 0) ? 1 : index * 2;
+        Mob** mobs = realloc_array_type(zone->mobs, cap, Mob*);
+        
+        if (!mobs) goto oom;
+        
+        zone->mobs = mobs;
+    }
+    
+    zone->mobs[index] = mob;
+    mob_set_zone_index(mob, (int)index);
+    mob_set_entity_id(mob, zone_get_free_entity_id(zone));
+    
+    rc = ERR_None;
+    
+oom:
+    return rc;
+}
+
+int zone_add_client_fully_zoned_in(Zone* zone, Client* client)
 {
     uint32_t index = zone->clientCount;
+    int rc = ERR_OutOfMemory;
     
-    /*fixme: don't put the client into the main list until it is fully zoned in*/
+    /* Add the client to the main Client list */
     if (bit_is_pow2_or_zero(index))
     {
         uint32_t cap = (index == 0) ? 1 : index * 2;
@@ -48,17 +123,31 @@ void zone_add_client(Zone* zone, Client* client)
     }
     
     zone->clients[index] = client;
+    client_set_zone_index(client, (int)index);
     
-    client_set_zone(client, zone);
+    /* Add the client to the main Mob list */
+    rc = zone_add_entity_mob(zone, client_mob(client));
+    if (rc) goto fail;
     
-    /*fixme: do other initialization here (reset the client for this zone) */
+fail:
+    return rc;
+}
+
+void zone_broadcast_to_all_clients(Zone* zone, TlgPacket* packet)
+{
+    RingBuf* udpQueue = zone_udp_queue(zone);
+    Client** clients = zone->clientsBroadcastAll;
+    uint32_t n = zone->clientBroadcastAllCount;
+    uint32_t i;
     
-    /* Send first set of packets for the client to zone in */
-    client_send_player_profile(client);
-    client_send_zone_entry(client);
-    client_send_weather(client);
+    packet_grab(packet);
     
-fail:;
+    for (i = 0; i < n; i++)
+    {
+        client_schedule_packet_with_udp_queue(clients[i], udpQueue, packet);
+    }
+    
+    packet_drop(packet);
 }
 
 Zone* zone_create(LogThread* log, RingBuf* udpQueue, int zoneId, int instId, StaticPackets* staticPackets)
@@ -70,6 +159,7 @@ Zone* zone_create(LogThread* log, RingBuf* udpQueue, int zoneId, int instId, Sta
     
     memset(zone, 0, sizeof(Zone));
     
+    zone->nextEntityId = 1;
     zone->zoneId = (int16_t)zoneId;
     zone->instId = (int16_t)instId;
     zone->zoneType = 0xff;

@@ -134,3 +134,23 @@ TlgPacket* packet_create_zone_info(Zone* zone)
     
     return packet;
 }
+
+TlgPacket* packet_create_spawn_appearance(int16_t entityId, int16_t typeId, int value)
+{
+    Aligned a;
+    TlgPacket* packet = packet_init_type(OP_SpawnAppearance, PS_SpawnAppearance, &a);
+    if (!packet) return NULL;
+    
+    /* entityId */
+    aligned_write_int16(&a, entityId);
+    /* unknownA */
+    aligned_write_uint16(&a, 0);
+    /* typeId */
+    aligned_write_int16(&a, typeId);
+    /* unknownB */
+    aligned_write_uint16(&a, 0);
+    /* value */
+    aligned_write_int(&a, value);
+    
+    return packet;
+}

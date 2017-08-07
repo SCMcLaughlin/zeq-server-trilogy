@@ -29,6 +29,8 @@ typedef struct {
     uint16_t        baseRaceId;
     uint16_t        raceId;
     uint16_t        deityId;    /*fixme: map this down to 8 bits?*/
+    int16_t         entityId;
+    int             zoneIndex;
     LocH            loc;
     StaticBuffer*   name;
     /* Core stats */
@@ -65,5 +67,11 @@ void mob_deinit(Mob* mob);
 
 #define mob_get_zone(mob) ((mob)->zone)
 #define mob_set_zone(mob, zone) ((mob)->zone = (zone))
+
+#define mob_entity_id(mob) ((mob)->entityId)
+#define mob_set_entity_id(mob, id) ((mob)->entityId = (id))
+
+#define mob_zone_index(mob) ((mob)->zoneIndex)
+#define mob_set_zone_index(mob, idx) ((mob)->zoneIndex = (idx))
 
 #endif/*MOB_H*/

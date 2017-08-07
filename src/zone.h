@@ -7,6 +7,7 @@
 #include "log_thread.h"
 #include "misc_struct.h"
 #include "packet_static.h"
+#include "tlg_packet.h"
 
 typedef struct Zone Zone;
 
@@ -15,7 +16,10 @@ struct Client;
 Zone* zone_create(LogThread* log, RingBuf* udpQueue, int zoneId, int instId, StaticPackets* staticPackets);
 Zone* zone_destroy(Zone* zone);
 
-void zone_add_client(Zone* zone, struct Client* client);
+void zone_add_client_zoning_in(Zone* zone, struct Client* client);
+int zone_add_client_fully_zoned_in(Zone* zone, struct Client* client);
+
+void zone_broadcast_to_all_clients(Zone* zone, TlgPacket* packet);
 
 const char* zone_short_name(Zone* zone);
 const char* zone_long_name(Zone* zone);

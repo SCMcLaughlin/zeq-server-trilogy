@@ -83,6 +83,14 @@ typedef struct {
     uint8_t     unknownE[32];
 } PS_ZoneInfo;
 
+typedef struct {
+    int16_t     entityId;
+    uint16_t    unknownA;
+    int16_t     typeId;
+    uint16_t    unknownB;
+    int         value;
+} PS_SpawnAppearance;
+
 #pragma pack()
 
 #endif/*PACKET_STRUCT_H*/
