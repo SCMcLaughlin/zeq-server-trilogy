@@ -35,6 +35,7 @@ _OBJECTS=               \
  enum2str               \
  gender_id              \
  hash                   \
+ inventory              \
  log_thread             \
  login_client           \
  login_crypto           \
@@ -45,6 +46,8 @@ _OBJECTS=               \
  mob                    \
  race_id                \
  ringbuf                \
+ skills                 \
+ spellbook              \
  timer                  \
  tlg_packet             \
  udp_client             \

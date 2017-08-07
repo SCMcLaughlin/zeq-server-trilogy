@@ -78,6 +78,16 @@ Zone* zone_destroy(Zone* zone)
     return NULL;
 }
 
+const char* zone_short_name(Zone* zone)
+{
+    return zone_short_name_by_id(zone->zoneId);
+}
+
+const char* zone_long_name(Zone* zone)
+{
+    return zone_long_name_by_id(zone->zoneId);
+}
+
 RingBuf* zone_udp_queue(Zone* zone)
 {
     return zone->udpQueue;

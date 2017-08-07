@@ -1,8 +1,11 @@
 
 #include "client_packet_send.h"
 #include "aligned.h"
+#include "buffer.h"
 #include "client.h"
+#include "inventory.h"
 #include "player_profile_packet_struct.h"
+#include "skills.h"
 #include "tlg_packet.h"
 #include "udp_thread.h"
 #include "udp_zpacket.h"
@@ -101,12 +104,158 @@ void client_send_echo_copy(Client* client, ToServerPacket* packet)
 void client_send_player_profile(Client* client)
 {
     PS_PlayerProfile pp;
+    Inventory* inv = client_inv(client);
     uint64_t time = clock_milliseconds();
-    uint32_t reset;
+    uint32_t i;
     Aligned a;
     
     aligned_init(&a, &pp, sizeof(pp));
     
+    /* skip crc for now, it gets written last */
+    aligned_advance_by(&a, sizeof(uint32_t));
+    /* name */
+    aligned_write_snprintf_and_advance_by(&a, sizeof(pp.name), "%s", sbuf_str(client_name(client)));
+    /* surname */
+    aligned_write_snprintf_and_advance_by(&a, sizeof(pp.surname), "%s", client_surname_str_no_null(client));
+    /* genderId */
+    aligned_write_uint16(&a, client_base_gender_id(client));
+    /* raceId */
+    aligned_write_uint16(&a, client_base_race_id(client));
+    /* classId */
+    aligned_write_uint16(&a, client_class_id(client));
+    /* level */
+    aligned_write_uint32(&a, client_level(client));
+    /* experience */
+    aligned_write_uint32(&a, (uint32_t)client_experience(client));
+    /* trainingPoints */
+    aligned_write_uint16(&a, client_training_points(client));
+    /* currentMana */
+    aligned_write_int16(&a, (int16_t)client_cur_mana(client));
+    /* faceId */
+    aligned_write_uint8(&a, client_face_id(client));
+    /* unknownA */
+    aligned_write_zeroes(&a, sizeof(pp.unknownA));
+    /* currentHp */
+    aligned_write_int16(&a, (int16_t)client_cur_hp(client));
+    /* unknownB */
+    aligned_write_zeroes(&a, sizeof(pp.unknownB));
+    /* STR */
+    aligned_write_uint8(&a, client_base_str(client));
+    /* STA */
+    aligned_write_uint8(&a, client_base_sta(client));
+    /* CHA */
+    aligned_write_uint8(&a, client_base_cha(client));
+    /* DEX */
+    aligned_write_uint8(&a, client_base_dex(client));
+    /* INT */
+    aligned_write_uint8(&a, client_base_int(client));
+    /* AGI */
+    aligned_write_uint8(&a, client_base_agi(client));
+    /* WIS */
+    aligned_write_uint8(&a, client_base_wis(client));
+    
+    /* languages */
+    skills_write_pp_languages(client_skills(client), &a);
+    
+    /* unknownC */
+    aligned_write_zeroes(&a, sizeof(pp.unknownC));
+    
+    /* mainInventoryItemIds */
+    inv_write_pp_main_item_ids(inv, &a);
+    
+    /* mainInventoryInternalUnused */
+    aligned_write_zeroes(&a, sizeof(pp.mainInventoryInternalUnused));
+    
+    /* mainInventoryItemProperties */
+    inv_write_pp_main_item_properties(inv, &a);
+    
+    /* buffs */
+    /*fixme: do these properly once buffs are stored somewhere*/
+    for (i = 0; i < ZEQ_PP_MAX_BUFFS; i++)
+    {
+        aligned_write_uint32(&a, 0);
+        aligned_write_uint16(&a, 0xffff);   /* spellId */
+        aligned_write_uint32(&a, 0);
+    }
+    
+    /* baggedItemIds */
+    inv_write_pp_main_bag_item_ids(inv, &a);
+    
+    /* baggedItemProperties */
+    inv_write_pp_main_bag_item_properties(inv, &a);
+    
+    /* spellbook, memmedSpellIds */
+    spellbook_write_pp(client_spellbook(client), &a);
+    
+    /* unknownD */
+    aligned_write_zeroes(&a, sizeof(pp.unknownD));
+    /* y */
+    aligned_write_float(&a, client_loc_y(client));
+    /* x */
+    aligned_write_float(&a, client_loc_x(client));
+    /* z */
+    aligned_write_float(&a, client_loc_z(client));
+    /* heading */
+    aligned_write_float(&a, client_loc_heading(client));
+    /* zoneShortName */
+    aligned_write_snprintf_and_advance_by(&a, sizeof(pp.zoneShortName), "%s", zone_short_name(client_get_zone(client)));
+    /* unknownEDefault100 */
+    aligned_write_uint32(&a, 100);
+    /* coins */
+    aligned_write_buffer(&a, client_coin(client), sizeof(pp.coins));
+    /* coinsBank */
+    aligned_write_buffer(&a, client_coin_bank(client), sizeof(pp.coinsBank));
+    /* coinsCursor */
+    aligned_write_buffer(&a, client_coin_cursor(client), sizeof(pp.coinsCursor));
+    
+    /* skills */
+    skills_write_pp(client_skills(client), &a);
+    
+    /* unknownF[162] */
+    aligned_write_memset(&a, 0xff, 27);
+    aligned_write_uint8(&a, 0);
+    aligned_write_uint32(&a, 0xffffffff);
+    aligned_write_uint8(&a, 0);
+    aligned_write_memset(&a, 0xff, 3);
+    aligned_write_uint8(&a, 0);
+    aligned_write_uint8(&a, 0xff);
+    aligned_write_uint8(&a, 0);
+    aligned_write_memset(&a, 0xff, 12);
+    aligned_write_uint16(&a, 0);
+    aligned_write_uint8(&a, 0xff);
+    aligned_write_uint16(&a, 0);
+    aligned_write_uint8(&a, 0x80);
+    aligned_write_uint8(&a, 0xbf);
+    aligned_write_uint16(&a, 0);
+    aligned_write_uint16(&a, 0x4040);
+    aligned_write_uint16(&a, 0);
+    aligned_write_uint8(&a, 0x20);
+    aligned_write_uint8(&a, 0x40);
+    aligned_write_uint16(&a, 0);
+    aligned_write_uint8(&a, 0xb0);
+    aligned_write_uint8(&a, 0x40);
+    aligned_write_zeroes(&a, 92);
+    
+    /* autoSplit */
+    
+    /* pvpEnabled */
+    
+    /* unknownG */
+    aligned_write_zeroes(&a, sizeof(pp.unknownG));
+    /* isGM */
+    
+    /* disciplinesReady */
+    
+    /* unknownI */
+    aligned_write_zeroes(&a, sizeof(pp.unknownI));
+    /* hunger */
+    
+    /* thirst */
+    
+    /* unknownJ */
+    aligned_write_zeroes(&a, sizeof(pp.unknownJ));
+    
+    /* bindZoneShortName[5] */
     
     cps_player_profile_compress_obfuscate_send(client, &pp);
 }

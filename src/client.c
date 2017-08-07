@@ -1,8 +1,11 @@
 
 #include "client.h"
 #include "define_netcode.h"
+#include "inventory.h"
 #include "misc_struct.h"
 #include "mob.h"
+#include "skills.h"
+#include "spellbook.h"
 #include "util_alloc.h"
 
 struct Client {
@@ -28,6 +31,9 @@ struct Client {
     bool            isGM;
     uint8_t         anon;
     uint8_t         guildRank;
+    Inventory       inventory;
+    Skills          skills;
+    Spellbook       spellbook;
 };
 
 Client* client_create_unloaded(StaticBuffer* name, int64_t accountId, IpAddr ipAddr, bool isLocal)
@@ -56,6 +62,8 @@ Client* client_destroy(Client* client)
     if (client)
     {
         mob_deinit(&client->mob);
+        inv_deinit(&client->inventory);
+        spellbook_deinit(&client->spellbook);
         client->surname = sbuf_drop(client->surname);
     }
 
@@ -100,6 +108,9 @@ void client_load_character_data(Client* client, ClientLoadData_Character* data)
     client->isGM = data->isGM;
     client->anon = data->anon;
     client->guildRank = data->guildRank;
+    
+    inv_init(&client->inventory);
+    skills_init(&client->skills, client->mob.classId, client->mob.baseRaceId, client->mob.level);
 
     /*fixme: calc base resists and max hp & mana based on level, class, race*/
 }
@@ -107,6 +118,142 @@ void client_load_character_data(Client* client, ClientLoadData_Character* data)
 StaticBuffer* client_name(Client* client)
 {
     return client->mob.name;
+}
+
+const char* client_surname_str_no_null(Client* client)
+{
+    StaticBuffer* surname = client->surname;
+    return (surname) ? sbuf_str(surname) : "";
+}
+
+uint8_t client_base_gender_id(Client* client)
+{
+    return client->mob.baseGenderId;
+}
+
+uint16_t client_base_race_id(Client* client)
+{
+    return client->mob.baseRaceId;
+}
+
+uint8_t client_class_id(Client* client)
+{
+    return client->mob.classId;
+}
+
+uint8_t client_level(Client* client)
+{
+    return client->mob.level;
+}
+
+int64_t client_experience(Client* client)
+{
+    return client->experience;
+}
+
+uint16_t client_training_points(Client* client)
+{
+    return client->trainingPoints;
+}
+
+int64_t client_cur_mana(Client* client)
+{
+    return client->mob.currentMana;
+}
+
+uint8_t client_face_id(Client* client)
+{
+    return client->mob.faceId;
+}
+
+int64_t client_cur_hp(Client* client)
+{
+    return client->mob.currentHp;
+}
+
+uint8_t client_base_str(Client* client)
+{
+    return client->mob.baseStats.STR;
+}
+
+uint8_t client_base_sta(Client* client)
+{
+    return client->mob.baseStats.STA;
+}
+
+uint8_t client_base_cha(Client* client)
+{
+    return client->mob.baseStats.CHA;
+}
+
+uint8_t client_base_dex(Client* client)
+{
+    return client->mob.baseStats.DEX;
+}
+
+uint8_t client_base_int(Client* client)
+{
+    return client->mob.baseStats.INT;
+}
+
+uint8_t client_base_agi(Client* client)
+{
+    return client->mob.baseStats.AGI;
+}
+
+uint8_t client_base_wis(Client* client)
+{
+    return client->mob.baseStats.WIS;
+}
+
+float client_loc_x(Client* client)
+{
+    return client->mob.loc.x;
+}
+
+float client_loc_y(Client* client)
+{
+    return client->mob.loc.y;
+}
+
+float client_loc_z(Client* client)
+{
+    return client->mob.loc.z;
+}
+
+float client_loc_heading(Client* client)
+{
+    return client->mob.loc.heading;
+}
+
+Coin* client_coin(Client* client)
+{
+    return &client->coin;
+}
+
+Coin* client_coin_bank(Client* client)
+{
+    return &client->coinBank;
+}
+
+Coin* client_coin_cursor(Client* client)
+{
+    return &client->coinCursor;
+}
+
+Inventory* client_inv(Client* client)
+{
+    return &client->inventory;
+}
+
+Skills* client_skills(Client* client)
+{
+    return &client->skills;
+}
+
+Spellbook* client_spellbook(Client* client)
+{
+    return &client->spellbook;
 }
 
 Zone* client_get_zone(Client* client)
