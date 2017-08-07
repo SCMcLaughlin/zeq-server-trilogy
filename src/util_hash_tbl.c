@@ -391,6 +391,7 @@ static int tbl_do_set_str(HashTbl* tbl, const char* key, uint32_t len, const voi
 
     hash = hash_str(key, len);
     bkey = sbuf_create(key, len);
+    sbuf_grab(bkey);
 
     if (!bkey) return ERR_OutOfMemory;
 
