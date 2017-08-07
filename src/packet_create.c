@@ -1,7 +1,11 @@
 
 #include "packet_create.h"
 #include "aligned.h"
+#include "client.h"
+#include "mob.h"
 #include "packet_struct.h"
+#include "tlg_packet.h"
+#include "zone.h"
 #include "enum_opcode.h"
 
 TlgPacket* packet_create_zero_filled(uint16_t opcode, uint32_t size)
@@ -151,6 +155,204 @@ TlgPacket* packet_create_spawn_appearance(int16_t entityId, int16_t typeId, int 
     aligned_write_uint16(&a, 0);
     /* value */
     aligned_write_int(&a, value);
+    
+    return packet;
+}
+
+static void packet_obfuscate_spawn(byte* data, uint32_t len)
+{
+    uint32_t* ptr = (uint32_t*)data;
+    uint32_t cur = 0;
+    uint32_t n = len / sizeof(uint32_t);
+    uint32_t next;
+    uint32_t i;
+    
+    for (i = 0; i < n; i++)
+    {
+        next = cur + ptr[i] - 0x65e7;
+        ptr[i] = ((ptr[i] << 0x09) | (ptr[i] >> 0x17)) + 0x65e7;
+        ptr[i] = ((ptr[i] << 0x0d) | (ptr[i] >> 0x13));
+        ptr[i] = ptr[i] - cur;
+        cur = next;
+    }
+}
+
+TlgPacket* packet_create_spawn(Mob* mob)
+{
+    Aligned a;
+    int mobType;
+    int temp;
+    TlgPacket* packet = packet_init_type(OP_Spawn, PS_Spawn, &a);
+    
+    if (!packet) return NULL;
+    
+    mobType = mob_parent_type(mob);
+    
+    /* unknownA */
+    aligned_write_uint32(&a, 0);
+    /* size */
+    aligned_write_float(&a, mob_cur_size(mob));
+    /* walkingSpeed */
+    aligned_write_float(&a, mob_cur_walking_speed(mob));
+    /* runningSpeed */
+    aligned_write_float(&a, mob_cur_running_speed(mob));
+    
+    /* tints[7] */
+    aligned_write_uint32(&a, mob_tint(mob, 0));
+    aligned_write_uint32(&a, mob_tint(mob, 1));
+    aligned_write_uint32(&a, mob_tint(mob, 2));
+    aligned_write_uint32(&a, mob_tint(mob, 3));
+    aligned_write_uint32(&a, mob_tint(mob, 4));
+    aligned_write_uint32(&a, mob_tint(mob, 5));
+    aligned_write_uint32(&a, mob_tint(mob, 6));
+    
+    /* unknownB */
+    aligned_write_zeroes(&a, sizeof_field(PS_Spawn, unknownB));
+    /* heading */
+    aligned_write_int8(&a, (int8_t)mob->headingRaw); /*fixme: decide how to deal with headings*/
+    /* headingDelta */
+    aligned_write_int8(&a, 0); /*fixme: handle deltas*/
+    /* y */
+    aligned_write_int16(&a, (int16_t)mob_y(mob));
+    /* x */
+    aligned_write_int16(&a, (int16_t)mob_x(mob));
+    /* z */
+    aligned_write_int16(&a, (int16_t)(mob_z(mob) * 10)); /* The client expects this for more accurate Z values after decimal truncation */
+    
+    /* delta bitfield */
+    aligned_write_int(&a, 0); /*fixme: deal with this properly...*/
+    
+    /* unknownC */
+    aligned_write_uint8(&a, 0);
+    /* entityId */
+    aligned_write_int16(&a, mob_entity_id(mob));
+    /* bodyType */
+    aligned_write_uint16(&a, mob_body_type(mob));
+    /* ownerEntityId */
+    aligned_write_int16(&a, mob_owner_entity_id(mob));
+    /* hpPercent */
+    aligned_write_int16(&a, mob_hp_ratio(mob));
+    
+    /* guildId */
+    if (mobType == MOB_PARENT_TYPE_Client)
+        aligned_write_uint16(&a, client_guild_id_or_ffff(mob_as_client(mob)));
+    else
+        aligned_write_uint16(&a, 0xffff);
+    
+    /* raceId */
+    temp = mob_race_id(mob);
+    aligned_write_uint8(&a, (temp > 0xff) ? 1 : temp); /* Seems like raceId is 16bit everywhere but here... */
+    
+    switch (mobType)
+    {
+    case MOB_PARENT_TYPE_Npc:
+    case MOB_PARENT_TYPE_Pet:
+        temp = 1;
+        break;
+    
+    case MOB_PARENT_TYPE_Client:
+        temp = 0;
+        break;
+    
+    case MOB_PARENT_TYPE_NpcCorpse:
+        temp = 3;
+        break;
+    
+    case MOB_PARENT_TYPE_ClientCorpse:
+        temp = 2;
+        break;
+    }
+    
+    /* mobType */
+    aligned_write_uint8(&a, (uint8_t)temp);
+    /* classId */
+    aligned_write_uint8(&a, mob_class_id(mob));
+    /* genderId */
+    aligned_write_uint8(&a, mob_gender_id(mob));
+    /* level */
+    aligned_write_uint8(&a, mob_level(mob));
+    /* isInvisible */
+    aligned_write_uint8(&a, 0); /*fixme: handle invisibility*/
+    /* unknownD */
+    aligned_write_uint8(&a, 0);
+    
+    /* isPvP */
+    if (mobType == MOB_PARENT_TYPE_Client)
+        aligned_write_uint8(&a, client_is_pvp(mob_as_client(mob)));
+    else
+        aligned_write_uint8(&a, 0);
+    
+    /* uprightState */
+    aligned_write_uint8(&a, mob_upright_state(mob));
+    /* lightLevel */
+    aligned_write_uint8(&a, mob_light_level(mob));
+    
+    if (mobType == MOB_PARENT_TYPE_Client)
+    {
+        Client* client = mob_as_client(mob);
+        
+        /* anon */
+        aligned_write_uint8(&a, client_anon_setting(client));
+        /* isAfk */
+        aligned_write_uint8(&a, client_is_afk(client));
+        /* unknownE */
+        aligned_write_uint8(&a, 0);
+        /* isLinkdead */
+        aligned_write_uint8(&a, client_is_linkdead(client));
+        /* isGM */
+        aligned_write_uint8(&a, client_is_gm(client));
+    }
+    else
+    {
+        aligned_write_zeroes(&a, 5);
+    }
+    
+    /* unknownF */
+    aligned_write_uint8(&a, 0);
+    /* textureId */
+    aligned_write_uint8(&a, mob_texture_id(mob));
+    /* helmTextureId */
+    aligned_write_uint8(&a, mob_helm_texture_id(mob));
+    /* unknownG */
+    aligned_write_uint8(&a, 0);
+    
+    /* materialIds[9] */
+    aligned_write_uint8(&a, mob_material_id(mob, 0));
+    aligned_write_uint8(&a, mob_material_id(mob, 1));
+    aligned_write_uint8(&a, mob_material_id(mob, 2));
+    aligned_write_uint8(&a, mob_material_id(mob, 3));
+    aligned_write_uint8(&a, mob_material_id(mob, 4));
+    aligned_write_uint8(&a, mob_material_id(mob, 5));
+    aligned_write_uint8(&a, mob_material_id(mob, 6));
+    aligned_write_uint8(&a, mob_primary_weapon_model_id(mob));
+    aligned_write_uint8(&a, mob_secondary_weapon_model_id(mob));
+    
+    /* name */
+    aligned_write_snprintf_and_advance_by(&a, sizeof_field(PS_Spawn, name), "%s", mob_name_str(mob));
+    
+    if (mobType == MOB_PARENT_TYPE_Client)
+    {
+        Client* client = mob_as_client(mob);
+        
+        /* surname */
+        aligned_write_snprintf_and_advance_by(&a, sizeof_field(PS_Spawn, surname), "%s", client_surname_str_no_null(client));
+        /* guildRank */
+        aligned_write_uint8(&a, client_guild_rank_or_ff(client));
+    }
+    else
+    {
+        /* surname, guildRank */
+        aligned_write_zeroes(&a, sizeof_field(PS_Spawn, surname) + sizeof_field(PS_Spawn, guildRank));
+    }
+    
+    /* unknownH */
+    aligned_write_uint8(&a, 0);
+    /* deityId */
+    aligned_write_uint16(&a, mob_deity_id(mob));
+    /* unknownI */
+    aligned_write_zeroes(&a, sizeof_field(PS_Spawn, unknownI));
+    
+    packet_obfuscate_spawn(packet_data(packet), packet_length(packet));
     
     return packet;
 }

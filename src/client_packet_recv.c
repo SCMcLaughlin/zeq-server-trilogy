@@ -57,6 +57,9 @@ static void cpr_handle_op_enter_zone(Client* client)
     client_schedule_packet_with_udp_queue(client, udpQueue, packet);
     
     /* Broadcast the spawn packet, including to the client who is spawning */
+    packet = packet_create_spawn(client_mob(client));
+    if (!packet) goto fail;
+    zone_broadcast_to_all_clients(zone, packet);
     
     /* Send the client some things it expects */
     staticPackets = zone_static_packets(zone);

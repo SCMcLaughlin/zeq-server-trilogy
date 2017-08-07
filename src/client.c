@@ -3,6 +3,7 @@
 #include "define_netcode.h"
 #include "inventory.h"
 #include "loc.h"
+#include "misc_enum.h"
 #include "misc_struct.h"
 #include "mob.h"
 #include "skills.h"
@@ -313,6 +314,7 @@ void client_reset_for_zone(Client* client, Zone* zone)
     mob_set_zone(mob, zone);
     mob_set_entity_id(mob, -1);
     mob_set_zone_index(mob, -1);
+    mob_set_upright_state(mob, UPRIGHT_STATE_Standing);
     client_set_zone_index(client, -1);
 }
 

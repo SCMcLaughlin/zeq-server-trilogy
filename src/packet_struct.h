@@ -91,6 +91,57 @@ typedef struct {
     int         value;
 } PS_SpawnAppearance;
 
+typedef struct {
+    uint32_t    unknownA;
+    float       size;
+    float       walkingSpeed;
+    float       runningSpeed;
+    uint32_t    tints[7];
+    uint8_t     unknownB[9];    /* Equip-related ? */
+    int8_t      heading;
+    int8_t      headingDelta;
+    int16_t     y;
+    int16_t     x;
+    int16_t     z;
+    int         yDelta  : 10;
+    int         unusedA : 1;
+    int         zDelta  : 10;
+    int         unusedB : 1;
+    int         xDelta  : 10;
+    uint8_t     unknownC;
+    uint16_t    entityId;
+    uint16_t    bodyType;
+    uint16_t    ownerEntityId;  /* 0 = not a pet */
+    int16_t     hpPercent;
+    uint16_t    guildId;
+    uint8_t     raceId;
+    uint8_t     mobType;        /* 0 = client, 1 = npc, 2 = client corpse, 3 = npc corpse, 10 = self */
+    uint8_t     classId;
+    uint8_t     genderId;
+    uint8_t     level;
+    uint8_t     isInvisible;
+    uint8_t     unknownD;
+    uint8_t     isPvP;
+    uint8_t     uprightState;   /* UPRIGHT_STATE_Standing and such */
+    uint8_t     lightLevel;
+    uint8_t     anon;
+    uint8_t     isAfk;
+    uint8_t     unknownE;
+    uint8_t     isLinkdead;
+    uint8_t     isGM;
+    uint8_t     unknownF;
+    uint8_t     textureId;
+    uint8_t     helmTextureId;
+    uint8_t     unknownG;
+    uint8_t     materialIds[9];
+    char        name[30];
+    char        surname[20];
+    uint8_t     guildRank;
+    uint8_t     unknownH;
+    uint16_t    deityId;  /*fixme: may be uint8?*/
+    uint8_t     unknownI[10];
+} PS_Spawn;
+
 #pragma pack()
 
 #endif/*PACKET_STRUCT_H*/

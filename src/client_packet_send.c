@@ -68,24 +68,6 @@ static void cps_player_profile_compress_obfuscate_send(Client* client, PS_Player
     }
 }
 
-static void cps_obfuscate_spawn(byte* data, uint32_t len)
-{
-    uint32_t* ptr = (uint32_t*)data;
-    uint32_t cur = 0;
-    uint32_t n = len / sizeof(uint32_t);
-    uint32_t next;
-    uint32_t i;
-    
-    for (i = 0; i < n; i++)
-    {
-        next = cur + ptr[i] - 0x65e7;
-        ptr[i] = ((ptr[i] << 0x09) | (ptr[i] >> 0x17)) + 0x65e7;
-        ptr[i] = ((ptr[i] << 0x0d) | (ptr[i] >> 0x13));
-        ptr[i] = ptr[i] - cur;
-        cur = next;
-    }
-}
-
 void client_schedule_packet(Client* client, TlgPacket* packet)
 {
     client_schedule_packet_with_zone(client, client_get_zone(client), packet);

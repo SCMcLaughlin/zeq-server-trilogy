@@ -19,6 +19,8 @@ enum MobParentType
     MOB_PARENT_TYPE_ClientCorpse,
 };
 
+struct Client;
+
 typedef struct {
     uint8_t         parentType;
     uint8_t         level;
@@ -32,6 +34,7 @@ typedef struct {
     int16_t         entityId;
     int             zoneIndex;
     LocH            loc;
+    int16_t         headingRaw;
     StaticBuffer*   name;
     /* Core stats */
     int64_t         currentHp;
@@ -53,6 +56,9 @@ typedef struct {
     uint8_t         uprightState;
     uint8_t         lightLevel;
     uint8_t         bodyType;
+    uint8_t         materialId[7];
+    uint32_t        tint[7];
+    int16_t         ownerEntityId;
     Zone*           zone;
 } Mob;
 
@@ -60,18 +66,52 @@ void mob_init_client_unloaded(Mob* mob, StaticBuffer* name);
 void mob_init_client_character(Mob* mob, ClientLoadData_Character* data);
 void mob_deinit(Mob* mob);
 
+int8_t mob_hp_ratio(Mob* mob);
+
+#define mob_name_str(mob) (sbuf_str((mob)->name))
 #define mob_set_name_sbuf(mob, sbuf) ((mob)->name = (sbuf))
 #define mob_set_cur_hp_no_cap_check(mob, hp) ((mob)->currentHp = (hp))
 #define mob_set_cur_mana_no_cap_check(mob, mana) ((mob)->currentMana = (mana))
 #define mob_set_cur_endurance_no_cap_check(mob, end) ((mob)->currentEndurance = (end))
 
+#define mob_level(mob) ((mob)->level)
+#define mob_class_id(mob) ((mob)->classId)
+#define mob_gender_id(mob) ((mob)->genderId)
+#define mob_race_id(mob) ((mob)->raceId)
+#define mob_deity_id(mob) ((mob)->deityId)
+
+#define mob_x(mob) ((mob)->loc.x)
+#define mob_y(mob) ((mob)->loc.y)
+#define mob_z(mob) ((mob)->loc.z)
+
 #define mob_get_zone(mob) ((mob)->zone)
 #define mob_set_zone(mob, zone) ((mob)->zone = (zone))
+
+#define mob_parent_type(mob) ((mob)->parentType)
 
 #define mob_entity_id(mob) ((mob)->entityId)
 #define mob_set_entity_id(mob, id) ((mob)->entityId = (id))
 
 #define mob_zone_index(mob) ((mob)->zoneIndex)
 #define mob_set_zone_index(mob, idx) ((mob)->zoneIndex = (idx))
+
+#define mob_cur_size(mob) ((mob)->currentSize)
+
+#define mob_cur_walking_speed(mob) ((mob)->currentWalkingSpeed)
+#define mob_cur_running_speed(mob) ((mob)->currentRunningSpeed)
+
+#define mob_texture_id(mob) ((mob)->textureId)
+#define mob_helm_texture_id(mob) ((mob)->helmTextureId)
+#define mob_primary_weapon_model_id(mob) ((mob)->primaryWeaponModelId)
+#define mob_secondary_weapon_model_id(mob) ((mob)->secondaryWeaponModelId)
+#define mob_upright_state(mob) ((mob)->uprightState)
+#define mob_set_upright_state(mob, state) ((mob)->uprightState = (state))
+#define mob_light_level(mob) ((mob)->lightLevel)
+#define mob_body_type(mob) ((mob)->bodyType)
+#define mob_material_id(mob, n) ((mob)->materialId[(n)])
+#define mob_tint(mob, n) ((mob)->tint[(n)])
+#define mob_owner_entity_id(mob) ((mob)->ownerEntityId)
+
+#define mob_as_client(mob) (struct Client*)(mob)
 
 #endif/*MOB_H*/
