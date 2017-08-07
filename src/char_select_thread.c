@@ -1272,6 +1272,7 @@ static void cs_thread_handle_login_auth(CharSelectThread* cs, ZPacket* zpacket)
     }
     
     cs->authsAwaitingClient[count].accountId = accountId;
+    cs->authsAwaitingClient[count].ip = ip;
     memcpy(cs->authsAwaitingClient[count].sessionKey, sessionKey, sizeof(cs->authsAwaitingClient[count].sessionKey));
     cs->authAwaitingClientTimeouts[count] = clock_milliseconds() + CHAR_SELECT_THREAD_AUTH_TIMEOUT_MS;
     cs->authsAwaitingClientCount = count + 1;
