@@ -79,8 +79,6 @@ void client_packet_recv(Client* client, ZPacket* zpacket)
 {
     ToServerPacket packet;
 
-    Zone* z = client_get_zone(client);
-    
     packet.opcode = zpacket->udp.zToServerPacket.opcode;
     packet.length = zpacket->udp.zToServerPacket.length;
     packet.data = zpacket->udp.zToServerPacket.data;

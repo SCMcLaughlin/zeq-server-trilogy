@@ -62,6 +62,7 @@ Zone* client_get_zone(Client* client);
 void client_reset_for_zone(Client* client, Zone* zone);
 bool client_is_local(Client* client);
 IpAddr client_ip_addr(Client* client);
+void client_set_ip_addr(Client* client, IpAddr ipAddr);
 uint32_t client_ip(Client* client);
 uint16_t client_port(Client* client);
 void client_set_port(Client* client, uint16_t port);

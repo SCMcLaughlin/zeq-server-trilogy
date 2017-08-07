@@ -78,7 +78,7 @@ uint16_t inv_item_id_for_client(Inventory* inv, uint32_t itemIdReal)
 
 static void inv_write_pp_item_ids(Inventory* inv, Aligned* a, uint32_t from, uint32_t to)
 {
-    uint32_t diff = to - from;
+    uint32_t diff = (to - from) + 1;
     uint32_t resetTo = aligned_position(a);
     InvSlot* slots;
     uint32_t n;
@@ -110,7 +110,7 @@ static void inv_write_pp_item_ids(Inventory* inv, Aligned* a, uint32_t from, uin
 
 static void inv_write_pp_item_properties(Inventory* inv, Aligned* a, uint32_t from, uint32_t to)
 {
-    uint32_t diff = to - from;
+    uint32_t diff = (to - from) + 1;
     uint32_t resetTo = aligned_position(a);
     InvSlot* slots;
     uint32_t n;

@@ -265,7 +265,7 @@ void client_send_player_profile(Client* client)
     
     /* bankBaggedItemProperties */
     inv_write_pp_bank_bag_item_properties(inv, &a);
-    
+
     /* unknownK, unknownL */
     aligned_write_zeroes(&a, sizeof(pp.unknownK) + sizeof(pp.unknownL));
     
@@ -304,10 +304,10 @@ void client_send_player_profile(Client* client)
     aligned_write_uint32(&a, 1);
     /* unknownP */
     aligned_write_zeroes(&a, sizeof(pp.unknownP));
-    
+
     /* bankInventoryItemIds */
     inv_write_pp_bank_item_ids(inv, &a);
-    
+
     /* bankBaggedItemIds */
     inv_write_pp_bank_bag_item_ids(inv, &a);
     
@@ -353,7 +353,7 @@ void client_send_player_profile(Client* client)
     aligned_write_zeroes(&a, sizeof(pp.groupMember[2]));
     aligned_write_zeroes(&a, sizeof(pp.groupMember[3]));
     aligned_write_zeroes(&a, sizeof(pp.groupMember[4]));
-    
+
     /* unknownW */
     aligned_write_zeroes(&a, 70);
     aligned_write_uint16(&a, 0xffff);

@@ -159,6 +159,9 @@ static void zt_transition_stub(ZoneThread* zt, ClientStub* stub, ClientExpected*
     int rc;
 
     log_writef(zt->logQueue, zt->logId, "Found matching auth for client logging in as \"%s\"", sbuf_str(client_name(client)));
+
+    /* Update the Client's ip address (it is stale) */
+    client_set_ip_addr(client, stub->ipAddr);
     
     /* Tell UdpThread to switch its clientObject from the stub to the real Client */
     zpacket.udp.zReplaceClientObject.ipAddress = stub->ipAddr;

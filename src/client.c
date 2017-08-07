@@ -328,6 +328,11 @@ IpAddr client_ip_addr(Client* client)
     return client->ipAddr;
 }
 
+void client_set_ip_addr(Client* client, IpAddr ipAddr)
+{
+    client->ipAddr = ipAddr;
+}
+
 uint32_t client_ip(Client* client)
 {
     return client->ipAddr.ip;

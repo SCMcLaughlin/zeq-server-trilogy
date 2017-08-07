@@ -93,9 +93,9 @@ enum InventorySlot
     INV_SLOT_BankExtendedBegin              = INV_SLOT_BankBegin,
     INV_SLOT_BankExtendedEnd                = 2015,
     INV_SLOT_BankBagSlotsBegin              = 2031,
-    INV_SLOT_BankBagSlotsEnd                = 2111,
+    INV_SLOT_BankBagSlotsEnd                = 2110,
     INV_SLOT_BankExtendedBagSlotsBegin      = INV_SLOT_BankBagSlotsBegin,
-    INV_SLOT_BankExtendedBagSlotsEnd        = 2191,
+    INV_SLOT_BankExtendedBagSlotsEnd        = 2190,
 };
 
 #endif/*INVENTORY_H*/
