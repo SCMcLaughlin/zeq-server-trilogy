@@ -84,6 +84,7 @@ MainThread* mt_create()
         fprintf(stderr, "ERROR: mt_create: failed to create default MotD string via sbuf_create_from_literal()\n");
         goto fail;
     }
+    sbuf_grab(mt->motd);
     
     mt->mainQueue = ringbuf_create_type(ZPacket, 1024);
     if (!mt->mainQueue)
