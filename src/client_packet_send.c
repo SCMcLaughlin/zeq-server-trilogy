@@ -5,6 +5,7 @@
 #include "client.h"
 #include "crc.h"
 #include "inventory.h"
+#include "packet_struct.h"
 #include "player_profile_packet_struct.h"
 #include "skills.h"
 #include "tlg_packet.h"
@@ -118,7 +119,7 @@ void client_send_player_profile(Client* client)
     /* skip crc for now, it gets written last */
     aligned_advance_by(&a, sizeof(uint32_t));
     /* name */
-    aligned_write_snprintf_and_advance_by(&a, sizeof(pp.name), "%s", sbuf_str(client_name(client)));
+    aligned_write_snprintf_and_advance_by(&a, sizeof(pp.name), "%s", client_name_str(client));
     /* surname */
     aligned_write_snprintf_and_advance_by(&a, sizeof(pp.surname), "%s", client_surname_str_no_null(client));
     /* genderId */
@@ -380,5 +381,94 @@ void client_send_player_profile(Client* client)
 
 void client_send_zone_entry(Client* client)
 {
+    TlgPacket* packet;
+    Aligned a;
     
+    packet = packet_create_type(OP_ZoneEntry, PS_ZoneEntry);
+    if (!packet) return;
+    
+    aligned_init(&a, packet_data(packet), packet_length(packet));
+    
+    /* skip crc for now, it gets written last */
+    aligned_advance_by(&a, sizeof(uint32_t));
+    /* unknownA */
+    aligned_write_zeroes(&a, sizeof_field(PS_ZoneEntry, unknownA));
+    /* name */
+    aligned_write_snprintf_and_advance_by(&a, sizeof_field(PS_ZoneEntry, name), "%s", client_name_str(client));
+    /* zoneShortName */
+    aligned_write_snprintf_and_advance_by(&a, sizeof_field(PS_ZoneEntry, zoneShortName), "%s", zone_short_name(client_get_zone(client)));
+    /* unknownB */
+    aligned_write_zeroes(&a, sizeof_field(PS_ZoneEntry, unknownB));
+    /* y */
+    aligned_write_float(&a, client_loc_y(client));
+    /* x */
+    aligned_write_float(&a, client_loc_x(client));
+    /* z */
+    aligned_write_float(&a, client_loc_z(client));
+    /* heading */
+    aligned_write_float(&a, client_loc_heading(client) * 2.0); /*fixme: ?*/
+    /* unknownC */
+    aligned_write_zeroes(&a, sizeof_field(PS_ZoneEntry, unknownC));
+    /* guildId */
+    aligned_write_uint16(&a, client_guild_id_or_ffff(client));
+    /* unknownD */
+    aligned_write_zeroes(&a, sizeof_field(PS_ZoneEntry, unknownD));
+    /* classId */
+    aligned_write_uint8(&a, client_class_id(client));
+    /* raceId */
+    aligned_write_uint16(&a, client_base_race_id(client));
+    /* genderId */
+    aligned_write_uint8(&a, client_base_gender_id(client));
+    /* level */
+    aligned_write_uint8(&a, client_level(client));
+    /* unknownE */
+    aligned_write_zeroes(&a, sizeof_field(PS_ZoneEntry, unknownE));
+    /* isPvP */
+    aligned_write_uint8(&a, client_is_pvp(client));
+    /* unknownF */
+    aligned_write_zeroes(&a, sizeof_field(PS_ZoneEntry, unknownF));
+    /* faceId */
+    aligned_write_uint8(&a, client_face_id(client));
+    /* helmTextureId */
+    aligned_write_uint8(&a, client_helm_texture_id(client));
+    /* unknownG */
+    aligned_write_zeroes(&a, sizeof_field(PS_ZoneEntry, unknownG));
+    /* secondaryWeaponModelId */
+    aligned_write_uint8(&a, client_secondary_weapon_model_id(client));
+    /* primaryWeaponModelId */
+    aligned_write_uint8(&a, client_primary_weapon_model_id(client));
+    /* unknownH */
+    aligned_write_zeroes(&a, sizeof_field(PS_ZoneEntry, unknownH));
+    /* helmColor */
+    aligned_write_uint32(&a, 0); /*fixme: handle this?*/
+    /* unknownI */
+    aligned_write_zeroes(&a, sizeof_field(PS_ZoneEntry, unknownI));
+    /* textureId */
+    aligned_write_uint8(&a, client_texture_id(client));
+    /* unknownJ */
+    aligned_write_zeroes(&a, sizeof_field(PS_ZoneEntry, unknownJ));
+    /* walkingSpeed */
+    aligned_write_float(&a, client_base_walking_speed(client));
+    /* runningSpeed */
+    aligned_write_float(&a, client_base_running_speed(client));
+    /* unknownK */
+    aligned_write_zeroes(&a, sizeof_field(PS_ZoneEntry, unknownK));
+    /* anon */
+    aligned_write_uint8(&a, client_anon_setting(client));
+    /* unknownL */
+    aligned_write_zeroes(&a, sizeof_field(PS_ZoneEntry, unknownL));
+    /* surname */
+    aligned_write_snprintf_and_advance_by(&a, sizeof_field(PS_ZoneEntry, surname), "%s", client_surname_str_no_null(client));
+    /* unknownM */
+    aligned_write_zeroes(&a, sizeof_field(PS_ZoneEntry, unknownM));
+    /* deityId */
+    aligned_write_uint16(&a, client_deity_id(client));
+    /* unknownN */
+    aligned_write_zeroes(&a, sizeof_field(PS_ZoneEntry, unknownN));
+    
+    /* crc */
+    aligned_reset_cursor(&a);
+    aligned_write_uint32(&a, ~crc_calc32(aligned_current(&a) + sizeof(uint32_t), aligned_size(&a) - sizeof(uint32_t)));
+    
+    client_schedule_packet(client, packet);
 }

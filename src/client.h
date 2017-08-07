@@ -20,6 +20,7 @@ Client* client_destroy(Client* client);
 void client_load_character_data(Client* client, ClientLoadData_Character* data);
 
 StaticBuffer* client_name(Client* client);
+const char* client_name_str(Client* client);
 const char* client_surname_str_no_null(Client* client);
 uint8_t client_base_gender_id(Client* client);
 uint16_t client_base_race_id(Client* client);
@@ -80,6 +81,19 @@ uint64_t client_creation_timestamp(Client* client);
 uint16_t client_hunger(Client* client);
 uint16_t client_thirst(Client* client);
 uint16_t client_drunkeness(Client* client);
+
+uint8_t client_helm_texture_id(Client* client);
+uint8_t client_texture_id(Client* client);
+uint8_t client_primary_weapon_model_id(Client* client);
+uint8_t client_secondary_weapon_model_id(Client* client);
+uint8_t client_upright_state(Client* client);
+uint8_t client_light_level(Client* client);
+uint8_t client_body_type(Client* client);
+
+float client_base_walking_speed(Client* client);
+float client_base_running_speed(Client* client);
+float client_walking_speed(Client* client);
+float client_running_speed(Client* client);
 
 BindPoint* client_bind_point(Client* client, int n);
 

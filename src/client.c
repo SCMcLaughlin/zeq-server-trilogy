@@ -54,9 +54,7 @@ Client* client_create_unloaded(StaticBuffer* name, int64_t accountId, IpAddr ipA
 
     memset(client, 0, sizeof(Client));
 
-    client->mob.parentType = MOB_PARENT_TYPE_Client;
-    mob_set_name_sbuf(&client->mob, name);
-    sbuf_grab(name);
+    mob_init_client_unloaded(&client->mob, name);
 
     client->surname = NULL;
     client->clientId = -1;
@@ -82,26 +80,9 @@ Client* client_destroy(Client* client)
 
 void client_load_character_data(Client* client, ClientLoadData_Character* data)
 {
+    mob_init_client_character(&client->mob, data);
+    
     client->surname = data->surname;
-    client->mob.level = data->level;
-    client->mob.classId = data->classId;
-    client->mob.baseGenderId = data->genderId;
-    client->mob.genderId = data->genderId;
-    client->mob.faceId = data->faceId;
-    client->mob.baseRaceId = data->raceId;
-    client->mob.raceId = data->raceId;
-    client->mob.deityId = data->deityId;
-    client->mob.loc = data->loc;
-    mob_set_cur_hp_no_cap_check(&client->mob, data->currentHp);
-    mob_set_cur_mana_no_cap_check(&client->mob, data->currentMana);
-    mob_set_cur_endurance_no_cap_check(&client->mob, data->currentEndurance);
-    client->mob.baseStats.STR = data->STR;
-    client->mob.baseStats.STA = data->STA;
-    client->mob.baseStats.DEX = data->DEX;
-    client->mob.baseStats.AGI = data->AGI;
-    client->mob.baseStats.INT = data->INT;
-    client->mob.baseStats.WIS = data->WIS;
-    client->mob.baseStats.CHA = data->CHA;
     
     client->isAutoSplitEnabled = data->autoSplit;
     client->isPvP = data->isPvP;
@@ -138,6 +119,11 @@ void client_load_character_data(Client* client, ClientLoadData_Character* data)
 StaticBuffer* client_name(Client* client)
 {
     return client->mob.name;
+}
+
+const char* client_name_str(Client* client)
+{
+    return sbuf_str(client->mob.name);
 }
 
 const char* client_surname_str_no_null(Client* client)
@@ -416,6 +402,61 @@ uint16_t client_thirst(Client* client)
 uint16_t client_drunkeness(Client* client)
 {
     return client->drunkeness;
+}
+
+uint8_t client_helm_texture_id(Client* client)
+{
+    return client->mob.helmTextureId;
+}
+
+uint8_t client_texture_id(Client* client)
+{
+    return client->mob.textureId;
+}
+
+uint8_t client_primary_weapon_model_id(Client* client)
+{
+    return client->mob.primaryWeaponModelId;
+}
+
+uint8_t client_secondary_weapon_model_id(Client* client)
+{
+    return client->mob.secondaryWeaponModelId;
+}
+
+uint8_t client_upright_state(Client* client)
+{
+    return client->mob.uprightState;
+}
+
+uint8_t client_light_level(Client* client)
+{
+    return client->mob.lightLevel;
+}
+
+uint8_t client_body_type(Client* client)
+{
+    return client->mob.bodyType;
+}
+
+float client_base_walking_speed(Client* client)
+{
+    return client->mob.baseWalkingSpeed;
+}
+
+float client_base_running_speed(Client* client)
+{
+    return client->mob.baseRunningSpeed;
+}
+
+float client_walking_speed(Client* client)
+{
+    return client->mob.currentWalkingSpeed;
+}
+
+float client_running_speed(Client* client)
+{
+    return client->mob.currentRunningSpeed;
 }
 
 BindPoint* client_bind_point(Client* client, int n)

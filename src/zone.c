@@ -2,6 +2,7 @@
 #include "zone.h"
 #include "bit.h"
 #include "client.h"
+#include "client_packet_send.h"
 #include "ringbuf.h"
 #include "util_alloc.h"
 #include "zone_id.h"
@@ -36,9 +37,11 @@ void zone_add_client(Zone* zone, Client* client)
     
     client_set_zone(client, zone);
     
-    /*fixme: send packets: PP, ZoneEntry, weather*/
+    /*fixme: do other initialization here (reset the client for this zone) */
     
-    /*fixme: do other initialization here */
+    /*fixme: send packets: PP, ZoneEntry, weather*/
+    client_send_player_profile(client);
+    client_send_zone_entry(client);
     
 fail:;
 }
