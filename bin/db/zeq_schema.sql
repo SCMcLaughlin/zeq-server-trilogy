@@ -68,8 +68,6 @@ CREATE TABLE character (
     is_gm                   BOOLEAN DEFAULT 0,
     autosplit               BOOLEAN DEFAULT 0,
     is_pvp                  BOOLEAN DEFAULT 0,
-    is_gm_speed             BOOLEAN DEFAULT 0,
-    is_gm_hide              BOOLEAN DEFAULT 0,
     anon                    INT     DEFAULT 0,
     drunkeness              INT     DEFAULT 0,
     creation_time           INT,
@@ -93,6 +91,44 @@ CREATE TABLE character (
 
 CREATE INDEX idx_character_account_id ON character (account_id);
 CREATE INDEX idx_character_name ON character (name);
+
+CREATE TABLE skill (
+    character_id    INT,
+    skill_id        INT,
+    value           INT,
+    
+    PRIMARY KEY (character_id, skill_id)
+);
+
+CREATE TABLE spellbook (
+    character_id    INT,
+    slot_id         INT,
+    spell_id        INT,
+    
+    PRIMARY KEY (character_id, slot_id)
+);
+
+CREATE TABLE memmed_spells (
+    character_id        INT,
+    slot_id             INT,
+    spell_id            INT,
+    recast_timestamp_ms INT,
+    
+    PRIMARY KEY (character_id, slot_id)
+);
+
+CREATE TABLE bind_point (
+    character_id    INT,
+    bind_id         INT,
+    zone_id         INT,
+    inst_id         INT DEFAULT 0,
+    x               REAL,
+    y               REAL,
+    z               REAL,
+    heading         REAL,
+    
+    PRIMARY KEY (character_id, bind_id)
+);
 
 CREATE TABLE guild (
     guild_id    INTEGER PRIMARY KEY,

@@ -14,7 +14,7 @@ struct Client {
     Mob             mob;
     int             zoneIndex;
     StaticBuffer*   surname;
-    int64_t         clientId;
+    int64_t         characterId;
     int64_t         accountId;
     IpAddr          ipAddr;
     uint16_t        isLocal             : 1;
@@ -27,7 +27,6 @@ struct Client {
     uint16_t        isHiding            : 1;
     uint16_t        isGMSpeed           : 1;
     uint16_t        isGMHide            : 1;
-    Zone*           zone;
     int64_t         experience;
     uint64_t        harmtouchTimestamp;
     uint64_t        disciplineTimestamp;
@@ -60,7 +59,7 @@ Client* client_create_unloaded(StaticBuffer* name, int64_t accountId, IpAddr ipA
 
     client->zoneIndex = -1;
     client->surname = NULL;
-    client->clientId = -1;
+    client->characterId = -1;
     client->accountId = accountId;
     client->ipAddr = ipAddr;
     client->isLocal = isLocal;
@@ -85,6 +84,7 @@ void client_load_character_data(Client* client, ClientLoadData_Character* data)
 {
     mob_init_client_character(&client->mob, data);
     
+    client->characterId = data->charId;
     client->surname = data->surname;
     
     client->isAutoSplitEnabled = data->autoSplit;
@@ -114,7 +114,7 @@ void client_load_character_data(Client* client, ClientLoadData_Character* data)
     client->guildRank = data->guildRank;
     
     inv_init(&client->inventory);
-    skills_init(&client->skills, client->mob.classId, (uint8_t)client->mob.baseRaceId, client->mob.level);
+    skills_init(&client->skills, client->mob.classId, client->mob.baseRaceId);
 
     /*fixme: calc base resists and max hp & mana based on level, class, race*/
 }

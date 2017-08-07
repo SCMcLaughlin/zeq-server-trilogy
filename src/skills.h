@@ -121,7 +121,7 @@ typedef struct {
     uint8_t language[LANG_COUNT];
 } Skills;
 
-void skills_init(Skills* sk, uint8_t classId, uint8_t raceId, uint8_t level);
+void skills_init(Skills* sk, uint8_t classId, uint16_t raceId);
 void skills_set_from_db(Skills* sk, uint32_t skillId, uint32_t value);
 void skills_write_pp(Skills* sk, Aligned* a);
 void skills_write_pp_languages(Skills* sk, Aligned* a);

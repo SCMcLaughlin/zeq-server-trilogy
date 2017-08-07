@@ -294,7 +294,9 @@ static void dbr_main_load_character(DbThread* db, sqlite3* sqlite, ZPacket* zpac
             "character_id, surname, level, class, race, gender, face, deity, x, y, z, heading, current_hp, current_mana, current_endurance, experience, training_points, "
             "base_str, base_sta, base_dex, base_agi, base_int, base_wis, base_cha, guild_id, guild_rank, harmtouch_timestamp, discipline_timestamp, "
             "pp, gp, sp, cp, pp_cursor, gp_cursor, sp_cursor, cp_cursor, pp_bank, gp_bank, sp_bank, cp_bank, hunger, thirst, is_gm, anon, drunkeness, "
-            "strftime('%s', creation_time), zone_id, inst_id, autosplit, is_pvp, is_gm_speed, is_gm_hide "
+            "strftime('%s', creation_time), zone_id, inst_id, autosplit, is_pvp, acct.gm_speed, acct.gm_hide "
+        "JOIN "
+            "account AS acct ON acct.id = account_id "
         "FROM character WHERE name = ? AND account_id = ?");
 
     if (run && db_bind_string_sbuf(db, stmt, 0, zpacket->db.zQuery.qMainLoadCharacter.name) && db_bind_int64(db, stmt, 1, zpacket->db.zQuery.qMainLoadCharacter.accountId))
