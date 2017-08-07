@@ -1329,7 +1329,7 @@ static void cs_thread_handle_zone_success(CharSelectThread* cs, ZPacket* zpacket
     /* month */
     aligned_write_uint8(&a, nTime.month);
     /* year */
-    aligned_write_uint8(&a, nTime.year);
+    aligned_write_uint16(&a, nTime.year);
     
     rc = csc_schedule_packet(client, udpQueue, packet);
     if (rc) goto drop_client;

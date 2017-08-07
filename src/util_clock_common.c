@@ -22,11 +22,11 @@ void clock_calc_norrath_time_at(NorrathTime* out, uint64_t unixTime)
     eq = (unixTime - BASE_UNIX_TIME) / REAL_SECONDS_PER_MINUTE;
     
     /* Whittling our way down... get the EQ year and factor it out of our EQ minutes */
-    out->year = eq / MINUTES_PER_YEAR;
+    out->year = (uint16_t)(eq / MINUTES_PER_YEAR);
     eq %= MINUTES_PER_YEAR;
     
     /* Months take some extra work */
-    day = (eq / MINUTES_PER_DAY) + 1; /* There's no zeroth day of the month */
+    day = (uint32_t)((eq / MINUTES_PER_DAY) + 1); /* There's no zeroth day of the month */
     
     for (i = 0; i < 12; i++)
     {
@@ -46,11 +46,11 @@ void clock_calc_norrath_time_at(NorrathTime* out, uint64_t unixTime)
     eq %= MINUTES_PER_DAY;
     
     /* Hour */
-    out->hour = eq / MINUTES_PER_HOUR;
+    out->hour = (uint8_t)(eq / MINUTES_PER_HOUR);
     eq %= MINUTES_PER_HOUR;
     
     /* Minute */
-    out->minute = eq;
+    out->minute = (uint8_t)eq;
 }
 
 #undef REAL_SECONDS_PER_MINUTE

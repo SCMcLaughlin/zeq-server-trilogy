@@ -140,7 +140,7 @@ static void inv_write_pp_item_properties(Inventory* inv, Aligned* a, uint32_t fr
         slotId -= from;
         
         aligned_advance_by(a, (sizeof(PS_PPItem) * slotId) + sizeof(uint16_t));
-        aligned_write_uint8(a, slot->item->charges);
+        aligned_write_uint8(a, (uint8_t)slot->item->charges);
         aligned_reset_cursor_to(a, resetTo);
     }
     

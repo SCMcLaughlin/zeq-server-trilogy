@@ -111,5 +111,5 @@ void mob_deinit(Mob* mob)
 
 int8_t mob_hp_ratio(Mob* mob)
 {
-    return (mob->currentHp * 100) / mob->cappedStats.maxHp;
+    return (int8_t)((mob->currentHp * 100) / mob->cappedStats.maxHp);
 }
