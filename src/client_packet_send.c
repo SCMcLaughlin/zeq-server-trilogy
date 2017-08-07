@@ -332,7 +332,7 @@ void client_send_player_profile(Client* client)
     /* guildRank */
     aligned_write_uint8(&a, client_guild_rank_or_ff(client));
     /* drunkeness */
-    aligned_write_uint8(&a, client_drunkeness(client));
+    aligned_write_uint8(&a, (uint8_t)client_drunkeness(client));
     /* showEqLoadScreen, unknownU */
     aligned_write_zeroes(&a, sizeof(pp.showEqLoadScreen) + sizeof(pp.unknownU));
     
@@ -397,7 +397,7 @@ void client_send_zone_entry(Client* client)
     /* z */
     aligned_write_float(&a, client_loc_z(client));
     /* heading */
-    aligned_write_float(&a, client_loc_heading(client) * 2.0); /*fixme: ?*/
+    aligned_write_float(&a, client_loc_heading(client) * 2.0f); /*fixme: ?*/
     /* unknownC */
     aligned_write_zeroes(&a, sizeof_field(PS_ZoneEntry, unknownC));
     /* guildId */

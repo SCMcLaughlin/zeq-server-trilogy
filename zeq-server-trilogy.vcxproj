@@ -86,8 +86,9 @@
       <AdditionalIncludeDirectories>win32;win32\openssl;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>sqlite3.lib;libeay32.lib;ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>zlib1.lib;sqlite3.lib;libeay32.lib;ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>win32;</AdditionalLibraryDirectories>
+      <IgnoreSpecificDefaultLibraries>LIBCMT;</IgnoreSpecificDefaultLibraries>
     </Link>
     <PreBuildEvent>
       <Command>luajit codegen/enum2str.lua</Command>
@@ -124,8 +125,9 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>sqlite3.lib;libeay32.lib;ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>zlib1.lib;sqlite3.lib;libeay32.lib;ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>win32;</AdditionalLibraryDirectories>
+      <IgnoreSpecificDefaultLibraries>LIBCMT;</IgnoreSpecificDefaultLibraries>
     </Link>
     <PreBuildEvent>
       <Command>luajit codegen/enum2str.lua</Command>
@@ -166,6 +168,8 @@
     <ClInclude Include="src\client.h" />
     <ClInclude Include="src\client_load_data.h" />
     <ClInclude Include="src\client_mgr.h" />
+    <ClInclude Include="src\client_packet_recv.h" />
+    <ClInclude Include="src\client_packet_send.h" />
     <ClInclude Include="src\crc.h" />
     <ClInclude Include="src\db_read.h" />
     <ClInclude Include="src\db_thread.h" />
@@ -181,10 +185,13 @@
     <ClInclude Include="src\enum_login_opcode.h" />
     <ClInclude Include="src\enum_login_server_rank.h" />
     <ClInclude Include="src\enum_login_server_status.h" />
+    <ClInclude Include="src\enum_opcode.h" />
     <ClInclude Include="src\enum_zop.h" />
     <ClInclude Include="src\gender_id.h" />
     <ClInclude Include="src\guild.h" />
     <ClInclude Include="src\hash.h" />
+    <ClInclude Include="src\inventory.h" />
+    <ClInclude Include="src\item.h" />
     <ClInclude Include="src\loc.h" />
     <ClInclude Include="src\login_client.h" />
     <ClInclude Include="src\login_crypto.h" />
@@ -195,12 +202,17 @@
     <ClInclude Include="src\main_thread.h" />
     <ClInclude Include="src\main_timers.h" />
     <ClInclude Include="src\main_zpacket.h" />
+    <ClInclude Include="src\misc_enum.h" />
     <ClInclude Include="src\misc_struct.h" />
     <ClInclude Include="src\mob.h" />
+    <ClInclude Include="src\packet_create.h" />
+    <ClInclude Include="src\packet_static.h" />
+    <ClInclude Include="src\packet_struct.h" />
     <ClInclude Include="src\player_profile_packet_struct.h" />
     <ClInclude Include="src\race_id.h" />
     <ClInclude Include="src\ringbuf.h" />
-    <ClInclude Include="src\structs_container.h" />
+    <ClInclude Include="src\skills.h" />
+    <ClInclude Include="src\spellbook.h" />
     <ClInclude Include="src\timer.h" />
     <ClInclude Include="src\tlg_packet.h" />
     <ClInclude Include="src\udp_client.h" />
@@ -218,8 +230,11 @@
     <ClInclude Include="src\util_str.h" />
     <ClInclude Include="src\util_thread.h" />
     <ClInclude Include="src\win32_posix_define.h" />
+    <ClInclude Include="src\zone.h" />
     <ClInclude Include="src\zone_id.h" />
     <ClInclude Include="src\zone_mgr.h" />
+    <ClInclude Include="src\zone_thread.h" />
+    <ClInclude Include="src\zone_zpacket.h" />
     <ClInclude Include="src\zpacket.h" />
   </ItemGroup>
   <ItemGroup>
@@ -232,6 +247,8 @@
     <ClCompile Include="src\class_id.c" />
     <ClCompile Include="src\client.c" />
     <ClCompile Include="src\client_mgr.c" />
+    <ClCompile Include="src\client_packet_recv.c" />
+    <ClCompile Include="src\client_packet_send.c" />
     <ClCompile Include="src\crc.c" />
     <ClCompile Include="src\db_read.c" />
     <ClCompile Include="src\db_thread.c" />
@@ -240,6 +257,7 @@
     <ClCompile Include="src\enum2str.c" />
     <ClCompile Include="src\gender_id.c" />
     <ClCompile Include="src\hash.c" />
+    <ClCompile Include="src\inventory.c" />
     <ClCompile Include="src\login_client.c" />
     <ClCompile Include="src\login_crypto.c" />
     <ClCompile Include="src\login_thread.c" />
@@ -248,13 +266,18 @@
     <ClCompile Include="src\main_thread.c" />
     <ClCompile Include="src\main_timers.c" />
     <ClCompile Include="src\mob.c" />
+    <ClCompile Include="src\packet_create.c" />
+    <ClCompile Include="src\packet_static.c" />
     <ClCompile Include="src\race_id.c" />
     <ClCompile Include="src\ringbuf.c" />
+    <ClCompile Include="src\skills.c" />
+    <ClCompile Include="src\spellbook.c" />
     <ClCompile Include="src\timer.c" />
     <ClCompile Include="src\tlg_packet.c" />
     <ClCompile Include="src\udp_client.c" />
     <ClCompile Include="src\udp_thread.c" />
     <ClCompile Include="src\util_atomic_win32.cpp" />
+    <ClCompile Include="src\util_clock_common.c" />
     <ClCompile Include="src\util_clock_win32.c" />
     <ClCompile Include="src\util_hash_tbl.c" />
     <ClCompile Include="src\util_ipv4.c" />
@@ -263,8 +286,10 @@
     <ClCompile Include="src\util_socket_lib.c" />
     <ClCompile Include="src\util_str.c" />
     <ClCompile Include="src\util_thread_win32.c" />
+    <ClCompile Include="src\zone.c" />
     <ClCompile Include="src\zone_id.c" />
     <ClCompile Include="src\zone_mgr.c" />
+    <ClCompile Include="src\zone_thread.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -114,7 +114,7 @@ void client_load_character_data(Client* client, ClientLoadData_Character* data)
     client->guildRank = data->guildRank;
     
     inv_init(&client->inventory);
-    skills_init(&client->skills, client->mob.classId, client->mob.baseRaceId, client->mob.level);
+    skills_init(&client->skills, client->mob.classId, (uint8_t)client->mob.baseRaceId, client->mob.level);
 
     /*fixme: calc base resists and max hp & mana based on level, class, race*/
 }
