@@ -7,6 +7,7 @@
 #include "client_load_data.h"
 #include "define_netcode.h"
 #include "inventory.h"
+#include "loc.h"
 #include "skills.h"
 #include "spellbook.h"
 #include "zone.h"
@@ -23,6 +24,7 @@ const char* client_surname_str_no_null(Client* client);
 uint8_t client_base_gender_id(Client* client);
 uint16_t client_base_race_id(Client* client);
 uint8_t client_class_id(Client* client);
+uint16_t client_deity_id(Client* client);
 uint8_t client_level(Client* client);
 int64_t client_experience(Client* client);
 uint16_t client_training_points(Client* client);
@@ -43,6 +45,11 @@ float client_loc_heading(Client* client);
 Coin* client_coin(Client* client);
 Coin* client_coin_bank(Client* client);
 Coin* client_coin_cursor(Client* client);
+uint32_t client_guild_id(Client* client);
+uint32_t client_guild_id_or_ffff(Client* client);
+uint8_t client_guild_rank(Client* client);
+uint8_t client_guild_rank_or_ff(Client* client);
+uint8_t client_anon_setting(Client* client);
 
 Inventory* client_inv(Client* client);
 Skills* client_skills(Client* client);
@@ -55,5 +62,25 @@ IpAddr client_ip_addr(Client* client);
 uint32_t client_ip(Client* client);
 uint16_t client_port(Client* client);
 void client_set_port(Client* client, uint16_t port);
+
+bool client_is_auto_split_enabled(Client* client);
+bool client_is_pvp(Client* client);
+bool client_is_gm(Client* client);
+bool client_is_afk(Client* client);
+bool client_is_linkdead(Client* client);
+bool client_is_sneaking(Client* client);
+bool client_is_hiding(Client* client);
+bool client_has_gm_speed(Client* client);
+bool client_has_gm_hide(Client* client);
+
+uint64_t client_disc_timestamp(Client* client);
+uint64_t client_harmtouch_timestamp(Client* client);
+uint64_t client_creation_timestamp(Client* client);
+
+uint16_t client_hunger(Client* client);
+uint16_t client_thirst(Client* client);
+uint16_t client_drunkeness(Client* client);
+
+BindPoint* client_bind_point(Client* client, int n);
 
 #endif/*CLIENT_H*/

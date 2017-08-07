@@ -3,6 +3,7 @@
 #include "aligned.h"
 #include "buffer.h"
 #include "client.h"
+#include "crc.h"
 #include "inventory.h"
 #include "player_profile_packet_struct.h"
 #include "skills.h"
@@ -11,6 +12,7 @@
 #include "udp_zpacket.h"
 #include "util_clock.h"
 #include "zone.h"
+#include "zone_id.h"
 #include "enum_opcode.h"
 #include <zlib.h>
 
@@ -105,7 +107,9 @@ void client_send_player_profile(Client* client)
 {
     PS_PlayerProfile pp;
     Inventory* inv = client_inv(client);
+    BindPoint* bind = client_bind_point(client, 0);
     uint64_t time = clock_milliseconds();
+    uint64_t time2;
     uint32_t i;
     Aligned a;
     
@@ -237,25 +241,139 @@ void client_send_player_profile(Client* client)
     aligned_write_zeroes(&a, 92);
     
     /* autoSplit */
-    
+    aligned_write_uint32(&a, client_is_auto_split_enabled(client));
     /* pvpEnabled */
-    
+    aligned_write_uint32(&a, client_is_pvp(client));
     /* unknownG */
     aligned_write_zeroes(&a, sizeof(pp.unknownG));
     /* isGM */
-    
+    aligned_write_uint32(&a, client_is_gm(client));
+    /* unknownH */
+    aligned_write_zeroes(&a, sizeof(pp.unknownH));
     /* disciplinesReady */
-    
+    aligned_write_uint32(&a, (time >= client_disc_timestamp(client)));
     /* unknownI */
     aligned_write_zeroes(&a, sizeof(pp.unknownI));
     /* hunger */
-    
+    aligned_write_uint32(&a, client_hunger(client));
     /* thirst */
-    
+    aligned_write_uint32(&a, client_thirst(client));
     /* unknownJ */
     aligned_write_zeroes(&a, sizeof(pp.unknownJ));
     
     /* bindZoneShortName[5] */
+    aligned_write_snprintf_and_advance_by(&a, sizeof(pp.bindZoneShortName[0]), "%s", zone_short_name_by_id(bind[0].zoneId));
+    aligned_write_snprintf_and_advance_by(&a, sizeof(pp.bindZoneShortName[1]), "%s", zone_short_name_by_id(bind[1].zoneId));
+    aligned_write_snprintf_and_advance_by(&a, sizeof(pp.bindZoneShortName[2]), "%s", zone_short_name_by_id(bind[2].zoneId));
+    aligned_write_snprintf_and_advance_by(&a, sizeof(pp.bindZoneShortName[3]), "%s", zone_short_name_by_id(bind[3].zoneId));
+    aligned_write_snprintf_and_advance_by(&a, sizeof(pp.bindZoneShortName[4]), "%s", zone_short_name_by_id(bind[4].zoneId));
+    
+    /* bankInventoryItemProperties */
+    inv_write_pp_bank_item_properties(inv, &a);
+    
+    /* bankBaggedItemProperties */
+    inv_write_pp_bank_bag_item_properties(inv, &a);
+    
+    /* unknownK, unknownL */
+    aligned_write_zeroes(&a, sizeof(pp.unknownK) + sizeof(pp.unknownL));
+    
+    /* bindLocY[5] */
+    aligned_write_float(&a, bind[0].loc.y);
+    aligned_write_float(&a, bind[1].loc.y);
+    aligned_write_float(&a, bind[2].loc.y);
+    aligned_write_float(&a, bind[3].loc.y);
+    aligned_write_float(&a, bind[4].loc.y);
+    /* bindLocX[5] */
+    aligned_write_float(&a, bind[0].loc.x);
+    aligned_write_float(&a, bind[1].loc.x);
+    aligned_write_float(&a, bind[2].loc.x);
+    aligned_write_float(&a, bind[3].loc.x);
+    aligned_write_float(&a, bind[4].loc.x);
+    /* bindLocZ[5] */
+    aligned_write_float(&a, bind[0].loc.z);
+    aligned_write_float(&a, bind[1].loc.z);
+    aligned_write_float(&a, bind[2].loc.z);
+    aligned_write_float(&a, bind[3].loc.z);
+    aligned_write_float(&a, bind[4].loc.z);
+    /* bindLocHeading[5] */
+    aligned_write_float(&a, bind[0].loc.heading);
+    aligned_write_float(&a, bind[1].loc.heading);
+    aligned_write_float(&a, bind[2].loc.heading);
+    aligned_write_float(&a, bind[3].loc.heading);
+    aligned_write_float(&a, bind[4].loc.heading);
+    
+    /* bankInventoryInternalUnused, unknownM */
+    aligned_write_zeroes(&a, sizeof(pp.bankInventoryInternalUnused) + sizeof(pp.unknownM));
+    /* unixTimeA */
+    aligned_write_uint32(&a, (uint32_t)client_creation_timestamp(client)); /*fixme: is this supposed to be creation time, or current time?*/
+    /* unknownN */
+    aligned_write_zeroes(&a, sizeof(pp.unknownN));
+    /* unknownODefault1 */
+    aligned_write_uint32(&a, 1);
+    /* unknownP */
+    aligned_write_zeroes(&a, sizeof(pp.unknownP));
+    
+    /* bankInventoryItemIds */
+    inv_write_pp_bank_item_ids(inv, &a);
+    
+    /* bankBaggedItemIds */
+    inv_write_pp_bank_bag_item_ids(inv, &a);
+    
+    /* deity */
+    aligned_write_uint16(&a, client_deity_id(client));
+    /* guildId */
+    aligned_write_uint16(&a, client_guild_id_or_ffff(client));
+    /* unixTimeB */
+    aligned_write_uint32(&a, (uint32_t)time);
+    /* unknownQ */
+    aligned_write_zeroes(&a, sizeof(pp.unknownQ));
+    /* unknownRDefault7f7f */
+    aligned_write_uint16(&a, 0x7f7f);
+    /* fatiguePercent */
+    aligned_write_uint8(&a, 0); /*fixme: handle this*/
+    /* unknownS */
+    aligned_write_zeroes(&a, sizeof(pp.unknownS));
+    /* unknownTDefault1 */
+    aligned_write_uint8(&a, 1);
+    /* anon */
+    aligned_write_uint16(&a, client_anon_setting(client));
+    /* guildRank */
+    aligned_write_uint8(&a, client_guild_rank_or_ff(client));
+    /* drunkeness */
+    aligned_write_uint8(&a, client_drunkeness(client));
+    /* showEqLoadScreen, unknownU */
+    aligned_write_zeroes(&a, sizeof(pp.showEqLoadScreen) + sizeof(pp.unknownU));
+    
+    /* spellGemRefreshMilliseconds */
+    spellbook_write_pp_gem_refresh(client_spellbook(client), &a, time);
+    
+    /* unknownV */
+    aligned_write_zeroes(&a, sizeof(pp.unknownV));
+    
+    /* harmtouchRefreshMilliseconds */
+    time2 = client_harmtouch_timestamp(client);
+    aligned_write_uint32(&a, (uint32_t)((time >= time2) ? 0 : time2 - time));
+    
+    /* groupMemberNames */
+    /*fixme: handle these */
+    aligned_write_zeroes(&a, sizeof(pp.groupMember[0]));
+    aligned_write_zeroes(&a, sizeof(pp.groupMember[1]));
+    aligned_write_zeroes(&a, sizeof(pp.groupMember[2]));
+    aligned_write_zeroes(&a, sizeof(pp.groupMember[3]));
+    aligned_write_zeroes(&a, sizeof(pp.groupMember[4]));
+    
+    /* unknownW */
+    aligned_write_zeroes(&a, 70);
+    aligned_write_uint16(&a, 0xffff);
+    aligned_write_zeroes(&a, 6);
+    aligned_write_memset(&a, 0xff, 6);
+    aligned_write_zeroes(&a, 176);
+    aligned_write_uint16(&a, 0xffff);
+    aligned_write_zeroes(&a, 2);
+    aligned_write_zeroes(&a, aligned_remaining_space(&a));
+    
+    /* crc */
+    pp.crc = ~crc_calc32(((byte*)&pp) + sizeof(uint32_t), sizeof(pp) - sizeof(uint32_t));
     
     cps_player_profile_compress_obfuscate_send(client, &pp);
 }

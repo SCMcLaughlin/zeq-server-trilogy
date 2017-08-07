@@ -45,6 +45,10 @@ typedef struct {
     uint64_t        creationTimestamp;
     int             zoneId;
     int             instId;
+    bool            autoSplit;
+    bool            isPvP;
+    bool            isGMSpeed;
+    bool            isGMHide;
 } ClientLoadData_Character;
 
 #endif/*CLIENT_LOAD_DATA_H*/

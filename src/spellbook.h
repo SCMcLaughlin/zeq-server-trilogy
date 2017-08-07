@@ -26,5 +26,6 @@ typedef struct {
 
 void spellbook_deinit(Spellbook* sb);
 void spellbook_write_pp(Spellbook* sb, Aligned* a);
+void spellbook_write_pp_gem_refresh(Spellbook* sb, Aligned* a, uint64_t time);
 
 #endif/*SPELLBOOK_H*/

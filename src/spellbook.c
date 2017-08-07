@@ -44,3 +44,15 @@ void spellbook_write_pp(Spellbook* sb, Aligned* a)
         aligned_write_uint16(a, (spellId) ? spellId : 0xffff);
     }
 }
+
+void spellbook_write_pp_gem_refresh(Spellbook* sb, Aligned* a, uint64_t time)
+{
+    uint32_t i;
+    
+    for (i = 0; i < MEMMED_SPELL_SLOTS; i++)
+    {
+        uint64_t timestamp = sb->memmed[i].recastTimestamp;
+        
+        aligned_write_uint32(a, (uint32_t)((time >= timestamp) ? 0 : timestamp - time));
+    }
+}

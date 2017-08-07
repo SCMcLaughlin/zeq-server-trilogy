@@ -2,6 +2,7 @@
 #include "client.h"
 #include "define_netcode.h"
 #include "inventory.h"
+#include "loc.h"
 #include "misc_struct.h"
 #include "mob.h"
 #include "skills.h"
@@ -14,7 +15,16 @@ struct Client {
     int64_t         clientId;
     int64_t         accountId;
     IpAddr          ipAddr;
-    bool            isLocal;
+    uint16_t        isLocal             : 1;
+    uint16_t        isAutoSplitEnabled  : 1;
+    uint16_t        isPvP               : 1;
+    uint16_t        isGM                : 1;
+    uint16_t        isAfk               : 1;
+    uint16_t        isLinkdead          : 1;
+    uint16_t        isSneaking          : 1;
+    uint16_t        isHiding            : 1;
+    uint16_t        isGMSpeed           : 1;
+    uint16_t        isGMHide            : 1;
     Zone*           zone;
     int64_t         experience;
     uint64_t        harmtouchTimestamp;
@@ -28,12 +38,12 @@ struct Client {
     Coin            coin;
     Coin            coinCursor;
     Coin            coinBank;
-    bool            isGM;
     uint8_t         anon;
     uint8_t         guildRank;
     Inventory       inventory;
     Skills          skills;
     Spellbook       spellbook;
+    BindPoint       bindPoint[5];
 };
 
 Client* client_create_unloaded(StaticBuffer* name, int64_t accountId, IpAddr ipAddr, bool isLocal)
@@ -93,6 +103,16 @@ void client_load_character_data(Client* client, ClientLoadData_Character* data)
     client->mob.baseStats.WIS = data->WIS;
     client->mob.baseStats.CHA = data->CHA;
     
+    client->isAutoSplitEnabled = data->autoSplit;
+    client->isPvP = data->isPvP;
+    client->isGM = data->isGM;
+    client->isAfk = false;
+    client->isLinkdead = false;
+    client->isSneaking = false;
+    client->isHiding = false;
+    client->isGMSpeed = data->isGMSpeed;
+    client->isGMHide = data->isGMHide;
+    
     client->experience = data->experience;
     client->harmtouchTimestamp = data->harmtouchTimestamp;
     client->disciplineTimestamp = data->disciplineTimestamp;
@@ -139,6 +159,11 @@ uint16_t client_base_race_id(Client* client)
 uint8_t client_class_id(Client* client)
 {
     return client->mob.classId;
+}
+
+uint16_t client_deity_id(Client* client)
+{
+    return client->mob.deityId;
 }
 
 uint8_t client_level(Client* client)
@@ -241,6 +266,33 @@ Coin* client_coin_cursor(Client* client)
     return &client->coinCursor;
 }
 
+uint32_t client_guild_id(Client* client)
+{
+    return client->guildId;
+}
+
+uint32_t client_guild_id_or_ffff(Client* client)
+{
+    uint32_t id = client->guildId;
+    return (id) ? id : 0xffff;
+}
+
+uint8_t client_guild_rank(Client* client)
+{
+    return client->guildRank;
+}
+
+uint8_t client_guild_rank_or_ff(Client* client)
+{
+    uint8_t rank = client->guildRank;
+    return (rank) ? rank : 0xff;
+}
+
+uint8_t client_anon_setting(Client* client)
+{
+    return client->anon;
+}
+
 Inventory* client_inv(Client* client)
 {
     return &client->inventory;
@@ -289,4 +341,84 @@ uint16_t client_port(Client* client)
 void client_set_port(Client* client, uint16_t port)
 {
     client->ipAddr.port = port;
+}
+
+bool client_is_auto_split_enabled(Client* client)
+{
+    return client->isAutoSplitEnabled != 0;
+}
+
+bool client_is_pvp(Client* client)
+{
+    return client->isPvP != 0;
+}
+
+bool client_is_gm(Client* client)
+{
+    return client->isGM != 0;
+}
+
+bool client_is_afk(Client* client)
+{
+    return client->isAfk != 0;
+}
+
+bool client_is_linkdead(Client* client)
+{
+    return client->isLinkdead != 0;
+}
+
+bool client_is_sneaking(Client* client)
+{
+    return client->isSneaking != 0;
+}
+
+bool client_is_hiding(Client* client)
+{
+    return client->isHiding != 0;
+}
+
+bool client_has_gm_speed(Client* client)
+{
+    return client->isGMSpeed != 0;
+}
+
+bool client_has_gm_hide(Client* client)
+{
+    return client->isGMHide != 0;
+}
+
+uint64_t client_disc_timestamp(Client* client)
+{
+    return client->disciplineTimestamp;
+}
+
+uint64_t client_harmtouch_timestamp(Client* client)
+{
+    return client->harmtouchTimestamp;
+}
+
+uint64_t client_creation_timestamp(Client* client)
+{
+    return client->creationTimestamp;
+}
+
+uint16_t client_hunger(Client* client)
+{
+    return client->hunger;
+}
+
+uint16_t client_thirst(Client* client)
+{
+    return client->thirst;
+}
+
+uint16_t client_drunkeness(Client* client)
+{
+    return client->drunkeness;
+}
+
+BindPoint* client_bind_point(Client* client, int n)
+{
+    return &client->bindPoint[n];
 }
