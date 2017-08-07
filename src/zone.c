@@ -55,6 +55,8 @@ void zone_add_client_zoning_in(Zone* zone, Client* client)
     }
     
     zone->clientsBroadcastAll[index] = client;
+
+    log_writef(zone->logQueue, zone->logId, "Zoning in \"%s\"", sbuf_str(client_name(client)));
     
     client_reset_for_zone(client, zone);
     
@@ -181,6 +183,8 @@ Zone* zone_create(LogThread* log, RingBuf* udpQueue, int zoneId, int instId, Sta
     
     rc = log_open_filef(log, &zone->logId, "log/zone_%s_inst_%i.txt", zone_short_name_by_id(zoneId), instId);
     if (rc) goto fail;
+
+    return zone;
     
 fail:
     zone_destroy(zone);

@@ -27,7 +27,7 @@ CREATE TABLE character (
     class                   INT     DEFAULT 1,
     race                    INT     DEFAULT 1,
     zone_id                 INT     DEFAULT 1,
-    instance_id             INT     DEFAULT 0,
+    inst_id                 INT     DEFAULT 0,
     gender                  INT     DEFAULT 0,
     face                    INT     DEFAULT 0,
     deity                   INT     DEFAULT 396,

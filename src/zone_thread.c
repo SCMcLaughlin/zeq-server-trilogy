@@ -126,7 +126,8 @@ static void zt_handle_create_zone(ZoneThread* zt, ZPacket* zpacket)
     return;
     
 fail:
-    ; /*fixme: tell ZoneMgr this zone has gone down?*/
+    log_writef(zt->logQueue, zt->logId, "ERROR: zt_handle_create_zone: failure while allocating zone %i inst %i", zoneId, instId);
+    /*fixme: tell ZoneMgr this zone has gone down?*/
 }
 
 static Zone* zt_get_zone_by_id(ZoneThread* zt, int zoneId, int instId)
@@ -156,6 +157,8 @@ static void zt_transition_stub(ZoneThread* zt, ClientStub* stub, ClientExpected*
     Zone* zone;
     uint32_t n;
     int rc;
+
+    log_writef(zt->logQueue, zt->logId, "Found matching auth for client logging in as \"%s\"", sbuf_str(client_name(client)));
     
     /* Tell UdpThread to switch its clientObject from the stub to the real Client */
     zpacket.udp.zReplaceClientObject.ipAddress = stub->ipAddr;
@@ -294,6 +297,9 @@ static void zt_handle_add_client_expected(ZoneThread* zt, ZPacket* zpacket)
     zt->clientsExpected[n].instId = (int16_t)instId;
     
     zt->clientExpectedCount = n + 1;
+
+    log_writef(zt->logQueue, zt->logId, "Authorized %u.%u.%u.%u to log into zone %i (%s) inst %i on character \"%s\", awaiting matching client connection",
+        (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, zoneId, zone_short_name_by_id(zoneId), instId, sbuf_str(name));
     return;
     
 fail:
@@ -373,6 +379,10 @@ static void zt_handle_unconfirmed_client_name(ZoneThread* zt, ClientStub* stub, 
     ClientUnconfirmed* unconfirmed;
     uint32_t n = zt->clientExpectedCount;
     uint32_t i;
+
+    log_writef(zt->logQueue, zt->logId, "Client from %u.%u.%u.%u attempting to log in as \"%*s\"",
+        (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, len, name);
+
     
     /* Check if we now match one of the expected clients */
     for (i = 0; i < n; i++)
