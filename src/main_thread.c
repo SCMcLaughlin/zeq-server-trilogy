@@ -208,28 +208,17 @@ static void mt_send_shutdown_signals(MainThread* mt)
         return;
     
     mt->shutdownState = 1;
-    
     log_write_literal(mt->logQueue, mt->logId, "Received ZOP_MAIN_TerminateAll signal, shutting down all threads");
-    zmgr_send_shutdown_signals(mt);
-}
-
-void mt_on_all_zone_threads_shut_down(MainThread* mt)
-{
-    if (mt->shutdownState != 1)
-        return;
-    
-    mt->shutdownState = 2;
-    log_write_literal(mt->logQueue, mt->logId, "All ZoneThreads shut down");
     
     ringbuf_push(login_get_queue(mt->login), ZOP_LOGIN_TerminateThread, NULL);
 }
 
 static void mt_on_login_thread_shut_down(MainThread* mt)
 {
-    if (mt->shutdownState != 2)
+    if (mt->shutdownState != 1)
         return;
     
-    mt->shutdownState = 3;
+    mt->shutdownState = 2;
     log_write_literal(mt->logQueue, mt->logId, "LoginThread shut down");
     
     ringbuf_push(cs_get_queue(mt->cs), ZOP_CS_TerminateThread, NULL);
@@ -237,11 +226,22 @@ static void mt_on_login_thread_shut_down(MainThread* mt)
 
 static void mt_on_cs_thread_shut_down(MainThread* mt)
 {
+    if (mt->shutdownState != 2)
+        return;
+    
+    mt->shutdownState = 3;
+    log_write_literal(mt->logQueue, mt->logId, "CharSelectThread shut down");
+    
+    zmgr_send_shutdown_signals(mt);
+}
+
+void mt_on_all_zone_threads_shut_down(MainThread* mt)
+{
     if (mt->shutdownState != 3)
         return;
     
     mt->shutdownState = 4;
-    log_write_literal(mt->logQueue, mt->logId, "CharSelectThread shut down");
+    log_write_literal(mt->logQueue, mt->logId, "All ZoneThreads shut down");
     
     /* No depedencies between the DB and UDP threads */
     ringbuf_push(mt->dbQueue, ZOP_DB_TerminateThread, NULL);
