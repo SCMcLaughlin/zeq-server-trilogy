@@ -45,6 +45,7 @@ typedef struct {
 } DBQ_CSCharacterCreate;
 
 typedef struct {
+    void*           client;
     int64_t         accountId;
     StaticBuffer*   name;
 } DBQ_CSCharacterDelete;
@@ -133,6 +134,7 @@ typedef struct {
         DBR_CSCharacterInfo             rCSCharacterInfo;
         DBR_CSCharacterNameAvailable    rCSCharacterNameAvailable;
         DBR_CSCharacterCreate           rCSCharacterCreate;
+        DBR_CSCharacterCreate           rCSCharacterDelete;
         DBR_MainLoadCharacter           rMainLoadCharacter;
     };
 } DB_ZResult;

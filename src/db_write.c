@@ -108,7 +108,7 @@ static void dbw_cs_character_delete(DbThread* db, sqlite3* sqlite, ZPacket* zpac
     reply.db.zResult.queryId = zpacket->db.zQuery.queryId;
     reply.db.zResult.hadError = true;
     reply.db.zResult.hadErrorUnprocessed = false;
-    reply.db.zResult.rCSCharacterCreate.client = zpacket->db.zQuery.qCSCharacterCreate.client;
+    reply.db.zResult.rCSCharacterDelete.client = zpacket->db.zQuery.qCSCharacterDelete.client;
 
     run = db_prepare_literal(db, sqlite, &stmt,
         "DELETE FROM character WHERE name = ? AND account_id = ?");

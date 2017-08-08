@@ -1006,6 +1006,7 @@ static int cs_thread_handle_op_delete_character(CharSelectThread* cs, CharSelect
     if (len == 0)
         goto invalid;
 
+    query.db.zQuery.qCSCharacterDelete.client = client;
     query.db.zQuery.qCSCharacterDelete.accountId = csc_get_account_id(client);
     query.db.zQuery.qCSCharacterDelete.name = sbuf_create(name, len);
 
@@ -1026,7 +1027,7 @@ invalid:
 
 static void cs_thread_handle_db_character_delete(CharSelectThread* cs, ZPacket* zpacket)
 {
-    CharSelectClient* client = (CharSelectClient*)zpacket->db.zResult.rCSCharacterCreate.client;
+    CharSelectClient* client = (CharSelectClient*)zpacket->db.zResult.rCSCharacterDelete.client;
     int rc;
     
     switch (cs_thread_check_db_error(cs, client, zpacket, FUNC_NAME))
