@@ -1024,6 +1024,34 @@ invalid:
     return ERR_Invalid;
 }
 
+static void cs_thread_handle_db_character_delete(CharSelectThread* cs, ZPacket* zpacket)
+{
+    CharSelectClient* client = (CharSelectClient*)zpacket->db.zResult.rCSCharacterCreate.client;
+    int rc;
+    
+    switch (cs_thread_check_db_error(cs, client, zpacket, FUNC_NAME))
+    {
+    case ERR_Invalid:
+    case ERR_NotFound:
+        return;
+
+    case ERR_Generic:
+        goto drop_client;
+    
+    case ERR_None:
+        break;
+    }
+
+    /* Re-query the DB for char select data post-delete */
+    rc = cs_thread_trigger_send_char_info(cs, client, csc_get_account_id(client));
+    if (rc) goto drop_client;
+
+    return;
+    
+drop_client:
+    cs_thread_drop_client(cs, client);
+}
+
 static int cs_thread_handle_op_wear_change(CharSelectThread* cs, CharSelectClient* client, ZPacket* zpacket)
 {
     Aligned a;
@@ -1550,6 +1578,10 @@ static void cs_thread_proc(void* ptr)
 
         case ZOP_DB_QueryCSCharacterCreate:
             cs_thread_handle_db_character_create(cs, &zpacket);
+            break;
+        
+        case ZOP_DB_QueryCSCharacterDelete:
+            cs_thread_handle_db_character_delete(cs, &zpacket);
             break;
         
         default:
