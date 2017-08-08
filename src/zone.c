@@ -196,6 +196,10 @@ Zone* zone_destroy(Zone* zone)
 {
     if (zone)
     {
+        free_if_exists(zone->mobs);
+        free_if_exists(zone->clients);
+        free_if_exists(zone->clientsBroadcastAll); /*fixme: tell the clients they're being kicked? And that their Zone ptr is no longer valid*/
+        free_if_exists(zone->freeEntityIds);
         log_close_file(zone->logQueue, zone->logId);
         free(zone);
     }
@@ -211,6 +215,16 @@ const char* zone_short_name(Zone* zone)
 const char* zone_long_name(Zone* zone)
 {
     return zone_long_name_by_id(zone->zoneId);
+}
+
+int16_t zone_id(Zone* zone)
+{
+    return zone->zoneId;
+}
+
+int16_t zone_inst_id(Zone* zone)
+{
+    return zone->instId;
 }
 
 RingBuf* zone_udp_queue(Zone* zone)

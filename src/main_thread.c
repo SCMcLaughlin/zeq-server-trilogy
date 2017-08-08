@@ -302,6 +302,10 @@ static bool mt_process_commands(MainThread* mt, RingBuf* mainQueue)
             cmgr_handle_zone_from_char_select(mt, &zpacket);
             break;
         
+        case ZOP_MAIN_RemoveZone:
+            zmgr_on_remove_zone(mt, &zpacket);
+            break;
+        
         case ZOP_LOGIN_TerminateThread:
             mt_on_login_thread_shut_down(mt);
             break;

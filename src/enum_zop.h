@@ -49,6 +49,7 @@ enum ZOP
     /* Main thread */
     ZOP_MAIN_TerminateAll,
     ZOP_MAIN_ZoneFromCharSelect,
+    ZOP_MAIN_RemoveZone,
     /* Zone thread */
     ZOP_ZONE_TerminateThread,
     ZOP_ZONE_CreateZone,

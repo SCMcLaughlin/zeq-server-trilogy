@@ -23,6 +23,7 @@ typedef struct {
 
 typedef union {
     Zone_ZCreateZone            zCreateZone;
+    Zone_ZCreateZone            zRemoveZone;
     Zone_ZAddClientExpected     zAddClientExpected;
     Zone_ZShutDownZoneThread    zShutDownZoneThread;
 } Zone_ZPacket;

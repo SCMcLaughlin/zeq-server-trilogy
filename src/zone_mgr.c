@@ -108,6 +108,34 @@ void zmgr_on_zone_thread_shutdown(MainThread* mt, ZPacket* zpacket)
         mt_on_all_zone_threads_shut_down(mt);
 }
 
+void zmgr_on_remove_zone(MainThread* mt, ZPacket* zpacket)
+{
+    ZoneMgr* zmgr = mt_get_zmgr(mt);
+    ZoneThreadByZoneId* byZoneId = zmgr->ztByZoneId;
+    uint32_t n = zmgr->zoneCount;
+    int zoneId = zpacket->zone.zRemoveZone.zoneId;
+    int instId = zpacket->zone.zRemoveZone.instId;
+    uint32_t i;
+    
+    for (i = 0; i < n; i++)
+    {
+        ZoneThreadByZoneId* by = &byZoneId[i];
+        
+        if (by->zoneId == zoneId && by->instId == instId)
+        {
+            ZoneThreadWithQueue* zt = &zmgr->zoneThreads[by->ztIndex];
+            
+            zt->zoneCount--;
+            
+            /* Swap and pop */
+            n--;
+            byZoneId[i] = byZoneId[n];
+            zmgr->zoneCount = n;
+            break;
+        }
+    }
+}
+
 static ZoneThreadWithQueue* zmgr_add_zt(MainThread* mt, ZoneMgr* zmgr, uint32_t index)
 {
     ZoneThreadWithQueue* ret;

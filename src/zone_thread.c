@@ -768,11 +768,48 @@ fail_alloc:
     return NULL;
 }
 
+static void zt_remove_zone(ZoneThread* zt, Zone* zone)
+{
+    ZPacket zpacket;
+    
+    zpacket.zone.zRemoveZone.zoneId = zone_id(zone);
+    zpacket.zone.zRemoveZone.instId = zone_inst_id(zone);
+    
+    ringbuf_push(zt->mainQueue, ZOP_MAIN_RemoveZone, &zpacket);
+}
+
+static void zt_free_all_zones(ZoneThread* zt)
+{
+    Zone** zones = zt->zones;
+    
+    if (zones)
+    {
+        uint32_t n = zt->zoneCount;
+        uint32_t i;
+        
+        for (i = 0; i < n; i++)
+        {
+            Zone* zone = zones[i];
+            
+            zt_remove_zone(zt, zone);
+            zone_destroy(zone);
+        }
+        
+        free(zones);
+    }
+}
+
 ZoneThread* zt_destroy(ZoneThread* zt)
 {
     if (zt)
     {
         zt->ztQueue = ringbuf_destroy(zt->ztQueue);
+        
+        zt->timerUnconfirmedTimeouts = timer_destroy(&zt->timerPool, zt->timerUnconfirmedTimeouts);
+        
+        zt_free_all_zones(zt);
+        free_if_exists(zt->clients); /* ClientMgr owns the individual Client objects */
+        free_if_exists(zt->zoneIds);
         
         tbl_deinit(&zt->tblValidClientPtrs, NULL);
         log_close_file(zt->logQueue, zt->logId);

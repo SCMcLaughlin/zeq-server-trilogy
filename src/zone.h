@@ -23,6 +23,8 @@ void zone_broadcast_to_all_clients(Zone* zone, TlgPacket* packet);
 
 const char* zone_short_name(Zone* zone);
 const char* zone_long_name(Zone* zone);
+int16_t zone_id(Zone* zone);
+int16_t zone_inst_id(Zone* zone);
 
 RingBuf* zone_udp_queue(Zone* zone);
 RingBuf* zone_log_queue(Zone* zone);
