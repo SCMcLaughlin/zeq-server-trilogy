@@ -36,6 +36,7 @@ _OBJECTS=               \
  gender_id              \
  hash                   \
  inventory              \
+ item_proto             \
  log_thread             \
  login_client           \
  login_crypto           \
