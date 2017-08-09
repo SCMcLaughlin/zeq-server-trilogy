@@ -1,6 +1,7 @@
 *
 !db
 !log
+!script
 !Makefile
 !*.dll
 !.gitignore
