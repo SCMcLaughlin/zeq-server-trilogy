@@ -1,6 +1,6 @@
 
 local bit = require "bit"
-local e = require "script/enum/race_id"
+local e = require "enum/race_id"
 
 local function race(id)
     return bit.lshift(1, id - 1)

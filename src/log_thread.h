@@ -13,7 +13,7 @@ LogThread* log_destroy(LogThread* log);
 
 RingBuf* log_get_queue(LogThread* log);
 
-int log_write(RingBuf* logQueue, int logId, const char* msg, int len);
+ZEQ_API int log_write(RingBuf* logQueue, int logId, const char* msg, int len);
 #define log_write_literal(rb, logId, str) log_write((rb), (logId), (str), sizeof(str) - 1)
 int log_write_sbuf(RingBuf* logQueue, int logId, StaticBuffer* sbuf);
 int log_writef(RingBuf* logQueue, int logId, const char* fmt, ...);

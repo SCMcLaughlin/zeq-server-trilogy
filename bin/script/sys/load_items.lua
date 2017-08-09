@@ -1,10 +1,11 @@
 
 local lfs = require "lfs"
 local bit = require "bit"
-local eSlot = require "script/enum/slot_bit"
-local eClass = require "script/enum/class_bit"
-local eRace = require "script/enum/race_bit"
-local C = require "script/sys/load_items_cdef"
+local eSlot = require "enum/slot_bit"
+local eClass = require "enum/class_bit"
+local eRace = require "enum/race_bit"
+local C = require "sys/load_items_cdef"
+require "sys/log_cdef"
 
 local tonumber = tonumber
 local pairs = pairs
@@ -13,10 +14,14 @@ local bor = bit.bor
 local lshift = bit.lshift
 
 local gItemList = gItemList
+local gLogQueue = gLogQueue
+local gLogId = gLogId
+local gLoadedCount = 0
 
 local warnPath
 local function warning(msg)
-    io.write("WARNING: ".. warnPath ..": ".. msg .."\n")
+    local str = "WARNING: ".. warnPath ..": ".. msg
+    C.log_write(gLogQueue, gLogId, str, #str)
 end
 
 local function throw(msg)
@@ -55,7 +60,6 @@ local processField = {
             end
             
             v = bor(v, bit)
-            print(class, v)
             
             ::skip::
         end
@@ -75,7 +79,6 @@ local processField = {
             end
             
             v = bor(v, bit)
-            print(race, v)
             
             ::skip::
         end
@@ -137,6 +140,8 @@ local function makeItem(path, fields)
     C.item_proto_set_slots(proto, slot or 0)
     
     --fixme: translate field names to ids and set them here
+    
+    gLoadedCount = gLoadedCount + 1
 end
 
 local validTags = {
@@ -244,8 +249,6 @@ local function ItemDef(path, defstr)
         
         if ignoreNumeric[tkey] then goto skip_num end
         
-        io.write(tkey, ": ", tonumber(val), "\n")
-        
         if validNumeric[tkey] then
             item[translateNumeric[tkey] or tkey] = tonumber(val)
         else
@@ -259,8 +262,6 @@ local function ItemDef(path, defstr)
     for key, val in defstr:gmatch("(%a[^\n:]-):[ \t]*([12]?%a[^\n]+)") do
         local tkey = key:lower()
         tkey = tkey:gsub("%s+", "")
-        
-        io.write(tkey, ": ", val, "\n")
         
         if validString[tkey] then
             item[translateString[tkey] or tkey] = val
@@ -305,3 +306,5 @@ local function iterate(path)
 end
 
 iterate("script/item")
+
+return gLoadedCount

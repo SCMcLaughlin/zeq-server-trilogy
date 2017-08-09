@@ -9,6 +9,7 @@
 lua_State* zlua_create(RingBuf* logQueue, int logId)
 {
     lua_State* L = luaL_newstate();
+    int rc;
     
     if (!L) return NULL;
     
@@ -24,15 +25,21 @@ lua_State* zlua_create(RingBuf* logQueue, int logId)
     lua_getfield(L, -1, "randomseed");
     lua_pushinteger(L, (lua_Integer)clock_microseconds());
     
-    if (zlua_call(L, 1, 0, logQueue, logId))
-    {
-        zlua_destroy(L);
-        return NULL;
-    }
+    rc = zlua_call(L, 1, 0, logQueue, logId);
+    if (rc) goto fail;
     
     lua_pop(L, 1); /* Pop math */
     
+    /* Add the script directory to the package path */
+    rc = zlua_run_string(L, 0, logQueue, logId,
+        "package.path = package.path .. ';script/?.lua'");
+    if (rc) goto fail;
+    
     return L;
+    
+fail:
+    zlua_destroy(L);
+    return NULL;
 }
 
 lua_State* zlua_destroy(lua_State* L)
@@ -77,17 +84,45 @@ int zlua_script(lua_State* L, const char* path, int numReturns, RingBuf* logQueu
     return ERR_None;
 }
 
+int zlua_run_string(lua_State* L, int numReturns, RingBuf* logQueue, int logId, const char* luaString)
+{
+    if (luaL_loadstring(L, luaString) || lua_pcall(L, 0, numReturns, LUA_TRACEBACK_INDEX))
+    {
+        zlua_log(logQueue, logId, FUNC_NAME, lua_tostring(L, -1));
+        lua_pop(L, 1);
+        return ERR_Lua;
+    }
+    
+    return ERR_None;
+}
+
 int zlua_load_items(lua_State* L, ItemList* itemList, RingBuf* logQueue, int logId)
 {
+    uint64_t time = clock_milliseconds();
     int rc;
     
     lua_pushlightuserdata(L, itemList);
     lua_setglobal(L, "gItemList");
     
-    rc = zlua_script(L, "script/sys/load_items.lua", 0, logQueue, logId);
+    lua_pushlightuserdata(L, logQueue);
+    lua_setglobal(L, "gLogQueue");
+    lua_pushinteger(L, logId);
+    lua_setglobal(L, "gLogId");
+    
+    rc = zlua_script(L, "script/sys/load_items.lua", 1, logQueue, logId);
+    
+    if (rc == ERR_None)
+    {
+        log_writef(logQueue, logId, "Loaded %i items in %llu milliseconds", lua_tointeger(L, -1), clock_milliseconds() - time);
+        lua_pop(L, -1);
+    }
     
     lua_pushnil(L);
     lua_setglobal(L, "gItemList");
+    lua_pushnil(L);
+    lua_setglobal(L, "gLogQueue");
+    lua_pushnil(L);
+    lua_setglobal(L, "gLogId");
     
     return rc;
 }

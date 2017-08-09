@@ -15,6 +15,7 @@ lua_State* zlua_destroy(lua_State* L);
 
 int zlua_call(lua_State* L, int numArgs, int numReturns, RingBuf* logQueue, int logId);
 int zlua_script(lua_State* L, const char* path, int numReturns, RingBuf* logQueue, int logId);
+int zlua_run_string(lua_State*, int numReturns, RingBuf* logQueue, int logId, const char* luaString);
 
 int zlua_load_items(lua_State* L, ItemList* itemList, RingBuf* logQueue, int logId);
 
