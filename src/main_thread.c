@@ -4,6 +4,7 @@
 #include "char_select_thread.h"
 #include "client_mgr.h"
 #include "db_thread.h"
+#include "item_proto.h"
 #include "log_thread.h"
 #include "login_thread.h"
 #include "login_client.h"
@@ -13,6 +14,7 @@
 #include "udp_thread.h"
 #include "util_alloc.h"
 #include "util_clock.h"
+#include "util_lua.h"
 #include "zone_mgr.h"
 #include "zpacket.h"
 #include "enum_zop.h"
@@ -29,7 +31,9 @@ struct MainThread {
     UdpThread*          udp;
     LoginThread*        login;
     CharSelectThread*   cs;
+    lua_State*          lua;
     TimerPool           timerPool;
+    ItemList            itemList;
     RingBuf*            mainQueue;
     RingBuf*            logQueue;
     RingBuf*            dbQueue;
@@ -77,6 +81,7 @@ MainThread* mt_create()
     memset(mt, 0, sizeof(MainThread));
     
     timer_pool_init(&mt->timerPool);
+    item_list_init(&mt->itemList);
     
     mt->motd = sbuf_create_from_literal("Welcome to ZEQ!");
     if (!mt->motd)
@@ -113,6 +118,7 @@ MainThread* mt_create()
         goto fail;
     }
     
+    /* Database thread */
     mt->db = db_create(mt->mainQueue, mt->log);
     if (!mt->db)
     {
@@ -127,7 +133,24 @@ MainThread* mt_create()
         fprintf(stderr, "ERROR: mt_create: failed to open database file '" DB_THREAD_DB_PATH_DEFAULT "', schema '" DB_THREAD_DB_SCHEMA_PATH_DEFAULT "': %s\n", enum2str_err(rc));
         goto fail;
     }
+    
+    /* Lua interpreter */
+    mt->lua = zlua_create(mt->logQueue, mt->logId);
+    if (!mt->lua)
+    {
+        fprintf(stderr, "ERROR: mt_create: failed to initialize lua interpreter\n");
+        goto fail;
+    }
+    
+    /* Load items before we move on */
+    rc = zlua_load_items(mt->lua, &mt->itemList, mt->logQueue, mt->logId);
+    if (rc)
+    {
+        fprintf(stderr, "ERROR: mt_create: zlua_load_items failed\n");
+        goto fail;
+    }
 
+    /* UDP networking thread */
     mt->udp = udp_create(mt->mainQueue, mt->log);
     if (!mt->udp)
     {
@@ -135,6 +158,7 @@ MainThread* mt_create()
         goto fail;
     }
     
+    /* CharSelectThread, LoginThread */
     mt->cs = cs_create(mt->mainQueue, mt->log, mt->dbQueue, mt->dbId, mt->udp);
     if (!mt->cs)
     {
@@ -149,6 +173,7 @@ MainThread* mt_create()
         goto fail;
     }
 
+    /* Client manager, Zone manager */
     rc = cmgr_init(mt);
     if (rc)
     {
@@ -163,6 +188,7 @@ MainThread* mt_create()
         goto fail;
     }
 
+    /* Default timers */
     rc = mt_start_timers(mt);
     if (rc)
     {
@@ -189,12 +215,14 @@ MainThread* mt_destroy(MainThread* mt)
         mt->cs = cs_destroy(mt->cs);
         mt->db = db_destroy(mt->db);
         mt->udp = udp_destroy(mt->udp);
+        mt->lua = zlua_destroy(mt->lua);
         mt->log = log_destroy(mt->log);
         mt->mainQueue = ringbuf_destroy(mt->mainQueue);
         mt->motd = sbuf_drop(mt->motd);
         
         mt->timerCSAuthTimeouts = timer_destroy(&mt->timerPool, mt->timerCSAuthTimeouts);
         timer_pool_deinit(&mt->timerPool);
+        item_list_deinit(&mt->itemList);
         
         free(mt);
     }

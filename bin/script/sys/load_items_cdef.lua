@@ -4,11 +4,12 @@ local ffi = require "ffi"
 ffi.cdef[[
 typedef struct ItemProto ItemProto;
 
-ItemProto* item_proto_add(void* itemList, const char* path, uint32_t len);
+ItemProto* item_proto_add(void* itemList, const char* path, uint32_t len, uint16_t fieldCount);
 
 bool item_proto_set_name(ItemProto* proto, const char* name, uint32_t len);
 bool item_proto_set_lore(ItemProto* proto, const char* lore, uint32_t len);
-bool item_proto_set_field(ItemProto* proto, int16_t statId, int16_t value);
+bool item_proto_set_field(ItemProto* proto, uint16_t index, int16_t statId, int16_t value);
+void item_proto_set_slots(ItemProto* proto, uint32_t slotsBitfield);
 ]]
 
 return ffi.C

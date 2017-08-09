@@ -3,16 +3,14 @@ CFLAGS=
 COPT= -O2 -fomit-frame-pointer -ffast-math -std=gnu11
 CWARN= -Wall -Wextra -Wredundant-decls
 CWARNIGNORE= -Wno-unused-result -Wno-strict-aliasing
-CINCLUDE= -Isrc/
+CINCLUDE= -Isrc/ -I/usr/include/luajit-2.0/
 CDEF=
 
 #ifdef debug
 CFLAGS+= -O0 -g -Wno-format -fno-omit-frame-pointer
 CDEF+= -DDEBUG -DZEQ_LOG_DUMP_ALL_TO_STDOUT -DZEQ_UDP_DUMP_PACKETS
-CINCLUDE+= -I/usr/include/lua5.1/
 #else
 #CFLAGS+= -DNDEBUG
-#CINCLUDE+= -I/usr/include/luajit-2.0/
 #endif
 
 _OBJECTS=               \
@@ -60,6 +58,7 @@ _OBJECTS=               \
  util_clock_posix       \
  util_hash_tbl          \
  util_ipv4              \
+ util_lua               \
  util_random            \
  util_semaphore_posix   \
  util_socket_lib        \
@@ -75,15 +74,9 @@ OBJECTS= $(patsubst %,build/%.o,$(_OBJECTS))
 ##############################################################################
 # Core Linker flags
 ##############################################################################
-LFLAGS= 
-LDYNAMIC= -pthread -lrt -lm -lz -lcrypto -lsqlite3
+LFLAGS= -rdynamic
+LDYNAMIC= -pthread -lrt -lm -lz -lcrypto -lsqlite3 -lluajit-5.1
 LSTATIC= 
-
-#ifdef debug
-LDYNAMIC+= -llua5.1
-#else
-#LDYNAMIC+= -lluajit-5.1
-#endif
 
 ##############################################################################
 # Util

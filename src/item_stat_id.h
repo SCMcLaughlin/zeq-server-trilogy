@@ -4,6 +4,7 @@
 
 enum ItemStatId
 {
+    ITEM_STAT_NONE,
     ITEM_STAT_Lore,
     ITEM_STAT_NoDrop,
     ITEM_STAT_Magic,

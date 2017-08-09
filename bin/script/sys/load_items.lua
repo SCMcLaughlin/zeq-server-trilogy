@@ -4,12 +4,15 @@ local bit = require "bit"
 local eSlot = require "script/enum/slot_bit"
 local eClass = require "script/enum/class_bit"
 local eRace = require "script/enum/race_bit"
+local C = require "script/sys/load_items_cdef"
 
 local tonumber = tonumber
 local pairs = pairs
 local floor = math.floor
 local bor = bit.bor
 local lshift = bit.lshift
+
+local gItemList = gItemList
 
 local warnPath
 local function warning(msg)
@@ -85,9 +88,16 @@ local processField = {
     end,
 }
 
-local function makeItem(fields)
+local function take(tbl, key, count)
+    local val = tbl[key]
+    tbl[key] = nil
+    return val, val == nil and count or count - 1
+end
+
+local function makeItem(path, fields)
     -- Process fields that require it
     local item = {}
+    local count = 0
     
     for k, v in pairs(fields) do
         local func = processField[k]
@@ -97,10 +107,36 @@ local function makeItem(fields)
         else
             item[k] = v
         end
+        
+        count = count + 1
     end
     
     -- Create the ItemProto on the C side
-    --fixme: implement this
+    local name, lore, slot
+    
+    name, count = take(item, "name", count)
+    lore, count = take(item, "lore", count)
+    slot, count = take(item, "slot", count)
+    
+    path = path:match("script/item/(.+)")
+    
+    local proto = C.item_proto_add(gItemList, path, #path, count)
+    
+    if proto == nil then
+        throw("item_proto_add() failed")
+    end
+    
+    if name and not C.item_proto_set_name(proto, name, #name) then
+        throw("item_proto_set_name() failed")
+    end
+    
+    if lore and not C.item_proto_set_lore(proto, lore, #lore) then
+        throw("item_proto_set_lore() failed")
+    end
+    
+    C.item_proto_set_slots(proto, slot or 0)
+    
+    --fixme: translate field names to ids and set them here
 end
 
 local validTags = {
@@ -181,7 +217,7 @@ local function ItemDef(path, defstr)
     warnPath = path
     
     -- Name
-    item.name = defstr:match("%s*[^\n]+")
+    item.name = defstr:match("%s*([^\n]+)")
     
     if not item.name then
         warning("item has no name")
@@ -233,7 +269,7 @@ local function ItemDef(path, defstr)
         end
     end
     
-    makeItem(item)
+    makeItem(path, item)
 end
 
 local function parse(path)

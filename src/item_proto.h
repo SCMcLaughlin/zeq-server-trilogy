@@ -14,20 +14,21 @@ typedef struct {
 
 typedef struct {
     uint32_t            nextItemId;
-    uint32_t            pathToItemIdCount;
+    uint32_t            newPathsToItemIdsCount;
     HashTbl             tblByPath;
+    HashTbl             tblByItemId;
     HashTbl             tblPathToItemId;
-    ItemPathToItemId*   pathToItemId;
+    ItemPathToItemId*   newPathsToItemIds;
 } ItemList;
 
 void item_list_init(ItemList* itemList);
 void item_list_deinit(ItemList* itemList);
 
-ZEQ_API ItemProto* item_proto_add(ItemList* itemList, const char* path, uint32_t len);
+ZEQ_API ItemProto* item_proto_add(ItemList* itemList, const char* path, uint32_t len, uint16_t fieldCount);
 
 ZEQ_API bool item_proto_set_name(ItemProto* proto, const char* name, uint32_t len);
 ZEQ_API bool item_proto_set_lore(ItemProto* proto, const char* lore, uint32_t len);
-ZEQ_API bool item_proto_set_field(ItemProto* proto, int16_t statId, int16_t value);
+ZEQ_API bool item_proto_set_field(ItemProto* proto, uint16_t index, int16_t statId, int16_t value);
 ZEQ_API void item_proto_set_slots(ItemProto* proto, uint32_t slotsBitfield);
 
 #endif/*ITEM_PROTO_H*/
