@@ -136,8 +136,10 @@ CREATE TABLE guild (
 );
 
 CREATE TABLE item_proto (
-    path        TEXT PRIMARY KEY,
-    item_id     INT,
+    item_id     INTEGER PRIMARY KEY,
+    path        TEXT    UNIQUE,
     mod_time    INT,
+    name        TEXT,
+    lore_text   TEXT,
     data        BLOB
 );

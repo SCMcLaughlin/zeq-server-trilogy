@@ -7,6 +7,7 @@
 #include "char_select_data.h"
 #include "client_load_data.h"
 #include "guild.h"
+#include "item_proto.h"
 #include "ringbuf.h"
 #include "login_crypto.h"
 
@@ -79,9 +80,19 @@ typedef struct {
 /* MainThread */
 
 typedef struct {
+    uint32_t        count;
+    ItemProtoDb*    protos;
+} DBR_MainLoadItemProtos;
+
+typedef struct {
     uint32_t    count;
     Guild*      guilds;
 } DBR_MainGuildList;
+
+typedef struct {
+    void*                       client;
+    ClientLoadData_Character*   data;
+} DBR_MainLoadCharacter;
 
 /* LoginThread */
 
@@ -116,18 +127,12 @@ typedef struct {
     void*   client;
 } DBR_CSCharacterCreate;
 
-/* MainThread */
-
-typedef struct {
-    void*                       client;
-    ClientLoadData_Character*   data;
-} DBR_MainLoadCharacter;
-
 typedef struct {
     int         queryId;    /* User-supplied tracking value, not used internally by the DB system */
     bool        hadError;
     bool        hadErrorUnprocessed;
     union {
+        DBR_MainLoadItemProtos          rMainLoadItemProtos;
         DBR_MainGuildList               rMainGuildList;
         DBR_LoginCredentials            rLoginCredentials;
         DBR_LoginNewAccount             rLoginNewAccount;

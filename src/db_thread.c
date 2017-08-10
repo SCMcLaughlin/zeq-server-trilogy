@@ -158,6 +158,7 @@ static void db_thread_destruct_zpacket(DbThread* db, ZPacket* zpacket)
     case ZOP_DB_QueryLoginCredentials:
     case ZOP_DB_QueryCSCharacterInfo:
     case ZOP_DB_QueryCSCharacterNameAvailable:
+    case ZOP_DB_QueryMainLoadItemProtos:
     case ZOP_DB_QueryMainLoadCharacter:
         dbr_destruct(db, zpacket, zop);
         break;
@@ -445,14 +446,17 @@ static void db_thread_proc(void* ptr)
                 db_thread_close_database(db, &zpacket);
                 break;
 
+            /* Read queries */
             case ZOP_DB_QueryMainGuildList:
             case ZOP_DB_QueryLoginCredentials:
             case ZOP_DB_QueryCSCharacterInfo:
             case ZOP_DB_QueryCSCharacterNameAvailable:
+            case ZOP_DB_QueryMainLoadItemProtos:
             case ZOP_DB_QueryMainLoadCharacter:
                 db_thread_queue_query(db, &zpacket, zop, false);
                 break;
 
+            /* Write queries */
             case ZOP_DB_QueryLoginNewAccount:
             case ZOP_DB_QueryCSCharacterCreate:
             case ZOP_DB_QueryCSCharacterDelete:

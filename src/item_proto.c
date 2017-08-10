@@ -142,3 +142,45 @@ bool item_proto_set_field(ItemProto* proto, uint16_t index, uint8_t statId, int 
     *item_proto_field_id(proto, index) = statId;
     return true;
 }
+
+ItemProto* item_proto_from_db(const byte* blob, int len, StaticBuffer* path, StaticBuffer* name, StaticBuffer* loreText)
+{
+    const ItemProto* cproto = (const ItemProto*)blob;
+    uint32_t bytes;
+    ItemProto* proto;
+    
+    if (!blob || len < (int)sizeof(ItemProto))
+        return NULL;
+    
+    bytes = sizeof(ItemProto) + sizeof(int) * cproto->fieldCount + sizeof(uint8_t) * cproto->fieldCount;
+    
+    if (len < (int)bytes)
+        return NULL;
+    
+    proto = alloc_bytes_type(bytes, ItemProto);
+    if (!proto) return NULL;
+    
+    memcpy(proto, cproto, sizeof(ItemProto));
+    proto->path = path;
+    proto->name = name;
+    proto->lore = loreText;
+    
+    sbuf_grab(path);
+    sbuf_grab(name);
+    sbuf_grab(loreText);
+    
+    return proto;
+}
+
+ItemProto* item_proto_from_db_destroy(ItemProto* proto)
+{
+    if (proto)
+    {
+        proto->path = sbuf_drop(proto->path);
+        proto->name = sbuf_drop(proto->name);
+        proto->lore = sbuf_drop(proto->lore);
+        free(proto);
+    }
+    
+    return NULL;
+}

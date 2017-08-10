@@ -277,6 +277,103 @@ static void dbr_cs_character_name_available(DbThread* db, sqlite3* sqlite, ZPack
     sqlite3_finalize(stmt);
 }
 
+static void dbr_main_load_item_protos(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
+{
+    sqlite3_stmt* stmt = NULL;
+    uint32_t count = 0;
+    ItemProtoDb* protos = NULL;
+    ItemProtoDb* cur;
+    StaticBuffer* name;
+    StaticBuffer* loreText;
+    const byte* data;
+    int len;
+    ZPacket reply;
+    bool run;
+    
+    reply.db.zResult.queryId = zpacket->db.zQuery.queryId;
+    reply.db.zResult.hadError = true;
+    reply.db.zResult.hadErrorUnprocessed = false;
+    reply.db.zResult.rMainLoadItemProtos.count = 0;
+    reply.db.zResult.rMainLoadItemProtos.protos = NULL;
+    
+    run = db_prepare_literal(db, sqlite, &stmt,
+        "SELECT item_id, path, mod_time, name, lore_text, data FROM item_proto");
+    
+    if (run)
+    {
+        for (;;)
+        {
+            int rc = db_read(db, stmt);
+            
+            switch (rc)
+            {
+            case SQLITE_DONE:
+                reply.db.zResult.hadError = false;
+                reply.db.zResult.rMainLoadItemProtos.count = count;
+                reply.db.zResult.rMainLoadItemProtos.protos = protos;
+                goto done;
+            
+            case SQLITE_ROW:
+                if (bit_is_pow2_or_zero(count))
+                {
+                    uint32_t cap = (count == 0) ? 1 : count * 2;
+                    ItemProtoDb* newProtos = realloc_array_type(protos, cap, ItemProtoDb);
+                    
+                    if (!newProtos) goto fail;
+                    
+                    protos = newProtos;
+                }
+                
+                cur = &protos[count];
+            
+                cur->itemId = (uint32_t)db_fetch_int64(stmt, 0);
+                cur->path = db_fetch_string_copy(stmt, 1);
+                cur->modTime = (uint64_t)db_fetch_int64(stmt, 2);
+                name = db_fetch_string_copy(stmt, 3);
+                loreText = db_fetch_string_copy(stmt, 4);
+                data = db_fetch_blob(stmt, 5, &len);
+                
+                /* This call grabs all the StaticBuffers we just created internally */
+                cur->proto = item_proto_from_db(data, len, cur->path, name, loreText);
+                
+                if (!cur->path || !cur->proto || (!name && !db_column_is_null(stmt, 3)) || (!loreText && !db_column_is_null(stmt, 4)))
+                {
+                    item_proto_from_db_destroy(cur->proto);
+                    sbuf_drop(cur->path);
+                    sbuf_drop(name);
+                    sbuf_drop(loreText);
+                    goto fail;
+                }
+                
+                count++;
+                break;
+                
+            case SQLITE_ERROR:
+                goto fail;
+            }
+        }
+    
+    fail:
+        if (protos)
+        {
+            uint32_t i;
+            
+            for (i = 0; i < count; i++)
+            {
+                cur = &protos[i];
+                
+                cur->proto = item_proto_from_db_destroy(cur->proto);
+            }
+            
+            free(protos);
+        }
+    }
+    
+done:
+    db_reply(db, zpacket, &reply);
+    sqlite3_finalize(stmt);
+}
+
 static void dbr_main_load_character(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
 {
     sqlite3_stmt* stmt = NULL;
@@ -398,6 +495,10 @@ void dbr_dispatch(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
     case ZOP_DB_QueryCSCharacterNameAvailable:
         dbr_cs_character_name_available(db, sqlite, zpacket);
         break;
+    
+    case ZOP_DB_QueryMainLoadItemProtos:
+        dbr_main_load_item_protos(db, sqlite, zpacket);
+        break;
 
     case ZOP_DB_QueryMainLoadCharacter:
         dbr_main_load_character(db, sqlite, zpacket);
@@ -431,6 +532,7 @@ void dbr_destruct(DbThread* db, ZPacket* zpacket, int zop)
         break;
     
     /* No data to destruct */
+    case ZOP_DB_QueryMainLoadItemProtos:
     case ZOP_DB_QueryMainGuildList:
     case ZOP_DB_QueryCSCharacterInfo:
         break;
