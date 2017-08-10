@@ -16,9 +16,11 @@ void inv_init(Inventory* inv)
     inv->slotCount = 0;
     inv->cursorCount = 0;
     inv->idMapCount = 0;
+    inv->loreItemIdCount = 0;
     inv->slots = NULL;
     inv->cursorQueue = NULL;
     inv->idMap = NULL;
+    inv->loreItemIds = NULL;
 }
 
 static InvSlot* inv_free_slots(InvSlot* slots, uint32_t n)

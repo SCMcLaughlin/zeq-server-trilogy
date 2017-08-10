@@ -119,7 +119,6 @@ local function makeItem(path, fields)
     
     name, count = take(item, "name", count)
     lore, count = take(item, "lore", count)
-    slot, count = take(item, "slot", count)
     
     path = path:match("script/item/(.+)")
     
@@ -136,8 +135,6 @@ local function makeItem(path, fields)
     if lore and not C.item_proto_set_lore(proto, lore, #lore) then
         throw("item_proto_set_lore() failed")
     end
-    
-    C.item_proto_set_slots(proto, slot or 0)
     
     --fixme: translate field names to ids and set them here
     

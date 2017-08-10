@@ -6,23 +6,17 @@
 #include "util_hash_tbl.h"
 
 #ifdef PLATFORM_WINDOWS
-/* fields[0]: "nonstandard extension used: zero-sized array in struct/union" */
+/* data[0]: "nonstandard extension used: zero-sized array in struct/union" */
 # pragma warning(disable: 4200)
 #endif
-
-typedef struct {
-    int16_t statId;
-    int16_t value;
-} ItemField;
 
 struct ItemProto {
     uint16_t        fieldCount;
     uint32_t        itemId;
-    uint32_t        slots;
     StaticBuffer*   name;
     StaticBuffer*   lore;
     StaticBuffer*   path;
-    ItemField       fields[0];
+    byte            data[0]; /* A list of 4-byte values followed by a list of 1-byte stat ids */
 };
 
 void item_list_init(ItemList* itemList)
@@ -68,7 +62,7 @@ ItemProto* item_proto_add(ItemList* itemList, const char* path, uint32_t len, ui
     if (!sbufPath) return NULL;
     sbuf_grab(sbufPath);
 
-    bytes = sizeof(ItemProto) + (sizeof(ItemField) * fieldCount);
+    bytes = sizeof(ItemProto) + sizeof(int) * fieldCount + sizeof(uint8_t) * fieldCount;
     proto = alloc_bytes_type(bytes, ItemProto);
     if (!proto) goto fail_alloc;
 
@@ -136,17 +130,15 @@ bool item_proto_set_lore(ItemProto* proto, const char* lore, uint32_t len)
     return proto->lore != NULL;
 }
 
-bool item_proto_set_field(ItemProto* proto, uint16_t index, int16_t statId, int16_t value)
+#define item_proto_field_value(proto, n) ((int*)(&((proto)->data[(n) * sizeof(int)])))
+#define item_proto_field_id(proto, n) (&((proto)->data[(proto)->fieldCount * sizeof(int) + (n)]))
+
+bool item_proto_set_field(ItemProto* proto, uint16_t index, uint8_t statId, int value)
 {
     if (index >= proto->fieldCount)
         return false;
     
-    proto->fields[index].statId = statId;
-    proto->fields[index].value = value;
+    *item_proto_field_value(proto, index) = value;
+    *item_proto_field_id(proto, index) = statId;
     return true;
-}
-
-void item_proto_set_slots(ItemProto* proto, uint32_t slotsBitfield)
-{
-    proto->slots = slotsBitfield;
 }

@@ -134,3 +134,10 @@ CREATE TABLE guild (
     guild_id    INTEGER PRIMARY KEY,
     name        TEXT
 );
+
+CREATE TABLE item_proto (
+    path        TEXT PRIMARY KEY,
+    item_id     INT,
+    mod_time    INT,
+    data        BLOB
+);

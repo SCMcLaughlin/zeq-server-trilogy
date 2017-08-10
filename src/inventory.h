@@ -25,9 +25,11 @@ typedef struct {
     uint16_t    slotCount;
     uint16_t    cursorCount;
     uint16_t    idMapCount;
+    uint16_t    loreItemIdCount;
     InvSlot*    slots;
     InvSlot*    cursorQueue;
     ItemIdMap*  idMap;
+    uint32_t*   loreItemIds;
 } Inventory;
 
 void inv_init(Inventory* inv);
