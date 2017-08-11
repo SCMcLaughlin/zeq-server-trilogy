@@ -8,6 +8,7 @@
 #include "log_thread.h"
 #include "login_thread.h"
 #include "login_client.h"
+#include "main_load.h"
 #include "main_timers.h"
 #include "ringbuf.h"
 #include "timer.h"
@@ -143,10 +144,10 @@ MainThread* mt_create()
     }
     
     /* Load items before we move on */
-    rc = zlua_load_items(mt->lua, &mt->itemList, mt->logQueue, mt->logId);
+    rc = mt_load_all(mt);
     if (rc)
     {
-        fprintf(stderr, "ERROR: mt_create: zlua_load_items failed\n");
+        fprintf(stderr, "ERROR: mt_create: mt_load_all failed\n");
         goto fail;
     }
 
@@ -444,4 +445,14 @@ int mt_get_log_id(MainThread* mt)
 StaticBuffer* mt_get_motd(MainThread* mt)
 {
     return mt->motd;
+}
+
+lua_State* mt_get_lua(MainThread* mt)
+{
+    return mt->lua;
+}
+
+ItemList* mt_get_item_list(MainThread* mt)
+{
+    return &mt->itemList;
 }

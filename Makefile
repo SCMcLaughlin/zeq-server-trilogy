@@ -40,6 +40,7 @@ _OBJECTS=               \
  login_crypto           \
  login_thread           \
  main                   \
+ main_load              \
  main_thread            \
  main_timers            \
  mob                    \
@@ -56,6 +57,7 @@ _OBJECTS=               \
  util_atomic_posix      \
  util_clock_common      \
  util_clock_posix       \
+ util_fs_posix          \
  util_hash_tbl          \
  util_ipv4              \
  util_lua               \

@@ -33,6 +33,7 @@ enum ZOP
     ZOP_DB_QueryCSCharacterCreate,
     ZOP_DB_QueryCSCharacterDelete,
     ZOP_DB_QueryMainLoadItemProtos,
+    ZOP_DB_QueryMainItemProtoChanges,
     ZOP_DB_QueryMainLoadCharacter,
     /* Login thread */
     ZOP_LOGIN_TerminateThread,

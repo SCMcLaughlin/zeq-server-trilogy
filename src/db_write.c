@@ -1,5 +1,6 @@
 
 #include "db_write.h"
+#include "item_proto.h"
 #include "login_crypto.h"
 #include "util_clock.h"
 #include "util_str.h"
@@ -125,6 +126,57 @@ static void dbw_cs_character_delete(DbThread* db, sqlite3* sqlite, ZPacket* zpac
     sqlite3_finalize(stmt);
 }
 
+static void dbw_main_item_proto_changes(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
+{
+    sqlite3_stmt* stmt = NULL;
+    ZPacket reply;
+    uint32_t count = zpacket->db.zQuery.qMainItemProtoChanges.count;
+    ItemProtoDb* protos = zpacket->db.zQuery.qMainItemProtoChanges.proto;
+    uint32_t i;
+    bool run;
+
+    reply.db.zResult.queryId = zpacket->db.zQuery.queryId;
+    reply.db.zResult.hadError = true;
+    reply.db.zResult.hadErrorUnprocessed = false;
+    
+    if (count && protos)
+    {
+        run = db_prepare_literal(db, sqlite, &stmt,
+        "INSERT OR REPLACE INTO item_proto (item_id, path, mod_time, name, lore_text, data) VALUES (?, ?, ?, ?, ?, ?)");
+        
+        if (!run) goto fail;
+        
+        for (i = 0; i < count; i++)
+        {
+            ItemProtoDb* cur = &protos[i];
+            ItemProto* proto = cur->proto;
+            StaticBuffer* name = item_proto_name(proto);
+            StaticBuffer* lore = item_proto_lore_text(proto);
+            
+            if (!db_bind_int64(db, stmt, 0, (int64_t)cur->itemId) ||
+                !db_bind_string_sbuf(db, stmt, 1, cur->path) ||
+                !db_bind_int64(db, stmt, 2, (int64_t)cur->modTime) ||
+                !(name ? db_bind_string_sbuf(db, stmt, 3, name) : db_bind_null(db, stmt, 3)) ||
+                !(lore ? db_bind_string_sbuf(db, stmt, 4, lore) : db_bind_null(db, stmt, 4)) ||
+                !db_bind_blob(db, stmt, 5, proto, item_proto_bytes(proto)))
+            {
+                goto fail;
+            }
+            
+            if (!db_write(db, stmt))
+                goto fail;
+            
+            sqlite3_reset(stmt);
+        }
+    }
+    
+    reply.db.zResult.hadError = false;
+    
+fail:
+    db_reply(db, zpacket, &reply);
+    sqlite3_finalize(stmt);
+}
+
 void dbw_dispatch(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
 {
     uint64_t timer = clock_microseconds();
@@ -142,6 +194,10 @@ void dbw_dispatch(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
 
     case ZOP_DB_QueryCSCharacterDelete:
         dbw_cs_character_delete(db, sqlite, zpacket);
+        break;
+    
+    case ZOP_DB_QueryMainItemProtoChanges:
+        dbw_main_item_proto_changes(db, sqlite, zpacket);
         break;
     
     default:
@@ -169,6 +225,10 @@ void dbw_destruct(DbThread* db, ZPacket* zpacket, int zop)
 
     case ZOP_DB_QueryCSCharacterDelete:
         zpacket->db.zQuery.qCSCharacterDelete.name = sbuf_drop(zpacket->db.zQuery.qCSCharacterDelete.name);
+        break;
+    
+    case ZOP_DB_QueryMainItemProtoChanges:
+        free_if_exists(zpacket->db.zQuery.qMainItemProtoChanges.proto);
         break;
     
     default:

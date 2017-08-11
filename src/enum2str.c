@@ -81,8 +81,8 @@ const char* enum2str_err(int e)
     case ERR_Lua: ret = "ERR_Lua"; break;
     case ERR_EndOfFile: ret = "ERR_EndOfFile"; break;
     case ERR_NotFound: ret = "ERR_NotFound"; break;
-    case ERR_NoResource: ret = "ERR_NoResource"; break;
     case ERR_Mismatch: ret = "ERR_Mismatch"; break;
+    case ERR_Cancel: ret = "ERR_Cancel"; break;
     case ERR_COUNT: ret = "ERR_COUNT"; break;
     default: ret = "UNKNOWN"; break;
     }
@@ -195,6 +195,7 @@ const char* enum2str_zop(int e)
     case ZOP_DB_QueryCSCharacterCreate: ret = "ZOP_DB_QueryCSCharacterCreate"; break;
     case ZOP_DB_QueryCSCharacterDelete: ret = "ZOP_DB_QueryCSCharacterDelete"; break;
     case ZOP_DB_QueryMainLoadItemProtos: ret = "ZOP_DB_QueryMainLoadItemProtos"; break;
+    case ZOP_DB_QueryMainItemProtoChanges: ret = "ZOP_DB_QueryMainItemProtoChanges"; break;
     case ZOP_DB_QueryMainLoadCharacter: ret = "ZOP_DB_QueryMainLoadCharacter"; break;
     case ZOP_LOGIN_TerminateThread: ret = "ZOP_LOGIN_TerminateThread"; break;
     case ZOP_LOGIN_NewServer: ret = "ZOP_LOGIN_NewServer"; break;

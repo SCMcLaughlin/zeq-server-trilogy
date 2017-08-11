@@ -95,34 +95,3 @@ int zlua_run_string(lua_State* L, int numReturns, RingBuf* logQueue, int logId, 
     
     return ERR_None;
 }
-
-int zlua_load_items(lua_State* L, ItemList* itemList, RingBuf* logQueue, int logId)
-{
-    uint64_t time = clock_milliseconds();
-    int rc;
-    
-    lua_pushlightuserdata(L, itemList);
-    lua_setglobal(L, "gItemList");
-    
-    lua_pushlightuserdata(L, logQueue);
-    lua_setglobal(L, "gLogQueue");
-    lua_pushinteger(L, logId);
-    lua_setglobal(L, "gLogId");
-    
-    rc = zlua_script(L, "script/sys/load_items.lua", 1, logQueue, logId);
-    
-    if (rc == ERR_None)
-    {
-        log_writef(logQueue, logId, "Loaded %i items in %llu milliseconds", lua_tointeger(L, -1), clock_milliseconds() - time);
-        lua_pop(L, -1);
-    }
-    
-    lua_pushnil(L);
-    lua_setglobal(L, "gItemList");
-    lua_pushnil(L);
-    lua_setglobal(L, "gLogQueue");
-    lua_pushnil(L);
-    lua_setglobal(L, "gLogId");
-    
-    return rc;
-}

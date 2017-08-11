@@ -9,11 +9,14 @@ require "sys/log_cdef"
 
 local tonumber = tonumber
 local pairs = pairs
+local type = type
 local floor = math.floor
 local bor = bit.bor
 local lshift = bit.lshift
 
+local gSkipPaths = gSkipPaths
 local gItemList = gItemList
+local gChanges = gChanges
 local gLogQueue = gLogQueue
 local gLogId = gLogId
 local gLoadedCount = 0
@@ -97,7 +100,7 @@ local function take(tbl, key, count)
     return val, val == nil and count or count - 1
 end
 
-local function makeItem(path, fields)
+local function makeItem(path, shortpath, itemId, fields)
     -- Process fields that require it
     local item = {}
     local count = 0
@@ -120,9 +123,7 @@ local function makeItem(path, fields)
     name, count = take(item, "name", count)
     lore, count = take(item, "lore", count)
     
-    path = path:match("script/item/(.+)")
-    
-    local proto = C.item_proto_add(gItemList, path, #path, count)
+    local proto = C.item_proto_add(gItemList, gChanges, lfs.attributes(path, "modification"), itemId, shortpath, #shortpath, count)
     
     if proto == nil then
         throw("item_proto_add() failed")
@@ -213,7 +214,7 @@ local translateString = {
     classes = "class",
 }
 
-local function ItemDef(path, defstr)
+local function ItemDef(path, shortpath, itemId, defstr)
     local item = {}
     
     warnPath = path
@@ -267,10 +268,20 @@ local function ItemDef(path, defstr)
         end
     end
     
-    makeItem(path, item)
+    makeItem(path, shortpath, itemId, item)
 end
 
 local function parse(path)
+    local shortpath = path:match("script/item/(.+)")
+    local found = gSkipPaths[shortpath]
+    local itemId = 0
+    
+    if found then
+        if type(found) == "boolean" then return end
+        
+        itemId = found
+    end
+    
     local file = assert(io.open(path, "rb"))
     local str = file:read("*a")
     file:close()
@@ -278,7 +289,7 @@ local function parse(path)
     local defstr = str:match("ItemDef%[%[(.-)%]%]")
     
     if defstr then
-        ItemDef(path, defstr)
+        ItemDef(path, shortpath, itemId, defstr)
     end
 end
 

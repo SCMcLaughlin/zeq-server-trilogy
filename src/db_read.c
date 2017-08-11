@@ -281,6 +281,8 @@ static void dbr_main_load_item_protos(DbThread* db, sqlite3* sqlite, ZPacket* zp
 {
     sqlite3_stmt* stmt = NULL;
     uint32_t count = 0;
+    uint32_t itemId;
+    uint32_t highItemId = 0;
     ItemProtoDb* protos = NULL;
     ItemProtoDb* cur;
     StaticBuffer* name;
@@ -310,6 +312,7 @@ static void dbr_main_load_item_protos(DbThread* db, sqlite3* sqlite, ZPacket* zp
             case SQLITE_DONE:
                 reply.db.zResult.hadError = false;
                 reply.db.zResult.rMainLoadItemProtos.count = count;
+                reply.db.zResult.rMainLoadItemProtos.highItemId = highItemId;
                 reply.db.zResult.rMainLoadItemProtos.protos = protos;
                 goto done;
             
@@ -326,7 +329,8 @@ static void dbr_main_load_item_protos(DbThread* db, sqlite3* sqlite, ZPacket* zp
                 
                 cur = &protos[count];
             
-                cur->itemId = (uint32_t)db_fetch_int64(stmt, 0);
+                itemId = (uint32_t)db_fetch_int64(stmt, 0);
+                cur->itemId = itemId;
                 cur->path = db_fetch_string_copy(stmt, 1);
                 cur->modTime = (uint64_t)db_fetch_int64(stmt, 2);
                 name = db_fetch_string_copy(stmt, 3);
@@ -335,15 +339,23 @@ static void dbr_main_load_item_protos(DbThread* db, sqlite3* sqlite, ZPacket* zp
                 
                 /* This call grabs all the StaticBuffers we just created internally */
                 cur->proto = item_proto_from_db(data, len, cur->path, name, loreText);
-                
-                if (!cur->path || !cur->proto || (!name && !db_column_is_null(stmt, 3)) || (!loreText && !db_column_is_null(stmt, 4)))
+
+                if (!cur->proto)
                 {
-                    item_proto_from_db_destroy(cur->proto);
                     sbuf_drop(cur->path);
                     sbuf_drop(name);
                     sbuf_drop(loreText);
                     goto fail;
                 }
+                
+                if (!cur->path || (!name && !db_column_is_null(stmt, 3)) || (!loreText && !db_column_is_null(stmt, 4)))
+                {
+                    item_proto_destroy(cur->proto);
+                    goto fail;
+                }
+                
+                if (itemId > highItemId)
+                    highItemId = itemId;
                 
                 count++;
                 break;
@@ -362,7 +374,7 @@ static void dbr_main_load_item_protos(DbThread* db, sqlite3* sqlite, ZPacket* zp
             {
                 cur = &protos[i];
                 
-                cur->proto = item_proto_from_db_destroy(cur->proto);
+                cur->proto = item_proto_destroy(cur->proto);
             }
             
             free(protos);

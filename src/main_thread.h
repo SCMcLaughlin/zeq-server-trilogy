@@ -4,9 +4,11 @@
 
 #include "define.h"
 #include "buffer.h"
+#include "item_proto.h"
 #include "log_thread.h"
 #include "ringbuf.h"
 #include "udp_thread.h"
+#include "util_lua.h"
 
 struct ClientMgr;
 struct ZoneMgr;
@@ -34,5 +36,8 @@ int mt_get_db_id(MainThread* mt);
 int mt_get_log_id(MainThread* mt);
 
 StaticBuffer* mt_get_motd(MainThread* mt);
+
+lua_State* mt_get_lua(MainThread* mt);
+ItemList* mt_get_item_list(MainThread* mt);
 
 #endif/*MAIN_THREAD_H*/

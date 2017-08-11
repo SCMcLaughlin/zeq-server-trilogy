@@ -25,8 +25,8 @@ enum EnumError {
     ERR_Lua,
     ERR_EndOfFile,
     ERR_NotFound,
-    ERR_NoResource, /* Only for resource loaders */
     ERR_Mismatch,
+    ERR_Cancel,
     ERR_COUNT
 };
 

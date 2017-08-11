@@ -71,6 +71,7 @@ typedef struct {
         DBQ_CSCharacterNameAvailable    qCSCharacterNameAvailable;
         DBQ_CSCharacterCreate           qCSCharacterCreate;
         DBQ_CSCharacterDelete           qCSCharacterDelete;
+        ItemProtoDbChanges              qMainItemProtoChanges;
         DBQ_MainLoadCharacter           qMainLoadCharacter;
     };
 } DB_ZQuery;
@@ -81,6 +82,7 @@ typedef struct {
 
 typedef struct {
     uint32_t        count;
+    uint32_t        highItemId;
     ItemProtoDb*    protos;
 } DBR_MainLoadItemProtos;
 
