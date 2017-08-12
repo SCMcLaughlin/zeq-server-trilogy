@@ -25,6 +25,7 @@ enum ItemStatId
     ITEM_STAT_SvDisease,
     ITEM_STAT_Weight,
     ITEM_STAT_Size,
+    ITEM_STAT_Slot,
     ITEM_STAT_Race,
     ITEM_STAT_Class,
     ITEM_STAT_BagSlots,
@@ -43,6 +44,7 @@ enum ItemStatId
     ITEM_STAT_VendorBuyPrice,
     ITEM_STAT_VendorSellPrice,
     ITEM_STAT_Model,
+    ITEM_STAT_ItemType,
 };
 
 #endif/*ITEM_STAT_ID_H*/

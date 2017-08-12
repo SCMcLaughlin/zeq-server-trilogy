@@ -99,6 +99,7 @@ amalg: main-build-amalg
 pre-build:
 	$(E) "Generating code..."
 	$(Q)luajit codegen/enum2str.lua
+	$(Q)luajit codegen/enum2lua.lua
     
 main-build: pre-build
 	$(Q)$(MAKE) --no-print-directory zeq-server-trilogy
