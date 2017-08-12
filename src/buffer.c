@@ -247,3 +247,13 @@ void sbuf_zero_fill(StaticBuffer* buf)
         memset(sbuf_data_writable(buf), 0, buf->len);
     }
 }
+
+const char* sbuf_str_or_empty_string(StaticBuffer* buf)
+{
+    const char* ret = "";
+    
+    if (buf)
+        ret = sbuf_str(buf);
+    
+    return ret;
+}

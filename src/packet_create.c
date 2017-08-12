@@ -362,6 +362,7 @@ TlgPacket* packet_create_inv_item(InvSlot* slot, Item* item, ItemProto* proto, u
 {
     Aligned a;
     PC_Item citem;
+    uint16_t temp = 0;
     TlgPacket* packet = packet_init_type(OP_Inventory, PS_Item, &a);
     
     if (!packet) return NULL;
@@ -371,7 +372,200 @@ TlgPacket* packet_create_inv_item(InvSlot* slot, Item* item, ItemProto* proto, u
     citem.itemId = itemId;
     citem.currentSlot = slot->slotId;
     
-    /*fixme: stuff goes here*/
+    item_proto_to_packet(proto, &citem);
     
+    /*fixme: handle charges, stack amount*/
+    
+    /* PS_Item */
+    /* name */
+    aligned_write_snprintf_and_advance_by(&a, sizeof_field(PS_Item, name), "%s", sbuf_str_or_empty_string(citem.name));
+    
+    /* tagFlag */
+    /* The first character of the lore text field controls the LORE ITEM, NO RENT, ARTIFACT and PENDING LORE flags, if present */
+    if (citem.isUnique)
+        temp = '*';
+    else if (!citem.isPermanent)
+        temp = '&';
+    
+    if (temp)
+    {
+        aligned_write_uint8(&a, (uint8_t)temp);
+        temp = 1;
+    }
+    
+    /* lore */
+    aligned_write_snprintf_and_advance_by(&a, sizeof_field(PS_Item, lore) - temp, "%s", sbuf_str_or_empty_string(citem.lore));
+    /* model */
+    aligned_write_snprintf_and_advance_by(&a, sizeof_field(PS_Item, model), "IT%u", citem.model);
+    
+    /* typeFlag */
+    if (citem.isBag)
+        temp = 0x5400;
+    else if (citem.isBook)
+        temp = 0x7669;
+    else if (citem.isScroll)
+        temp = 0;
+    else
+        temp = 0x3336;
+    
+    aligned_write_uint16(&a, temp);
+    
+    /* unknownA */
+    aligned_write_zeroes(&a, sizeof_field(PS_Item, unknownA));
+    /* weight */
+    aligned_write_uint8(&a, citem.weight);
+    /* isPermanent */
+    aligned_write_uint8(&a, (citem.isPermanent) ? 255 : 0);
+    /* isDroppable */
+    aligned_write_uint8(&a, (citem.isDroppable) ? 1 : 0);
+    /* size */
+    aligned_write_uint8(&a, citem.size);
+    
+    /* itemType */
+    if (citem.isBag)
+        temp = 1;
+    else if (citem.isBook || citem.isScroll)
+        temp = 2;
+    else
+        temp = 0;
+    
+    aligned_write_uint8(&a, (uint8_t)temp);
+    
+    /* itemId */
+    aligned_write_uint16(&a, citem.itemId);
+    /* icon */
+    aligned_write_uint16(&a, citem.icon);
+    /* currentSlot */
+    aligned_write_uint16(&a, citem.currentSlot);
+    /* slotsBitfield */
+    aligned_write_uint32(&a, citem.slots);
+    /* cost */
+    aligned_write_uint32(&a, citem.cost);
+    /* unknownB, instanceId */
+    aligned_write_zeroes(&a, sizeof_field(PS_Item, unknownB) + sizeof_field(PS_Item, instanceId));
+    /* isDroppableRoleplayServer */
+    aligned_write_uint8(&a, (citem.isDroppable) ? 1 : 0);
+    /* unknownC */
+    aligned_write_zeroes(&a, sizeof_field(PS_Item, unknownC));
+    
+    if (citem.isBook)
+    {
+        /* PS_ItemBook */
+        /* isBook */
+        aligned_write_uint8(&a, 1);
+        /* type */
+        aligned_write_uint16(&a, 0); /*fixme*/
+        /* fileName */
+        aligned_write_snprintf_and_advance_by(&a, sizeof_field(PS_ItemBook, fileName), "%u", item_proto_item_id(proto));
+        /* unknownA */
+        aligned_write_zeroes(&a, sizeof_field(PS_ItemBook, unknownA));
+    }
+    else
+    {
+        /* PS_ItemStats */
+        /* STR */
+        aligned_write_int8(&a, citem.STR);
+        /* STA */
+        aligned_write_int8(&a, citem.STA);
+        /* CHA */
+        aligned_write_int8(&a, citem.CHA);
+        /* DEX */
+        aligned_write_int8(&a, citem.DEX);
+        /* INT */
+        aligned_write_int8(&a, citem.INT);
+        /* AGI */
+        aligned_write_int8(&a, citem.AGI);
+        /* WIS */
+        aligned_write_int8(&a, citem.WIS);
+        /* MR */
+        aligned_write_int8(&a, citem.MR);
+        /* FR */
+        aligned_write_int8(&a, citem.FR);
+        /* CR */
+        aligned_write_int8(&a, citem.CR);
+        /* DR */
+        aligned_write_int8(&a, citem.DR);
+        /* PR */
+        aligned_write_int8(&a, citem.PR);
+        /* hp */
+        aligned_write_int8(&a, citem.hp);
+        /* mana */
+        aligned_write_int8(&a, citem.mana);
+        /* AC */
+        aligned_write_int8(&a, citem.AC);
+        /* isStackable/hasUnlimitedCharges */
+        aligned_write_uint8(&a, (citem.isStackable || citem.isUnlimitedCharges) ? 1 : 0);
+        /* isTestItem */
+        aligned_write_uint8(&a, 0);
+        /* light */
+        aligned_write_uint8(&a, citem.light);
+        /* delay */
+        aligned_write_uint8(&a, citem.delay);
+        /* damage */
+        aligned_write_uint8(&a, citem.damage);
+        /* clickyType */
+        aligned_write_uint8(&a, citem.clickyType);
+        /* range */
+        aligned_write_uint8(&a, citem.range);
+        /* skill */
+        aligned_write_uint8(&a, citem.itemType);
+        /* isMagic */
+        aligned_write_uint8(&a, (citem.isMagic) ? 1 : 0);
+        /* clickableLevel */
+        aligned_write_uint8(&a, citem.clickableLevel);
+        /* materialId */
+        aligned_write_uint8(&a, citem.materialId);
+        /* unknownA */
+        aligned_write_uint16(&a, 0);
+        /* tint */
+        aligned_write_uint32(&a, citem.tint);
+        /* unknownB */
+        aligned_write_uint16(&a, 0);
+        /* spellId */
+        aligned_write_uint16(&a, citem.spellId);
+        /* classesBitfield */
+        aligned_write_uint32(&a, citem.classes);
+        
+        if (citem.isBag)
+        {
+            /* type */
+            aligned_write_uint8(&a, citem.bag.type); /*fixme: tradeskill types etc*/
+            /* capacity */
+            aligned_write_uint8(&a, citem.bag.capacity);
+            /* isOpen */
+            aligned_write_uint8(&a, 0);
+            /* containableSize */
+            aligned_write_uint8(&a, citem.bag.containableSize);
+            /* weightReductionPercent */
+            aligned_write_uint8(&a, citem.bag.weightReductionPercent);
+        }
+        else
+        {
+            /* racesBitfield */
+            aligned_write_uint32(&a, citem.races);
+            /* consumableType */
+            aligned_write_uint8(&a, 3); /*fixme: 3 for clickies (and procs?), should any other values go here? */
+        }
+        
+        /* procLevel/hastePercent */
+        /*fixme: procLevel is meaningless to the client, and doesn't seem like this affects button refresh times...*/
+        aligned_write_uint8(&a, citem.hastePercent);
+        
+        /* charges */
+        aligned_write_uint8(&a, item->charges);
+        /* effectType */
+        aligned_write_uint8(&a, citem.effectType);
+        /* clickySpellId */
+        aligned_write_uint16(&a, citem.clickySpellId);
+        /* unknownC */
+        aligned_write_zeroes(&a, sizeof_field(PS_ItemStats, unknownC));
+        /* castingTime */
+        aligned_write_uint32(&a, citem.castingTime);
+        /* unknownD, recommendedLevel, unknownE */
+        aligned_write_zeroes(&a, sizeof_field(PS_ItemStats, unknownD) + sizeof_field(PS_ItemStats, recommendedLevel) + sizeof_field(PS_ItemStats, unknownE));
+        /* deityBitfield */
+        aligned_write_uint32(&a, 0); /*fixme*/
+    }
+
     return packet;
 }

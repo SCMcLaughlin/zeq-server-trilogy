@@ -91,8 +91,6 @@ local translateString = {
 local function ItemDef(path, shortpath, itemId, defstr)
     local item = {}
     
-    warnPath = path
-    
     -- Name
     item.name = defstr:match("%s*([^\n]+)")
     

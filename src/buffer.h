@@ -45,4 +45,7 @@ void sbuf_zero_fill(StaticBuffer* buf);
 #define sbuf_data_type(buf, type) ((type*)sbuf_data((buf)))
 #define sbuf_str(buf) (sbuf_data_type(buf, const char))
 
+/* Returns the empty string if buf is NULL */
+const char* sbuf_str_or_empty_string(StaticBuffer* buf);
+
 #endif/*BUFFER_H*/

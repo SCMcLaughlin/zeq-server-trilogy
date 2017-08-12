@@ -1,6 +1,7 @@
 
 #include "packet_convert.h"
 #include "class_id.h"
+#include "item_client_type_id.h"
 #include "item_type_id.h"
 #include "race_id.h"
 
@@ -8,7 +9,7 @@ void pc_item_set_defaults(PC_Item* item)
 {
     memset(item, 0, sizeof(PC_Item));
     
-    item->itemType = ITEM_TYPE_Generic;
+    item->itemType = ITEM_CLIENT_TYPE_Armor;
     item->model = 63;
     item->isPermanent = true;
     item->isDroppable = true;

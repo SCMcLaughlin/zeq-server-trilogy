@@ -11,6 +11,7 @@ typedef struct {
     uint8_t         itemType;
     uint8_t         model;
     uint8_t         weight;
+    uint8_t         size;
     bool            isPermanent;
     bool            isDroppable;
     bool            isUnique;
@@ -36,7 +37,11 @@ typedef struct {
     int8_t          mana;
     int8_t          AC;
     bool            isStackable;
+    bool            isCharged;
     bool            isUnlimitedCharges;
+    bool            isBag;
+    bool            isBook;
+    bool            isScroll;
     uint8_t         light;
     uint8_t         delay;
     uint8_t         damage;
@@ -60,7 +65,6 @@ typedef struct {
     struct {
         uint8_t     type;
         uint8_t     capacity;
-        uint8_t     isOpen;
         uint8_t     containableSize;
         uint8_t     weightReductionPercent;
     } bag;

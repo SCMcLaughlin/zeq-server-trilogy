@@ -213,9 +213,8 @@ typedef struct {
 } PS_ItemBook;
 
 typedef struct {
-    char        name[35];
-    uint8_t     tagFlag;        /* '*' = lore, '&' = no rent, '#' = artifact, '~' = pending lore */
-    char        lore[59];
+    char        name[35]; 
+    char        lore[60];       /* First character: '*' = lore, '&' = no rent, '#' = artifact, '~' = pending lore */
     char        model[6];
     uint16_t    typeFlag;       /* 0 = scroll, 0x3336 = basic, 0x5400 = container, 0x7669 = book */
     uint8_t     unknownA[22];

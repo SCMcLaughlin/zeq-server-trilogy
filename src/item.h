@@ -7,8 +7,8 @@
 
 typedef struct {
     ItemProto*  proto;
-    uint16_t    charges;
-    uint16_t    stackAmt;
+    uint8_t     charges;
+    uint8_t     stackAmt;
     bool        isBag;
 } Item;
 

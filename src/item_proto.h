@@ -4,6 +4,7 @@
 
 #include "define.h"
 #include "buffer.h"
+#include "packet_convert.h"
 #include "util_hash_tbl.h"
 
 typedef struct ItemProto ItemProto;
@@ -44,5 +45,7 @@ StaticBuffer* item_proto_path(ItemProto* proto);
 StaticBuffer* item_proto_name(ItemProto* proto);
 StaticBuffer* item_proto_lore_text(ItemProto* proto);
 uint32_t item_proto_item_id(ItemProto* proto);
+
+void item_proto_to_packet(ItemProto* proto, PC_Item* item);
 
 #endif/*ITEM_PROTO_H*/

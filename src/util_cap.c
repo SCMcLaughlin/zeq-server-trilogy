@@ -10,3 +10,8 @@ uint8_t cap_uint8(int v)
 {
     return (v > UINT8_MAX) ? UINT8_MAX : ((v < 0) ? 0 : v);
 }
+
+int cap_min_max(int v, int vMin, int vMax)
+{
+    return (v > vMax) ? vMax : ((v < vMin) ? vMin : v);
+}

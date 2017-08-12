@@ -2,7 +2,11 @@
 #include "item_proto.h"
 #include "bit.h"
 #include "buffer.h"
+#include "item_client_type_id.h"
+#include "item_stat_id.h"
+#include "item_type_id.h"
 #include "util_alloc.h"
+#include "util_cap.h"
 #include "util_hash_tbl.h"
 
 #ifdef PLATFORM_WINDOWS
@@ -201,4 +205,348 @@ StaticBuffer* item_proto_lore_text(ItemProto* proto)
 uint32_t item_proto_item_id(ItemProto* proto)
 {
     return proto->itemId;
+}
+
+static void item_proto_to_packet_handle_item_type(PC_Item* item, int value)
+{
+    switch (value)
+    {
+    case ITEM_TYPE_Generic:
+        item->itemType = ITEM_CLIENT_TYPE_Armor;
+        break;
+    
+    case ITEM_TYPE_Stackable:
+        item->isStackable = true,
+        item->itemType = ITEM_CLIENT_TYPE_Stackable;
+        break;
+    
+    case ITEM_TYPE_Bag:
+    case ITEM_TYPE_TradeskillBag:
+        item->isBag = true;
+        item->itemType = ITEM_CLIENT_TYPE_Armor;
+        break;
+    
+    case ITEM_TYPE_Book:
+        item->isBook = true;
+        item->itemType = ITEM_CLIENT_TYPE_Book;
+        break;
+    
+    case ITEM_TYPE_Note:
+        item->isBook = true;
+        item->itemType = ITEM_CLIENT_TYPE_Note;
+        break;
+    
+    case ITEM_TYPE_Scroll:
+        item->isScroll = true;
+        item->itemType = ITEM_CLIENT_TYPE_SpellScroll;
+        break;
+    
+    case ITEM_TYPE_Food:
+        item->isStackable = true;
+        item->itemType = ITEM_CLIENT_TYPE_Food;
+        break;
+    
+    case ITEM_TYPE_Drink:
+        item->isStackable = true;
+        item->itemType = ITEM_CLIENT_TYPE_Drink;
+        break;
+    
+    case ITEM_TYPE_1HSlash:
+        item->itemType = ITEM_CLIENT_TYPE_1HSlash;
+        break;
+    
+    case ITEM_TYPE_2HSlash:
+        item->itemType = ITEM_CLIENT_TYPE_2HSlash;
+        break;
+    
+    case ITEM_TYPE_1HBlunt:
+        item->itemType = ITEM_CLIENT_TYPE_1HBlunt;
+        break;
+    
+    case ITEM_TYPE_2HBlunt:
+        item->itemType = ITEM_CLIENT_TYPE_2HBlunt;
+        break;
+    
+    case ITEM_TYPE_1HPiercing:
+        item->itemType = ITEM_CLIENT_TYPE_1HPiercing;
+        break;
+    
+    case ITEM_TYPE_2HPiercing:
+        item->itemType = ITEM_CLIENT_TYPE_2HPiercing;
+        break;
+    
+    case ITEM_TYPE_Archery:
+        item->itemType = ITEM_CLIENT_TYPE_Archery;
+        break;
+    
+    case ITEM_TYPE_Arrow:
+        item->isStackable = true;
+        item->itemType = ITEM_CLIENT_TYPE_Arrow;
+        break;
+    
+    case ITEM_TYPE_Throwing:
+        item->itemType = ITEM_CLIENT_TYPE_Throwing;
+        break;
+    
+    case ITEM_TYPE_ThrowingStackable:
+        item->isStackable = true;
+        item->itemType = ITEM_CLIENT_TYPE_ThrowingStackable;
+        break;
+    
+    case ITEM_TYPE_Shield:
+        item->itemType = ITEM_CLIENT_TYPE_Bash;
+        break;
+    
+    case ITEM_TYPE_Lockpick:
+        item->itemType = ITEM_CLIENT_TYPE_Lockpick;
+        break;
+    
+    case ITEM_TYPE_Bandage:
+        item->itemType = ITEM_CLIENT_TYPE_Bandage;
+        break;
+    
+    case ITEM_TYPE_WindInstrument:
+        item->itemType = ITEM_CLIENT_TYPE_WindInstrument;
+        break;
+    
+    case ITEM_TYPE_StringInstrument:
+        item->itemType = ITEM_CLIENT_TYPE_StringInstrument;
+        break;
+    
+    case ITEM_TYPE_BrassInstrument:
+        item->itemType = ITEM_CLIENT_TYPE_BrassInstrument;
+        break;
+    
+    case ITEM_TYPE_PercussionInstrument:
+        item->itemType = ITEM_CLIENT_TYPE_PercussionInstrument;
+        break;
+    
+    case ITEM_TYPE_Singing:
+        item->itemType = ITEM_CLIENT_TYPE_Singing;
+        break;
+    
+    case ITEM_TYPE_AllInstruments:
+        item->itemType = ITEM_CLIENT_TYPE_AllInstruments;
+        break;
+    
+    case ITEM_TYPE_Key:
+        item->itemType = ITEM_CLIENT_TYPE_Key;
+        break;
+    
+    case ITEM_TYPE_FishingRod:
+        item->itemType = ITEM_CLIENT_TYPE_FishingRod;
+        break;
+    
+    case ITEM_TYPE_FishingBait:
+        item->isStackable = true;
+        item->itemType = ITEM_CLIENT_TYPE_FishingBait;
+        break;
+    
+    case ITEM_TYPE_Alcohol:
+        item->itemType = ITEM_CLIENT_TYPE_Alcohol;
+        break;
+    
+    case ITEM_TYPE_Compass:
+        item->itemType = ITEM_CLIENT_TYPE_Compass;
+        break;
+    
+    case ITEM_TYPE_Poison:
+        item->itemType = ITEM_CLIENT_TYPE_Poison;
+        break;
+    
+    case ITEM_TYPE_HandToHand:
+        item->itemType = ITEM_CLIENT_TYPE_HandToHand;
+        break;
+    
+    default:
+        break;
+    }
+}
+
+void item_proto_to_packet(ItemProto* proto, PC_Item* item)
+{
+    uint32_t n = proto->fieldCount;
+    uint32_t i;
+    
+    item->name = proto->name;
+    item->lore = proto->lore;
+    
+    for (i = 0; i < n; i++)
+    {
+        uint8_t fieldId = *item_proto_field_id(proto, i);
+        int value = *item_proto_field_value(proto, i);
+        
+        switch (fieldId)
+        {
+        case ITEM_STAT_Lore:
+            item->isUnique = true;
+            break;
+        
+        case ITEM_STAT_NoDrop:
+            item->isDroppable = false;
+            break;
+        
+        case ITEM_STAT_NoRent:
+            item->isPermanent = false;
+            break;
+        
+        case ITEM_STAT_Magic:
+            item->isMagic = true;
+            break;
+        
+        case ITEM_STAT_AC:
+            item->AC = cap_int8(value);
+            break;
+        
+        case ITEM_STAT_DMG:
+            item->damage = cap_uint8(value);
+            break;
+        
+        case ITEM_STAT_Delay:
+            item->delay = cap_uint8(value);
+            break;
+        
+        case ITEM_STAT_Range:
+            item->range = cap_uint8(value);
+            break;
+        
+        case ITEM_STAT_STR:
+            item->STR = cap_int8(value);
+            break;
+        
+        case ITEM_STAT_STA:
+            item->STA = cap_int8(value);
+            break;
+        
+        case ITEM_STAT_CHA:
+            item->CHA = cap_int8(value);
+            break;
+        
+        case ITEM_STAT_DEX:
+            item->DEX = cap_int8(value);
+            break;
+        
+        case ITEM_STAT_AGI:
+            item->AGI = cap_int8(value);
+            break;
+        
+        case ITEM_STAT_INT:
+            item->INT = cap_int8(value);
+            break;
+        
+        case ITEM_STAT_WIS:
+            item->WIS = cap_int8(value);
+            break;
+        
+        case ITEM_STAT_SvMagic:
+            item->MR = cap_int8(value);
+            break;
+        
+        case ITEM_STAT_SvFire:
+            item->FR = cap_int8(value);
+            break;
+        
+        case ITEM_STAT_SvCold:
+            item->CR = cap_int8(value);
+            break;
+        
+        case ITEM_STAT_SvPoison:
+            item->PR = cap_int8(value);
+            break;
+        
+        case ITEM_STAT_SvDisease:
+            item->DR = cap_int8(value);
+            break;
+        
+        case ITEM_STAT_Hp:
+            item->hp = cap_int8(value);
+            break;
+        
+        case ITEM_STAT_Mana:
+            item->mana = cap_int8(value);
+            break;
+        
+        case ITEM_STAT_Weight:
+            item->weight = cap_uint8(value);
+            break;
+        
+        case ITEM_STAT_Size:
+            item->size = (uint8_t)cap_min_max(value, 0, 4);
+            break;
+        
+        case ITEM_STAT_Slot:
+            item->slots = (uint32_t)value;
+            break;
+        
+        case ITEM_STAT_Race:
+            item->races = (uint32_t)value;
+            break;
+        
+        case ITEM_STAT_Class:
+            item->classes = (uint32_t)value;
+            break;
+        
+        case ITEM_STAT_BagSlots:
+            if (value%2 != 0) value++; /* Must be multiple of 2 */
+            item->bag.capacity = (uint8_t)cap_min_max(value, 0, 10);
+            break;
+        
+        case ITEM_STAT_BagWeightReduction:
+            item->bag.weightReductionPercent = (uint8_t)cap_min_max(value, 0, 100);
+            break;
+        
+        case ITEM_STAT_BagMaxSize:
+            item->bag.containableSize = (uint8_t)cap_min_max(value, 0, 4);
+            break;
+        
+        case ITEM_STAT_SkillModSkillId:
+        case ITEM_STAT_SkillModValue:
+            break;
+        
+        case ITEM_STAT_Texture:
+            item->materialId = (uint8_t)value;
+            break;
+        
+        case ITEM_STAT_Tint:
+            item->tint = (uint32_t)value;
+            break;
+        
+        case ITEM_STAT_SpellId:
+        case ITEM_STAT_SpellEffectType:
+        case ITEM_STAT_SpellMinLevel:
+        case ITEM_STAT_HasteMinLevel:
+            break;
+        
+        case ITEM_STAT_Charges:
+            item->isCharged = true;
+            break;
+        
+        case ITEM_STAT_Haste:
+            item->hastePercent = cap_uint8(value);
+            break;
+        
+        case ITEM_STAT_Icon:
+            item->icon = (uint16_t)cap_min_max(value, 500, 1264);
+            break;
+        
+        case ITEM_STAT_VendorBuyPrice:
+            item->cost = (uint32_t)value;
+            break;
+        
+        case ITEM_STAT_Model:
+            item->model = cap_uint8(value);
+            break;
+        
+        case ITEM_STAT_ItemType:
+            item_proto_to_packet_handle_item_type(item, value);
+            break;
+        
+        case ITEM_STAT_Light:
+            item->light = cap_uint8(value);
+            break;
+        
+        default:
+            break;
+        }
+    }
 }
