@@ -54,6 +54,11 @@ typedef struct {
 /* MainThread */
 
 typedef struct {
+    uint32_t    count;
+    uint32_t*   itemIds;
+} DBQ_MainItemProtoDeletes;
+
+typedef struct {
     void*           client;
     int64_t         accountId;
     StaticBuffer*   name;
@@ -72,6 +77,7 @@ typedef struct {
         DBQ_CSCharacterCreate           qCSCharacterCreate;
         DBQ_CSCharacterDelete           qCSCharacterDelete;
         ItemProtoDbChanges              qMainItemProtoChanges;
+        DBQ_MainItemProtoDeletes        qMainItemProtoDeletes;
         DBQ_MainLoadCharacter           qMainLoadCharacter;
     };
 } DB_ZQuery;

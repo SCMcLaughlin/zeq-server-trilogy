@@ -167,6 +167,7 @@ static void db_thread_destruct_zpacket(DbThread* db, ZPacket* zpacket)
     case ZOP_DB_QueryCSCharacterCreate:
     case ZOP_DB_QueryCSCharacterDelete:
     case ZOP_DB_QueryMainItemProtoChanges:
+    case ZOP_DB_QueryMainItemProtoDeletes:
         dbw_destruct(db, zpacket, zop);
         break;
     
@@ -462,6 +463,7 @@ static void db_thread_proc(void* ptr)
             case ZOP_DB_QueryCSCharacterCreate:
             case ZOP_DB_QueryCSCharacterDelete:
             case ZOP_DB_QueryMainItemProtoChanges:
+            case ZOP_DB_QueryMainItemProtoDeletes:
                 db_thread_queue_query(db, &zpacket, zop, true);
                 break;
 

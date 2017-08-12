@@ -177,6 +177,45 @@ fail:
     sqlite3_finalize(stmt);
 }
 
+static void dbw_main_item_proto_deletes(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
+{
+    sqlite3_stmt* stmt = NULL;
+    ZPacket reply;
+    uint32_t count = zpacket->db.zQuery.qMainItemProtoDeletes.count;
+    uint32_t* itemIds = zpacket->db.zQuery.qMainItemProtoDeletes.itemIds;
+    uint32_t i;
+    bool run;
+
+    reply.db.zResult.queryId = zpacket->db.zQuery.queryId;
+    reply.db.zResult.hadError = true;
+    reply.db.zResult.hadErrorUnprocessed = false;
+
+    if (count && itemIds)
+    {
+        run = db_prepare_literal(db, sqlite, &stmt,
+            "DELETE FROM item_proto WHERE item_id = ?");
+
+        if (!run) goto fail;
+
+        for (i = 0; i < count; i++)
+        {
+            if (!db_bind_int64(db, stmt, 0, (int64_t)itemIds[i]))
+                goto fail;
+
+            if (!db_write(db, stmt))
+                goto fail;
+
+            sqlite3_reset(stmt);
+        }
+    }
+
+    reply.db.zResult.hadError = false;
+
+fail:
+    db_reply(db, zpacket, &reply);
+    sqlite3_finalize(stmt);
+}
+
 void dbw_dispatch(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
 {
     uint64_t timer = clock_microseconds();
@@ -199,6 +238,10 @@ void dbw_dispatch(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
     case ZOP_DB_QueryMainItemProtoChanges:
         dbw_main_item_proto_changes(db, sqlite, zpacket);
         break;
+
+    case ZOP_DB_QueryMainItemProtoDeletes:
+        dbw_main_item_proto_deletes(db, sqlite, zpacket);
+        break;
     
     default:
         log_writef(db_get_log_queue(db), db_get_log_id(db), "WARNING: dbw_dispatch: received unexpected zop: %s", enum2str_zop(zop));
@@ -220,7 +263,7 @@ void dbw_destruct(DbThread* db, ZPacket* zpacket, int zop)
         break;
 
     case ZOP_DB_QueryCSCharacterCreate:
-        free(zpacket->db.zQuery.qCSCharacterCreate.data);
+        free_if_exists(zpacket->db.zQuery.qCSCharacterCreate.data);
         break;
 
     case ZOP_DB_QueryCSCharacterDelete:
@@ -229,6 +272,10 @@ void dbw_destruct(DbThread* db, ZPacket* zpacket, int zop)
     
     case ZOP_DB_QueryMainItemProtoChanges:
         free_if_exists(zpacket->db.zQuery.qMainItemProtoChanges.proto);
+        break;
+
+    case ZOP_DB_QueryMainItemProtoDeletes:
+        free_if_exists(zpacket->db.zQuery.qMainItemProtoDeletes.itemIds);
         break;
     
     default:

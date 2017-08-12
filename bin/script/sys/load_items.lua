@@ -272,7 +272,7 @@ local function ItemDef(path, shortpath, itemId, defstr)
 end
 
 local function parse(path)
-    local shortpath = path:match("script/item/(.+)")
+    local shortpath = path:match("^script/item/(.+)%.lua$")
     local found = gSkipPaths[shortpath]
     local itemId = 0
     
