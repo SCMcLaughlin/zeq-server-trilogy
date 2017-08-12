@@ -21,6 +21,8 @@ enum RaceId
     RACE_ID_Iksar = 124
 };
 
+#define RACE_BIT_ALL 0x1fff
+
 const char* race_id_to_str(int raceId);
 
 #endif/*RACE_ID_H*/

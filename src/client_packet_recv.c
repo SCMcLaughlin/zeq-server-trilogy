@@ -16,8 +16,10 @@ static void cpr_warn_unknown_opcode(Client* client, uint16_t opcode)
 
 static void cpr_handle_op_inventory_request(Client* client)
 {
-    (void)client;
-    /*fixme: handle this*/
+    RingBuf* udpQueue = zone_udp_queue(client_get_zone(client));
+    
+    /*fixme: only respond to this if the client is known to be zoning in*/
+    inv_send_all(client_inv(client), client, udpQueue);
 }
 
 static void cpr_handle_op_zone_info_request(Client* client)

@@ -197,3 +197,8 @@ StaticBuffer* item_proto_lore_text(ItemProto* proto)
 {
     return proto->lore;
 }
+
+uint32_t item_proto_item_id(ItemProto* proto)
+{
+    return proto->itemId;
+}

@@ -142,6 +142,103 @@ typedef struct {
     uint8_t     unknownI[10];
 } PS_Spawn;
 
+typedef struct {
+    int8_t      STR;
+    int8_t      STA;
+    int8_t      CHA;
+    int8_t      DEX;
+    int8_t      INT;
+    int8_t      AGI;
+    int8_t      WIS;
+    int8_t      MR;
+    int8_t      FR;
+    int8_t      CR;
+    int8_t      DR;
+    int8_t      PR;
+    int8_t      hp;
+    int8_t      mana;
+    int8_t      AC;
+    union {
+        uint8_t     isStackable;
+        uint8_t     hasUnlimitedCharges;
+    };
+    uint8_t     isTestItem;
+    uint8_t     light;
+    uint8_t     delay;
+    uint8_t     damage;
+    uint8_t     clickyType; /* 0 = none/proc, 1 = unrestricted clicky, 2 = worn, 3 = unrestricted expendable, 4 = must-equip clicky, 5 = class-restricted clicky */
+    uint8_t     range;
+    uint8_t     skill;
+    uint8_t     isMagic;
+    uint8_t     clickableLevel;
+    uint8_t     materialId;
+    uint16_t    unknownA;
+    uint32_t    tint;
+    uint16_t    unknownB;
+    uint16_t    spellId;
+    uint32_t    classesBitfield;
+    union {
+        struct {
+            uint32_t    racesBitfield;
+            uint8_t     consumableType; /* 3 for clickies (and procs..?) */
+        };
+        struct {
+            uint8_t     type;
+            uint8_t     capacity;
+            uint8_t     isOpen;
+            uint8_t     containableSize;
+            uint8_t     weightReductionPercent;
+        } bag;
+    };
+    union {
+        uint8_t procLevel;
+        uint8_t hastePercent;
+    };
+    uint8_t     charges;
+    uint8_t     effectType; /* 0 = none/proc, 1 = unrestricted clicky, 2 = worn, 3 = unrestricted expendable, 4 = must-equip clicky, 5 = class-restricted clicky */
+    uint16_t    clickySpellId;
+    uint8_t     unknownC[10];
+    uint32_t    castingTime;
+    uint8_t     unknownD[28];
+    uint8_t     recommendedLevel;
+    uint8_t     unknownE[23];
+    uint32_t    deityBitfield;
+} PS_ItemStats;
+
+typedef struct {
+    uint8_t     isBook;
+    uint16_t    type;
+    char        fileName[15];
+    uint8_t     unknownA[102];
+} PS_ItemBook;
+
+typedef struct {
+    char        name[35];
+    uint8_t     tagFlag;        /* '*' = lore, '&' = no rent, '#' = artifact, '~' = pending lore */
+    char        lore[59];
+    char        model[6];
+    uint16_t    typeFlag;       /* 0 = scroll, 0x3336 = basic, 0x5400 = container, 0x7669 = book */
+    uint8_t     unknownA[22];
+    uint8_t     weight;
+    uint8_t     isPermanent;    /* 0 = no rent, 1/255 = permanent */
+    uint8_t     isDroppable;    /* 0 = no drop */
+    uint8_t     size;
+    uint8_t     itemType;       /* 0 = basic, 1 = container, 2 = book/scroll */
+    uint16_t    itemId;
+    uint16_t    icon;
+    uint16_t    currentSlot;
+    uint32_t    slotsBitfield;
+    uint32_t    cost;
+    uint8_t     unknownB[16];
+    uint32_t    instanceId;
+    uint8_t     isDroppableRoleplayServer;
+    uint8_t     unknownC[7];
+    union {
+        PS_ItemStats    stats;
+        PS_ItemBook     book;
+    };
+} PS_Item;
+
 #pragma pack()
 
 #endif/*PACKET_STRUCT_H*/

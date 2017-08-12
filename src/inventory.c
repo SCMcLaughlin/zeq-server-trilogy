@@ -2,6 +2,9 @@
 #include "inventory.h"
 #include "aligned.h"
 #include "bit.h"
+#include "client.h"
+#include "client_packet_send.h"
+#include "packet_create.h"
 #include "player_profile_packet_struct.h"
 #include "util_alloc.h"
 
@@ -76,6 +79,24 @@ uint16_t inv_item_id_for_client(Inventory* inv, uint32_t itemIdReal)
     inv->idMap[n].clientId = i;
     inv->idMapCount = n + 1;
     return i;
+}
+
+void inv_send_all(Inventory* inv, Client* client, RingBuf* udpQueue)
+{
+    InvSlot* slots = inv->slots;
+    uint32_t n = inv->slotCount;
+    uint32_t i;
+    
+    for (i = 0; i < n; i++)
+    {
+        InvSlot* slot = &slots[i];
+        Item* item = slot->item;
+        ItemProto* proto = item->proto;
+        TlgPacket* packet = packet_create_inv_item(slot, item, proto, inv_item_id_for_client(inv, item_proto_item_id(proto)));
+        
+        if (packet)
+            client_schedule_packet_with_udp_queue(client, udpQueue, packet);
+    }
 }
 
 static void inv_write_pp_item_ids(Inventory* inv, Aligned* a, uint32_t from, uint32_t to)

@@ -18,6 +18,7 @@ end
 local validTags = {
     loreitem = true,
     nodrop = true,
+    norent = true,
     magicitem = true,
 }
 

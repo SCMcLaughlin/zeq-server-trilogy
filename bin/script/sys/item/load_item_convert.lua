@@ -4,6 +4,7 @@ local eSlot = require "enum/slot_bit"
 local eClass = require "enum/class_bit"
 local eRace = require "enum/race_bit"
 local eStat = require "enum/item_stat_id"
+local eType = require "enum/item_type_id"
 local C = require "sys/load_items_cdef"
 require "sys/log_cdef"
 
@@ -34,6 +35,52 @@ local sizeToNum = {
     medium = 2,
     large = 3,
     giant = 4,
+}
+
+local skillToType = {
+    ["1hs"] = eType["1HSlash"],
+    ["1hslash"] = eType["1HSlash"],
+    ["1hslashing"] = eType["1HSlash"],
+    ["2hs"] = eType["2HSlash"],
+    ["2hslash"] = eType["2HSlash"],
+    ["2hslashing"] = eType["2HSlash"],
+    ["1hb"] = eType["1HBlunt"],
+    ["1hblunt"] = eType["1HBlunt"],
+    ["2hb"] = eType["2HBlunt"],
+    ["2hblunt"] = eType["2HBlunt"],
+    piercing = eType["1HPiercing"],
+    pierce = eType["1HPiercing"],
+    ["1hp"] = eType["1HPiercing"],
+    ["1hpierce"] = eType["1HPiercing"],
+    ["1hpiercing"] = eType["1HPiercing"],
+    ["2hp"] = eType["2HPiercing"],
+    ["2hpierce"] = eType["2HPiercing"],
+    ["2hpiercing"] = eType["2HPiercing"],
+    stackable = eType.Stackable,
+    stacking = eType.Stackable,
+    stack = eType.Stackable,
+    bag = eType.Bag,
+    container = eType.Bag,
+    tradeskill = eType.TradeskillBag,
+    combine = eType.TradeskillBag,
+    food = eType.Food,
+    drink = eType.Drink,
+    book = eType.Book,
+    scroll = eType.Scroll,
+    spell = eType.Scroll,
+    bow = eType.Archery,
+    archery = eType.Archery,
+    arrow = eType.Arrow,
+    throw = eType.Throwing,
+    throwing = eType.Throwing,
+    throwable = eType.Throwing,
+    throwingstackable = eType.ThrowingStackable,
+    throwstackable = eType.ThrowingStackable,
+    throwstacking = eType.ThrowingStackable,
+    throwingstack = eType.ThrowingStackable,
+    stackingthrowable = eType.ThrowingStackable,
+    shield = eType.Shield,
+    bash = eType.Shield,
 }
 
 local processField = {
@@ -108,9 +155,25 @@ local processField = {
         
         return v
     end,
+    
+    skill = function(str)
+        local skill = str:lower():gsub("%s+", "")
+        local id = skillToType[skill]
+        
+        if not id then
+            warning("unknown skill: ".. skill)
+            return 1
+        end
+        
+        return id
+    end,
 }
 
 local fieldToId = {
+    loreitem = eStat.Lore,
+    nodrop = eStat.NoDrop,
+    norent = eStat.NoRent,
+    magicitem = eStat.Magic,
     ac = eStat.AC,
     dmg = eStat.DMG,
     dly = eStat.Delay,
@@ -182,7 +245,7 @@ return function(path, shortpath, itemId, fields)
         throw("item_proto_set_lore() failed")
     end
     
-    --Translate field names to ids and set their values
+    -- Translate field names to ids and set their values
     local index = 0
     for k, v in pairs(item) do
         local id = fieldToId[k]

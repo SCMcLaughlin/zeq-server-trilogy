@@ -43,5 +43,6 @@ uint32_t item_proto_bytes(ItemProto* proto);
 StaticBuffer* item_proto_path(ItemProto* proto);
 StaticBuffer* item_proto_name(ItemProto* proto);
 StaticBuffer* item_proto_lore_text(ItemProto* proto);
+uint32_t item_proto_item_id(ItemProto* proto);
 
 #endif/*ITEM_PROTO_H*/

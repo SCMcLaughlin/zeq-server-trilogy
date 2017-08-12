@@ -3,9 +3,10 @@
 #define ITEM_H
 
 #include "define.h"
+#include "item_proto.h"
 
 typedef struct {
-    /*ItemProto*  proto;*/
+    ItemProto*  proto;
     uint16_t    charges;
     uint16_t    stackAmt;
     bool        isBag;

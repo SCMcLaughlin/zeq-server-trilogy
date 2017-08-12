@@ -7,6 +7,7 @@ enum ItemStatId
     ITEM_STAT_NONE,
     ITEM_STAT_Lore,
     ITEM_STAT_NoDrop,
+    ITEM_STAT_NoRent,
     ITEM_STAT_Magic,
     ITEM_STAT_AC,
     ITEM_STAT_DMG,

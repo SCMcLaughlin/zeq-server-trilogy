@@ -44,6 +44,7 @@ _OBJECTS=               \
  main_thread            \
  main_timers            \
  mob                    \
+ packet_convert         \
  packet_create          \
  packet_static          \
  race_id                \
@@ -55,6 +56,7 @@ _OBJECTS=               \
  udp_client             \
  udp_thread             \
  util_atomic_posix      \
+ util_cap               \
  util_clock_common      \
  util_clock_posix       \
  util_fs_posix          \

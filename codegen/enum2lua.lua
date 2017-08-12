@@ -23,7 +23,7 @@ local function enum2lua(name, prefix)
     
     local value = 0
     for key in str:gmatch(prefix .."([%w_]+)") do
-        out[#out + 1] = "    " .. key .. " = ".. value ..","
+        out[#out + 1] = '    ["' .. key .. '"] = '.. value ..','
         value = value + 1
     end
     
@@ -33,3 +33,4 @@ local function enum2lua(name, prefix)
 end
 
 enum2lua("item_stat_id", "ITEM_STAT_")
+enum2lua("item_type_id", "ITEM_TYPE_")

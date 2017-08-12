@@ -5,6 +5,9 @@
 #include "define.h"
 #include "aligned.h"
 #include "item.h"
+#include "ringbuf.h"
+
+struct Client;
 
 typedef struct {
     uint32_t    realId;
@@ -36,6 +39,8 @@ void inv_init(Inventory* inv);
 void inv_deinit(Inventory* inv);
 
 uint16_t inv_item_id_for_client(Inventory* inv, uint32_t itemIdReal);
+
+void inv_send_all(Inventory* inv, struct Client* client, RingBuf* udpQueue);
 
 void inv_write_pp_main_item_ids(Inventory* inv, Aligned* a);
 void inv_write_pp_main_item_properties(Inventory* inv, Aligned* a);

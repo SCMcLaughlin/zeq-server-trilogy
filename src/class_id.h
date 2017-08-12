@@ -22,6 +22,8 @@ enum ClassId
     CLASS_ID_Enchanter,
 };
 
+#define CLASS_BIT_ALL 0x3fff
+
 const char* class_id_to_str(int classId);
 
 #endif/*CLASS_ID_H*/

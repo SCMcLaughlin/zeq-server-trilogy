@@ -3,6 +3,7 @@
 #include "aligned.h"
 #include "client.h"
 #include "mob.h"
+#include "packet_convert.h"
 #include "packet_struct.h"
 #include "tlg_packet.h"
 #include "zone.h"
@@ -353,6 +354,24 @@ TlgPacket* packet_create_spawn(Mob* mob)
     aligned_write_zeroes(&a, sizeof_field(PS_Spawn, unknownI));
     
     packet_obfuscate_spawn(packet_data(packet), packet_length(packet));
+    
+    return packet;
+}
+
+TlgPacket* packet_create_inv_item(InvSlot* slot, Item* item, ItemProto* proto, uint16_t itemId)
+{
+    Aligned a;
+    PC_Item citem;
+    TlgPacket* packet = packet_init_type(OP_Inventory, PS_Item, &a);
+    
+    if (!packet) return NULL;
+    
+    pc_item_set_defaults(&citem);
+    
+    citem.itemId = itemId;
+    citem.currentSlot = slot->slotId;
+    
+    /*fixme: stuff goes here*/
     
     return packet;
 }

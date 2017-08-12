@@ -1,0 +1,23 @@
+
+return {
+    ["NONE"] = 0,
+    ["Generic"] = 1,
+    ["Stackable"] = 2,
+    ["Bag"] = 3,
+    ["TradeskillBag"] = 4,
+    ["Book"] = 5,
+    ["Scroll"] = 6,
+    ["Food"] = 7,
+    ["Drink"] = 8,
+    ["1HSlash"] = 9,
+    ["2HSlash"] = 10,
+    ["1HBlunt"] = 11,
+    ["2HBlunt"] = 12,
+    ["1HPiercing"] = 13,
+    ["2HPiercing"] = 14,
+    ["Archery"] = 15,
+    ["Arrow"] = 16,
+    ["Throwing"] = 17,
+    ["ThrowingStackable"] = 18,
+    ["Shield"] = 19,
+}
