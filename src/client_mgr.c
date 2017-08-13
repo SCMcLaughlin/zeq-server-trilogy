@@ -8,7 +8,7 @@
 #include "enum_zop.h"
 #include "enum2str.h"
 
-#define CMGR_NUM_CLIENT_LOAD_QUERIES 1
+#define CMGR_NUM_CLIENT_LOAD_QUERIES 2
 
 int cmgr_init(MainThread* mt)
 {
@@ -104,6 +104,9 @@ void cmgr_handle_zone_from_char_select(MainThread* mt, ZPacket* zpacket)
 
     if (client)
     {
+        RingBuf* dbQueue;
+        RingBuf* mainQueue;
+        int dbId;
         uint32_t index = cmgr->clientCount;
         ZPacket query;
         int rc;
@@ -125,29 +128,40 @@ void cmgr_handle_zone_from_char_select(MainThread* mt, ZPacket* zpacket)
 
         rc = tbl_set_sbuf(&cmgr->clientsByName, name, (void*)&client);
         if (rc) goto undo_add;
+        
+        dbQueue = mt_get_db_queue(mt);
+        mainQueue = mt_get_queue(mt);
+        dbId = mt_get_db_id(mt);
 
-        /* Step 3: run the first DB query to get the character's id and primary stats */
+        /* Step 3: run character queries */
         query.db.zQuery.qMainLoadCharacter.client = client;
         query.db.zQuery.qMainLoadCharacter.accountId = accountId;
         query.db.zQuery.qMainLoadCharacter.name = name;
+        
+        /* Character id and main stats query */
+        sbuf_grab(name);
+        rc = db_queue_query(dbQueue, mainQueue, dbId, 0, ZOP_DB_QueryMainLoadCharacter, &query);
+        if (rc) goto fail_db;
+        
+        /* Inventory query */
+        sbuf_grab(name);
+        rc = db_queue_query(dbQueue, mainQueue, dbId, 0, ZOP_DB_QueryMainLoadInventory, &query);
+        if (rc) goto fail_db;
 
-        rc = db_queue_query(mt_get_db_queue(mt), mt_get_queue(mt), mt_get_db_id(mt), 0, ZOP_DB_QueryMainLoadCharacter, &query);
-        if (rc)
-        {
-            tbl_remove_str(&cmgr->clientsByName, sbuf_str(name), sbuf_length(name));
-        undo_add:
-            cmgr->loadingClientCount = index;
-            goto fail;
-        }
-
+        /* Drop the ref to the name that originally belonged to the CharSelect thread and was transferred to the MainThread */
+        sbuf_drop(name);
         return;
+        
+    fail_db:
+        sbuf_drop(name); /* Drop the ref added for the query that failed db_queue_query() */
+        tbl_remove_str(&cmgr->clientsByName, sbuf_str(name), sbuf_length(name));
+    undo_add:
+        cmgr->loadingClientCount = index;
+        goto fail;
     }
 
 fail:
-    /*
-        Drop the ref to the name that originally belonged to the CharSelect thread and was transferred to the MainThread.
-        If db_queue_query() succeeded, the DB thread now owns this ref instead.
-    */
+    /* Drop the ref to the name that originally belonged to the CharSelect thread and was transferred to the MainThread */
     sbuf_drop(name);
 
     if (client)
@@ -347,15 +361,12 @@ void cmgr_handle_load_character(MainThread* mt, ZPacket* zpacket)
 
     if (!data) goto drop_client;
 
-    loading->queriesCompleted = 1;
+    loading->queriesCompleted++;
     loading->zoneId = (int16_t)data->zoneId;
     loading->instId = (int16_t)data->instId;
 
     client_load_character_data(client, data);
-
-    /* Do subsequent queries, now that we have the character id to use */
-    /*fixme: add these*/
-    cmgr_check_client_load_complete(mt, client, loading); /*remove later*/
+    cmgr_check_client_load_complete(mt, client, loading);
 
     free(data);
     return;
@@ -364,4 +375,44 @@ drop_client:
     cmgr_drop_loading_client(mt, client);
 drop_data:
     cmgr_drop_load_data_character(data);
+}
+
+void cmgr_handle_load_inventory(MainThread* mt, ZPacket* zpacket)
+{
+    Client* client = (Client*)zpacket->db.zResult.rMainLoadInventory.client;
+    uint32_t count = zpacket->db.zResult.rMainLoadInventory.count;
+    ClientLoadData_Inventory* data = zpacket->db.zResult.rMainLoadInventory.data;
+    ClientLoading* loading;
+    int rc;
+    
+    switch (cmgr_check_loading_db_error(mt, client, zpacket, &loading, FUNC_NAME))
+    {
+    case ERR_Invalid:
+        return;
+
+    case ERR_NotFound:
+        goto drop_data;
+
+    case ERR_Generic:
+        goto drop_client;
+
+    case ERR_None:
+        break;
+    }
+
+    loading->queriesCompleted++;
+    
+    if (data)
+    {
+        rc = inv_from_db(client_inv(client), data, count, mt_get_item_list(mt));
+        if (rc) goto drop_client;
+    }
+    
+    cmgr_check_client_load_complete(mt, client, loading);
+    goto drop_data;
+
+drop_client:
+    cmgr_drop_loading_client(mt, client);
+drop_data:
+    free_if_exists(data);
 }

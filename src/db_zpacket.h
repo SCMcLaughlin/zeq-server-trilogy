@@ -102,6 +102,12 @@ typedef struct {
     ClientLoadData_Character*   data;
 } DBR_MainLoadCharacter;
 
+typedef struct {
+    void*                       client;
+    uint32_t                    count;
+    ClientLoadData_Inventory*   data;
+} DBR_MainLoadInventory;
+
 /* LoginThread */
 
 typedef struct {
@@ -149,6 +155,7 @@ typedef struct {
         DBR_CSCharacterCreate           rCSCharacterCreate;
         DBR_CSCharacterCreate           rCSCharacterDelete;
         DBR_MainLoadCharacter           rMainLoadCharacter;
+        DBR_MainLoadInventory           rMainLoadInventory;
     };
 } DB_ZResult;
 

@@ -15,6 +15,6 @@ TlgPacket* packet_create_weather(int type, int intensity);
 TlgPacket* packet_create_zone_info(Zone* zone);
 TlgPacket* packet_create_spawn_appearance(int16_t entityId, int16_t typeId, int value);
 TlgPacket* packet_create_spawn(Mob* mob);
-TlgPacket* packet_create_inv_item(InvSlot* slot, Item* item, ItemProto* proto, uint16_t itemId);
+TlgPacket* packet_create_inv_item(Item* item, ItemProto* proto, uint16_t slotId, uint16_t itemId);
 
 #endif/*PACKET_CREATE_H*/

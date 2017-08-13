@@ -30,6 +30,8 @@ typedef struct {
 void item_list_init(ItemList* itemList);
 void item_list_deinit(ItemList* itemList);
 
+ItemProto* item_list_by_id(ItemList* itemList, uint32_t itemId);
+
 ZEQ_API ItemProto* item_proto_add(ItemList* itemList, ItemProtoDbChanges* changes, uint64_t modTime, uint32_t itemId, const char* path, uint32_t len, uint16_t fieldCount);
 
 ZEQ_API bool item_proto_set_name(ItemProto* proto, const char* name, uint32_t len);

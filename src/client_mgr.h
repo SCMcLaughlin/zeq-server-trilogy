@@ -35,5 +35,6 @@ void cmgr_deinit(ClientMgr* cmgr);
 void cmgr_handle_guild_list(struct MainThread* mt, ZPacket* zpacket);
 void cmgr_handle_zone_from_char_select(struct MainThread* mt, ZPacket* zpacket);
 void cmgr_handle_load_character(struct MainThread* mt, ZPacket* zpacket);
+void cmgr_handle_load_inventory(struct MainThread* mt, ZPacket* zpacket);
 
 #endif/*CLIENT_MGR_H*/

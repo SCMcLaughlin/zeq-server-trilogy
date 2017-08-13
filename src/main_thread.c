@@ -323,6 +323,10 @@ static bool mt_process_commands(MainThread* mt, RingBuf* mainQueue)
             cmgr_handle_load_character(mt, &zpacket);
             break;
         
+        case ZOP_DB_QueryMainLoadInventory:
+            cmgr_handle_load_inventory(mt, &zpacket);
+            break;
+        
         case ZOP_MAIN_TerminateAll:
             mt_send_shutdown_signals(mt);
             break;

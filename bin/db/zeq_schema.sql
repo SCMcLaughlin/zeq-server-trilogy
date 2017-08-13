@@ -143,3 +143,22 @@ CREATE TABLE item_proto (
     lore_text   TEXT,
     data        BLOB
 );
+
+CREATE TABLE inventory (
+    character_id    INT,
+    slot_id         INT,
+    item_id         INT,
+    stack_amount    INT DEFAULT 0,
+    charges         INT DEFAULT 0,
+    
+    PRIMARY KEY (character_id, slot_id)
+);
+
+CREATE TABLE cursor_queue (
+    character_id    INT,
+    item_id         INT,
+    stack_amount    INT DEFAULT 0,
+    charges         INT DEFAULT 0,
+);
+
+CREATE INDEX idx_cursor_queue ON cursor_queue (character_id);

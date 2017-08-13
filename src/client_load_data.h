@@ -51,4 +51,11 @@ typedef struct {
     bool            isGMHide;
 } ClientLoadData_Character;
 
+typedef struct {
+    uint32_t    itemId;
+    uint16_t    slotId;
+    uint8_t     stackAmt;
+    uint8_t     charges;
+} ClientLoadData_Inventory;
+
 #endif/*CLIENT_LOAD_DATA_H*/

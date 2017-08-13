@@ -4,7 +4,9 @@
 
 #include "define.h"
 #include "aligned.h"
+#include "client_load_data.h"
 #include "item.h"
+#include "item_proto.h"
 #include "ringbuf.h"
 
 struct Client;
@@ -29,6 +31,7 @@ typedef struct {
     uint16_t    cursorCount;
     uint16_t    idMapCount;
     uint16_t    loreItemIdCount;
+    InvSlot     cursor;
     InvSlot*    slots;
     InvSlot*    cursorQueue;
     ItemIdMap*  idMap;
@@ -37,6 +40,8 @@ typedef struct {
 
 void inv_init(Inventory* inv);
 void inv_deinit(Inventory* inv);
+
+int inv_from_db(Inventory* inv, ClientLoadData_Inventory* data, uint32_t count, ItemList* itemList);
 
 uint16_t inv_item_id_for_client(Inventory* inv, uint32_t itemIdReal);
 

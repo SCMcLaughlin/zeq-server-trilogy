@@ -485,6 +485,71 @@ done:
     sqlite3_finalize(stmt);
 }
 
+static void dbr_main_load_inventory(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
+{
+    sqlite3_stmt* stmt = NULL;
+    uint32_t count = 0;
+    ClientLoadData_Inventory* data = NULL;
+    ZPacket reply;
+    bool run;
+
+    reply.db.zResult.queryId = zpacket->db.zQuery.queryId;
+    reply.db.zResult.hadError = true;
+    reply.db.zResult.hadErrorUnprocessed = false;
+    reply.db.zResult.rMainLoadInventory.client = zpacket->db.zQuery.qMainLoadCharacter.client;
+    reply.db.zResult.rMainLoadInventory.count = 0;
+    reply.db.zResult.rMainLoadInventory.data = NULL;
+
+    run = db_prepare_literal(db, sqlite, &stmt,
+        "SELECT slot_id, item_id, stack_amount, charges "
+        "FROM inventory "
+        "WHERE character_id = (SELECT character_id FROM character WHERE name = ? AND account_id = ?)");
+
+    if (run && db_bind_string_sbuf(db, stmt, 0, zpacket->db.zQuery.qMainLoadCharacter.name) && db_bind_int64(db, stmt, 1, zpacket->db.zQuery.qMainLoadCharacter.accountId))
+    {
+        for (;;)
+        {
+            int rc = db_read(db, stmt);
+            
+            switch (rc)
+            {
+            case SQLITE_DONE:
+                reply.db.zResult.hadError = false;
+                reply.db.zResult.rMainLoadInventory.count = count;
+                reply.db.zResult.rMainLoadInventory.data = data;
+                goto done;
+            
+            case SQLITE_ROW:
+                if (bit_is_pow2_or_zero(count))
+                {
+                    uint32_t cap = (count == 0) ? 1 : count * 2;
+                    ClientLoadData_Inventory* inv = realloc_array_type(data, cap, ClientLoadData_Inventory);
+                    
+                    if (!inv) goto error;
+                    
+                    data = inv;
+                }
+                
+                data[count].slotId = (uint16_t)db_fetch_int(stmt, 0);
+                data[count].itemId = (uint32_t)db_fetch_int64(stmt, 1);
+                data[count].stackAmt = (uint8_t)db_fetch_int(stmt, 2);
+                data[count].charges = (uint8_t)db_fetch_int(stmt, 3);
+                count++;
+                break;
+            
+            case SQLITE_ERROR:
+            error:
+                free_if_exists(data);
+                goto done;
+            }
+        }   
+    }
+
+done:
+    db_reply(db, zpacket, &reply);
+    sqlite3_finalize(stmt);
+}
+
 void dbr_dispatch(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
 {
     uint64_t timer = clock_microseconds();
@@ -516,6 +581,10 @@ void dbr_dispatch(DbThread* db, sqlite3* sqlite, ZPacket* zpacket)
         dbr_main_load_character(db, sqlite, zpacket);
         break;
     
+    case ZOP_DB_QueryMainLoadInventory:
+        dbr_main_load_inventory(db, sqlite, zpacket);
+        break;
+    
     default:
         log_writef(db_get_log_queue(db), db_get_log_id(db), "WARNING: dbr_dispatch: received unexpected zop: %s", enum2str_zop(zop));
         goto destruct;
@@ -540,6 +609,7 @@ void dbr_destruct(DbThread* db, ZPacket* zpacket, int zop)
         break;
 
     case ZOP_DB_QueryMainLoadCharacter:
+    case ZOP_DB_QueryMainLoadInventory:
         zpacket->db.zQuery.qMainLoadCharacter.name = sbuf_drop(zpacket->db.zQuery.qMainLoadCharacter.name);
         break;
     

@@ -16,14 +16,6 @@ void inv_init(Inventory* inv)
     inv->secondaryIndex = -1;
     inv->rangeIndex = -1;
     inv->ammoIndex = -1;
-    inv->slotCount = 0;
-    inv->cursorCount = 0;
-    inv->idMapCount = 0;
-    inv->loreItemIdCount = 0;
-    inv->slots = NULL;
-    inv->cursorQueue = NULL;
-    inv->idMap = NULL;
-    inv->loreItemIds = NULL;
 }
 
 static InvSlot* inv_free_slots(InvSlot* slots, uint32_t n)
@@ -50,6 +42,73 @@ void inv_deinit(Inventory* inv)
     inv->slots = inv_free_slots(inv->slots, inv->slotCount);
     inv->cursorQueue = inv_free_slots(inv->cursorQueue, inv->cursorCount);
     free_if_exists(inv->idMap);
+}
+
+static int inv_from_db_to_slot(Inventory* inv, Item* item, uint16_t slotId, uint32_t itemId)
+{
+    uint16_t index;
+    InvSlot* dst;
+    
+    if (slotId == INV_SLOT_Cursor)
+    {
+        dst = &inv->cursor;
+        goto set;
+    }
+    
+    index = inv->slotCount;
+    
+    if (bit_is_pow2_or_zero(index))
+    {
+        uint32_t cap = (index == 0) ? 1 : index * 2;
+        InvSlot* slots = realloc_array_type(inv->slots, cap, InvSlot);
+        
+        if (!slots) return ERR_OutOfMemory;
+        
+        inv->slots = slots;
+    }
+    
+    dst = &inv->slots[index];
+    inv->slotCount = index + 1;
+    
+set:
+    dst->slotId = slotId;
+    dst->itemId = itemId;
+    dst->item = item;
+    return ERR_None;
+}
+
+int inv_from_db(Inventory* inv, ClientLoadData_Inventory* data, uint32_t count, ItemList* itemList)
+{
+    uint32_t i;
+    int rc;
+    
+    for (i = 0; i < count; i++)
+    {
+        ClientLoadData_Inventory* slot = &data[i];
+        ItemProto* proto = item_list_by_id(itemList, slot->itemId);
+        Item* item;
+        
+        if (!proto) continue;
+        
+        item = alloc_type(Item);
+        if (!item) goto oom;
+        
+        item->proto = proto;
+        item->stackAmt = slot->stackAmt;
+        item->charges = slot->charges;
+        /*item->isBag = ;*/
+        
+        rc = inv_from_db_to_slot(inv, item, slot->slotId, slot->itemId);
+        if (rc)
+        {
+            free(item);
+            goto oom;
+        }
+    }
+    
+    return ERR_None;
+oom:
+    return ERR_OutOfMemory;
 }
 
 uint16_t inv_item_id_for_client(Inventory* inv, uint32_t itemIdReal)
@@ -92,7 +151,7 @@ void inv_send_all(Inventory* inv, Client* client, RingBuf* udpQueue)
         InvSlot* slot = &slots[i];
         Item* item = slot->item;
         ItemProto* proto = item->proto;
-        TlgPacket* packet = packet_create_inv_item(slot, item, proto, inv_item_id_for_client(inv, item_proto_item_id(proto)));
+        TlgPacket* packet = packet_create_inv_item(item, proto, slot->slotId, inv_item_id_for_client(inv, item_proto_item_id(proto)));
         
         if (packet)
             client_schedule_packet_with_udp_queue(client, udpQueue, packet);
@@ -163,7 +222,7 @@ static void inv_write_pp_item_properties(Inventory* inv, Aligned* a, uint32_t fr
         slotId -= from;
         
         aligned_advance_by(a, (sizeof(PS_PPItem) * slotId) + sizeof(uint16_t));
-        aligned_write_uint8(a, (uint8_t)slot->item->charges);
+        aligned_write_uint8(a, slot->item->charges);
         aligned_reset_cursor_to(a, resetTo);
     }
     

@@ -55,6 +55,12 @@ void item_list_deinit(ItemList* itemList)
     tbl_deinit(&itemList->tblByItemId, NULL);
 }
 
+ItemProto* item_list_by_id(ItemList* itemList, uint32_t itemId)
+{
+    ItemProto** proto = tbl_get_int(&itemList->tblByItemId, (int64_t)itemId, ItemProto*);
+    return (proto) ? *proto : NULL;
+}
+
 int item_proto_add_from_db(ItemList* itemList, ItemProto* proto, uint32_t itemId)
 {
     StaticBuffer* path = proto->path;

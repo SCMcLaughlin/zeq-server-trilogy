@@ -36,6 +36,7 @@ enum ZOP
     ZOP_DB_QueryMainItemProtoChanges,
     ZOP_DB_QueryMainItemProtoDeletes,
     ZOP_DB_QueryMainLoadCharacter,
+    ZOP_DB_QueryMainLoadInventory,
     /* Login thread */
     ZOP_LOGIN_TerminateThread,
     ZOP_LOGIN_NewServer,
