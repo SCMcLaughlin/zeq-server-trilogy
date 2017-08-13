@@ -556,3 +556,102 @@ void item_proto_to_packet(ItemProto* proto, PC_Item* item)
         }
     }
 }
+
+void item_proto_calc_stats(ItemProto* proto, CoreStats* stats, uint32_t* weight)
+{
+    uint32_t n = proto->fieldCount;
+    uint32_t i;
+    
+    for (i = 0; i < n; i++)
+    {
+        uint8_t fieldId = *item_proto_field_id(proto, i);
+        int value = *item_proto_field_value(proto, i);
+        
+        switch (fieldId)
+        {
+        case ITEM_STAT_AC:
+            stats->AC += cap_int8(value);
+            break;
+        
+        case ITEM_STAT_STR:
+            stats->STR += cap_int8(value);
+            break;
+        
+        case ITEM_STAT_STA:
+            stats->STA += cap_int8(value);
+            break;
+        
+        case ITEM_STAT_CHA:
+            stats->CHA += cap_int8(value);
+            break;
+        
+        case ITEM_STAT_DEX:
+            stats->DEX += cap_int8(value);
+            break;
+        
+        case ITEM_STAT_AGI:
+            stats->AGI += cap_int8(value);
+            break;
+        
+        case ITEM_STAT_INT:
+            stats->INT += cap_int8(value);
+            break;
+        
+        case ITEM_STAT_WIS:
+            stats->WIS += cap_int8(value);
+            break;
+        
+        case ITEM_STAT_SvMagic:
+            stats->svMagic += cap_int8(value);
+            break;
+        
+        case ITEM_STAT_SvFire:
+            stats->svFire += cap_int8(value);
+            break;
+        
+        case ITEM_STAT_SvCold:
+            stats->svCold += cap_int8(value);
+            break;
+        
+        case ITEM_STAT_SvPoison:
+            stats->svPoison += cap_int8(value);
+            break;
+        
+        case ITEM_STAT_SvDisease:
+            stats->svDisease += cap_int8(value);
+            break;
+        
+        case ITEM_STAT_Hp:
+            stats->maxHp += cap_int8(value);
+            break;
+        
+        case ITEM_STAT_Mana:
+            stats->maxMana += cap_int8(value);
+            break;
+        
+        case ITEM_STAT_Weight:
+            *weight += cap_uint8(value);
+            break;
+        }
+    }
+}
+
+uint8_t item_proto_weight(ItemProto* proto)
+{
+    uint8_t wt = 0;
+    uint32_t n = proto->fieldCount;
+    uint32_t i;
+    
+    for (i = 0; i < n; i++)
+    {
+        uint8_t fieldId = *item_proto_field_id(proto, i);
+        
+        if (fieldId == ITEM_STAT_Weight)
+        {
+            wt = cap_uint8(*item_proto_field_value(proto, i));
+            break;
+        }
+    }
+    
+    return wt;
+}

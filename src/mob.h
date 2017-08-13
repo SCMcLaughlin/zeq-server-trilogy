@@ -74,6 +74,10 @@ int8_t mob_hp_ratio(Mob* mob);
 #define mob_set_cur_mana_no_cap_check(mob, mana) ((mob)->currentMana = (mana))
 #define mob_set_cur_endurance_no_cap_check(mob, end) ((mob)->currentEndurance = (end))
 
+#define mob_base_stats(mob) (&((mob)->baseStats))
+#define mob_total_stats(mob) (&((mob)->totalStats))
+#define mob_capped_stats(mob) (&((mob)->cappedStats))
+
 #define mob_level(mob) ((mob)->level)
 #define mob_class_id(mob) ((mob)->classId)
 #define mob_gender_id(mob) ((mob)->genderId)

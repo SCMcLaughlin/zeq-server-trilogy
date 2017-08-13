@@ -294,12 +294,15 @@ static void cmgr_check_client_load_complete(MainThread* mt, Client* client, Clie
     
     /*
         Load completed, things we need to do:
-        1) Hand the Client off to the ZoneMgr and get the port of the zone they are going to in return
-        2) Inform the CharSelectThread about the successful zone with the target IP and port
-        3) Remove the ClientLoading entry for this Client and put them into the main client list
+        1) Calculate the client's stats
+        2) Hand the Client off to the ZoneMgr and get the port of the zone they are going to in return
+        3) Inform the CharSelectThread about the successful zone with the target IP and port
+        4) Remove the ClientLoading entry for this Client and put them into the main client list
     */
     
     isLocal = client_is_local(client);
+    
+    client_calc_stats_all(client);
     
     rc = zmgr_add_client_from_char_select(mt, client, loading->zoneId, loading->instId, &port);
     if (rc) goto drop_client;

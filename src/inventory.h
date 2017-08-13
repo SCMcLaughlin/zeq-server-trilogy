@@ -7,6 +7,7 @@
 #include "client_load_data.h"
 #include "item.h"
 #include "item_proto.h"
+#include "misc_struct.h"
 #include "ringbuf.h"
 
 struct Client;
@@ -46,6 +47,9 @@ int inv_from_db(Inventory* inv, ClientLoadData_Inventory* data, uint32_t count, 
 uint16_t inv_item_id_for_client(Inventory* inv, uint32_t itemIdReal);
 
 void inv_send_all(Inventory* inv, struct Client* client, RingBuf* udpQueue);
+
+void inv_calc_stats(Inventory* inv, CoreStats* stats, uint32_t* weight);
+void inv_calc_held_weight(Inventory* inv, uint32_t* weight);
 
 void inv_write_pp_main_item_ids(Inventory* inv, Aligned* a);
 void inv_write_pp_main_item_properties(Inventory* inv, Aligned* a);

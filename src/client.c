@@ -1,5 +1,6 @@
 
 #include "client.h"
+#include "class_id.h"
 #include "define_netcode.h"
 #include "inventory.h"
 #include "loc.h"
@@ -9,6 +10,7 @@
 #include "skills.h"
 #include "spellbook.h"
 #include "util_alloc.h"
+#include "util_cap.h"
 
 struct Client {
     Mob             mob;
@@ -35,6 +37,7 @@ struct Client {
     uint16_t        hunger;
     uint16_t        thirst;
     uint16_t        drunkeness;
+    uint32_t        weight;
     uint32_t        guildId;
     Coin            coin;
     Coin            coinCursor;
@@ -115,8 +118,186 @@ void client_load_character_data(Client* client, ClientLoadData_Character* data)
     
     inv_init(&client->inventory);
     skills_init(&client->skills, client->mob.classId, client->mob.baseRaceId);
+}
 
-    /*fixme: calc base resists and max hp & mana based on level, class, race*/
+void client_calc_stats_all(Client* client)
+{
+    uint8_t level = client_level(client);
+    uint8_t classId = client_class_id(client);
+    uint16_t raceId = client_base_race_id(client);
+    Mob* mob = client_mob(client);
+    CoreStats* total = mob_total_stats(mob);
+    CoreStats* base = mob_base_stats(mob);
+    CoreStats* capped = mob_capped_stats(mob);
+    
+    /* Step 0: reset totals to 0 */
+    memset(total, 0, sizeof(CoreStats));
+    
+    /* Step 1: calc total stats from inventory items */
+    inv_calc_stats(client_inv(client), total, &client->weight);
+    
+    /* Step 2: add total stats from buffs */
+    
+    /* Step 3: calc base resists */
+    
+    /* Step 4: add base stats and resists to totals */
+    total->AC += base->AC;
+    total->STR += base->STR;
+    total->STA += base->STA;
+    total->DEX += base->DEX;
+    total->AGI += base->AGI;
+    total->INT += base->INT;
+    total->WIS += base->WIS;
+    total->CHA += base->CHA;
+    total->svMagic += base->svMagic;
+    total->svFire += base->svFire;
+    total->svCold += base->svCold;
+    total->svPoison += base->svPoison;
+    total->svDisease += base->svDisease;
+    
+    /* Step 5: cap base stats and resists */
+    capped->STR = cap_min_max(total->STR, -255, 255);
+    capped->STA = cap_min_max(total->STA, -255, 255);
+    capped->DEX = cap_min_max(total->DEX, -255, 255);
+    capped->AGI = cap_min_max(total->AGI, -255, 255);
+    capped->INT = cap_min_max(total->INT, -255, 255);
+    capped->WIS = cap_min_max(total->WIS, -255, 255);
+    capped->CHA = cap_min_max(total->CHA, -255, 255);
+    capped->svMagic = cap_min_max(total->svMagic, -255, 255);
+    capped->svFire = cap_min_max(total->svFire, -255, 255);
+    capped->svCold = cap_min_max(total->svCold, -255, 255);
+    capped->svPoison = cap_min_max(total->svPoison, -255, 255);
+    capped->svDisease = cap_min_max(total->svDisease, -255, 255);
+    
+    /* Step 6: use capped stats to calc AC */
+    
+    /* Step 7: use capped stats to calc max hp and max mana */
+    base->maxHp = client_calc_base_hp(classId, level, capped->STA);
+    total->maxHp += base->maxHp;
+    capped->maxHp = cap_min_max(total->maxHp, 1, INT16_MAX);
+    
+    base->maxMana = client_calc_base_mana(classId, level, capped->INT, capped->WIS);
+    total->maxMana += base->maxMana;
+    capped->maxMana = cap_min_max(total->maxMana, 0, INT16_MAX);
+}
+
+int64_t client_calc_base_hp(uint8_t classId, int level, int sta)
+{
+    int mult;
+    
+    switch (classId)
+    {
+    case CLASS_ID_Cleric:
+    case CLASS_ID_Druid:
+    case CLASS_ID_Shaman:
+        mult = 15;
+        break;
+    
+    case CLASS_ID_Necromancer:
+    case CLASS_ID_Wizard:
+    case CLASS_ID_Magician:
+    case CLASS_ID_Enchanter:
+        mult = 12;
+        break;
+    
+    case CLASS_ID_Monk:
+    case CLASS_ID_Bard:
+    case CLASS_ID_Rogue:
+        if (level < 51)
+            mult = 18;
+        else if (level < 58)
+            mult = 19;
+        else
+            mult = 20;
+        break;
+        
+    case CLASS_ID_Ranger:
+        if (level < 58)
+            mult = 20;
+        else
+            mult = 21;
+        break;
+        
+    case CLASS_ID_Warrior:
+        if (level < 20)
+            mult = 22;
+        else if (level < 30)
+            mult = 23;
+        else if (level < 40)
+            mult = 25;
+        else if (level < 53)
+            mult = 27;
+        else if (level < 57)
+            mult = 28;
+        else
+            mult = 30;
+        break;
+        
+    case CLASS_ID_Paladin:
+    case CLASS_ID_ShadowKnight:
+    default:
+        if (level < 35)
+            mult = 21;
+        else if (level < 45)
+            mult = 22;
+        else if (level < 51)
+            mult = 23;
+        else if (level < 56)
+            mult = 24;
+        else if (level < 60)
+            mult = 25;
+        else
+            mult = 26;
+        break;
+    }
+    
+    mult *= level;
+    
+    return 5 + mult + ((mult * sta) / 300);
+}
+
+int64_t client_calc_base_mana(uint8_t classId, int level, int INT, int WIS)
+{
+    int64_t ret;
+    int softCapped = 0;
+    
+    switch (classId)
+    {
+    case CLASS_ID_ShadowKnight:
+    case CLASS_ID_Bard:
+    case CLASS_ID_Necromancer:
+    case CLASS_ID_Wizard:
+    case CLASS_ID_Magician:
+    case CLASS_ID_Enchanter:
+        if (INT > 200)
+        {
+            softCapped = INT - 200;
+            INT = 200;
+        }
+        
+        ret = ((INT / 5 + 2) * level) + (softCapped * 6);
+        break;
+    
+    case CLASS_ID_Cleric:
+    case CLASS_ID_Paladin:
+    case CLASS_ID_Ranger:
+    case CLASS_ID_Druid:
+    case CLASS_ID_Shaman:
+        if (WIS > 200)
+        {
+            softCapped = WIS - 200;
+            WIS = 200;
+        }
+        
+        ret = ((WIS / 5 + 2) * level) + (softCapped * 6);
+        break;
+    
+    default:
+        ret = 0;
+        break;
+    }
+    
+    return ret;
 }
 
 Mob* client_mob(Client* client)

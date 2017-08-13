@@ -4,6 +4,7 @@
 
 #include "define.h"
 #include "buffer.h"
+#include "misc_struct.h"
 #include "packet_convert.h"
 #include "util_hash_tbl.h"
 
@@ -49,5 +50,8 @@ StaticBuffer* item_proto_lore_text(ItemProto* proto);
 uint32_t item_proto_item_id(ItemProto* proto);
 
 void item_proto_to_packet(ItemProto* proto, PC_Item* item);
+
+void item_proto_calc_stats(ItemProto* proto, CoreStats* stats, uint32_t* weight);
+uint8_t item_proto_weight(ItemProto* proto);
 
 #endif/*ITEM_PROTO_H*/

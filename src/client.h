@@ -20,6 +20,10 @@ Client* client_destroy(Client* client);
 
 void client_load_character_data(Client* client, ClientLoadData_Character* data);
 
+void client_calc_stats_all(Client* client);
+int64_t client_calc_base_hp(uint8_t classId, int level, int sta);
+int64_t client_calc_base_mana(uint8_t classId, int level, int INT, int WIS);
+
 Mob* client_mob(Client* client);
 StaticBuffer* client_name(Client* client);
 const char* client_name_str(Client* client);
