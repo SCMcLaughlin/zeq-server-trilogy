@@ -70,6 +70,28 @@ static int inv_from_db_to_slot(Inventory* inv, Item* item, uint16_t slotId, uint
     dst = &inv->slots[index];
     inv->slotCount = index + 1;
     
+    switch (slotId)
+    {
+    case INV_SLOT_Primary:
+        inv->primaryIndex = (int16_t)index;
+        break;
+    
+    case INV_SLOT_Secondary:
+        inv->secondaryIndex = (int16_t)index;
+        break;
+    
+    case INV_SLOT_Range:
+        inv->rangeIndex = (int16_t)index;
+        break;
+    
+    case INV_SLOT_Ammo:
+        inv->ammoIndex = (int16_t)index;
+        break;
+    
+    default:
+        break;
+    }
+    
 set:
     dst->slotId = slotId;
     dst->itemId = itemId;
