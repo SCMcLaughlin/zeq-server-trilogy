@@ -8,7 +8,7 @@
 #include "player_profile_packet_struct.h"
 #include "util_alloc.h"
 
-#define INV_CLIENT_ITEM_ID_OFFSET 100
+#define INV_CLIENT_ITEM_ID_OFFSET 1000
 
 void inv_init(Inventory* inv)
 {

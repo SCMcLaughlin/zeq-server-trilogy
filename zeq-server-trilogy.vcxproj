@@ -192,8 +192,10 @@
     <ClInclude Include="src\hash.h" />
     <ClInclude Include="src\inventory.h" />
     <ClInclude Include="src\item.h" />
+    <ClInclude Include="src\item_client_type_id.h" />
     <ClInclude Include="src\item_proto.h" />
     <ClInclude Include="src\item_stat_id.h" />
+    <ClInclude Include="src\item_type_id.h" />
     <ClInclude Include="src\loc.h" />
     <ClInclude Include="src\login_client.h" />
     <ClInclude Include="src\login_crypto.h" />
@@ -208,6 +210,7 @@
     <ClInclude Include="src\misc_enum.h" />
     <ClInclude Include="src\misc_struct.h" />
     <ClInclude Include="src\mob.h" />
+    <ClInclude Include="src\packet_convert.h" />
     <ClInclude Include="src\packet_create.h" />
     <ClInclude Include="src\packet_static.h" />
     <ClInclude Include="src\packet_struct.h" />
@@ -223,6 +226,7 @@
     <ClInclude Include="src\udp_zpacket.h" />
     <ClInclude Include="src\util_alloc.h" />
     <ClInclude Include="src\util_atomic.h" />
+    <ClInclude Include="src\util_cap.h" />
     <ClInclude Include="src\util_clock.h" />
     <ClInclude Include="src\util_file.h" />
     <ClInclude Include="src\util_fs.h" />
@@ -273,6 +277,7 @@
     <ClCompile Include="src\main_thread.c" />
     <ClCompile Include="src\main_timers.c" />
     <ClCompile Include="src\mob.c" />
+    <ClCompile Include="src\packet_convert.c" />
     <ClCompile Include="src\packet_create.c" />
     <ClCompile Include="src\packet_static.c" />
     <ClCompile Include="src\race_id.c" />
@@ -284,6 +289,7 @@
     <ClCompile Include="src\udp_client.c" />
     <ClCompile Include="src\udp_thread.c" />
     <ClCompile Include="src\util_atomic_win32.cpp" />
+    <ClCompile Include="src\util_cap.c" />
     <ClCompile Include="src\util_clock_common.c" />
     <ClCompile Include="src\util_clock_win32.c" />
     <ClCompile Include="src\util_fs_win32.c" />

@@ -14,6 +14,8 @@ void pc_item_set_defaults(PC_Item* item)
     item->isPermanent = true;
     item->isDroppable = true;
     item->icon = 500;
-    item->classes = CLASS_BIT_ALL;
-    item->races = RACE_BIT_ALL;
+    item->classes = 0xffff;
+    item->races = 0xffff;
+    item->spellId = 0xffff;
+    item->clickySpellId = 0xffff;
 }

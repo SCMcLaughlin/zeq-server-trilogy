@@ -273,6 +273,18 @@
     <ClInclude Include="src\util_fs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\item_client_type_id.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\item_type_id.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\packet_convert.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\util_cap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\bit.c">
@@ -441,6 +453,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\util_fs_win32.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\util_cap.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\packet_convert.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

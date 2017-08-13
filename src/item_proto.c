@@ -175,7 +175,7 @@ ItemProto* item_proto_from_db(const byte* blob, int len, StaticBuffer* path, Sta
     proto = alloc_bytes_type(bytes, ItemProto);
     if (!proto) return NULL;
     
-    memcpy(proto, cproto, sizeof(ItemProto));
+    memcpy(proto, cproto, bytes);
     proto->path = path;
     proto->name = name;
     proto->lore = loreText;
