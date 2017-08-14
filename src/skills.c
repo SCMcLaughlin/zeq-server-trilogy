@@ -164,6 +164,9 @@ void skills_set_from_db(Skills* sk, uint32_t skillId, uint32_t value)
         sk->language[skillId] = (uint8_t)value;
     }
     
+    if (value > SKILL_CAP)
+        value = SKILL_CAP;
+    
     sk->skill[skillId] = (uint8_t)value;
 }
 
@@ -189,4 +192,19 @@ void skills_write_pp_languages(Skills* sk, Aligned* a)
     {
         aligned_write_uint8(a, sk->language[i]);
     }
+}
+
+int skill_get(Skills* sk, int skillId)
+{
+    int val;
+    
+    if (skillId >= SKILL_COUNT)
+        skillId = SKILL_COUNT - 1;
+    
+    val = sk->skill[skillId];
+    
+    if (val > SKILL_CAP)
+        val = 0;
+    
+    return val;
 }

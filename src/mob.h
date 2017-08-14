@@ -40,6 +40,13 @@ typedef struct {
     int64_t         currentHp;
     int64_t         currentMana;
     int64_t         currentEndurance;
+    int             ac;
+    int8_t          acFromAGI;
+    int8_t          acFromBonus;
+    int16_t         acFromSkill;
+    int16_t         acFromSkill2;
+    int             acFromItems;
+    int             acFromBuffs;
     CoreStats       cappedStats;    /* The stats to use for most purposes */
     CoreStats       baseStats;
     CoreStats       totalStats;     /* What their stats would be if caps did not apply, used to simplify calculations */
@@ -67,6 +74,12 @@ void mob_init_client_character(Mob* mob, ClientLoadData_Character* data);
 void mob_deinit(Mob* mob);
 
 int8_t mob_hp_ratio(Mob* mob);
+
+int8_t mob_calc_ac_agi(int level, int AGI);
+int8_t mob_calc_ac_bonus(int level, int raceId, int classId, int AGI);
+int16_t mob_calc_ac_skill(int classId, int skillAmt);
+int16_t mob_calc_ac_skill2(int skillAmt);
+int mob_calc_ac_from_factors(Mob* mob, int classId);
 
 #define mob_name_str(mob) (sbuf_str((mob)->name))
 #define mob_set_name_sbuf(mob, sbuf) ((mob)->name = (sbuf))

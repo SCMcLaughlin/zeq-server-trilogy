@@ -129,19 +129,25 @@ void client_calc_stats_all(Client* client)
     CoreStats* total = mob_total_stats(mob);
     CoreStats* base = mob_base_stats(mob);
     CoreStats* capped = mob_capped_stats(mob);
+    int defense = client_get_skill(client, SKILL_Defense);
     
     /* Step 0: reset totals to 0 */
     memset(total, 0, sizeof(CoreStats));
+    mob->acFromAGI = 0;
+    mob->acFromBonus = 0;
+    mob->acFromSkill = 0;
+    mob->acFromItems = 0;
+    mob->acFromBuffs = 0;
+    mob->ac = 0;
     
     /* Step 1: calc total stats from inventory items */
-    inv_calc_stats(client_inv(client), total, &client->weight);
+    inv_calc_stats(client_inv(client), total, &client->weight, &mob->acFromItems);
     
-    /* Step 2: add total stats from buffs */
+    /* Step 2: calc total stats from buffs */
     
     /* Step 3: calc base resists */
     
     /* Step 4: add base stats and resists to totals */
-    total->AC += base->AC;
     total->STR += base->STR;
     total->STA += base->STA;
     total->DEX += base->DEX;
@@ -170,6 +176,11 @@ void client_calc_stats_all(Client* client)
     capped->svDisease = cap_min_max(total->svDisease, -255, 255);
     
     /* Step 6: use capped stats to calc AC */
+    mob->acFromAGI = mob_calc_ac_agi(level, capped->AGI);
+    mob->acFromBonus = mob_calc_ac_bonus(level, raceId, classId, capped->AGI);
+    mob->acFromSkill = mob_calc_ac_skill(classId, defense);
+    mob->acFromSkill2 = mob_calc_ac_skill2(defense);
+    mob->ac = mob_calc_ac_from_factors(mob, classId);
     
     /* Step 7: use capped stats to calc max hp and max mana */
     base->maxHp = client_calc_base_hp(classId, level, capped->STA);
@@ -687,4 +698,9 @@ int client_mob_zone_index(Client* client)
 void client_set_mob_zone_index(Client* client, int index)
 {
     mob_set_zone_index(&client->mob, index);
+}
+
+int client_get_skill(Client* client, int skillId)
+{
+    return skill_get(&client->skills, skillId);
 }

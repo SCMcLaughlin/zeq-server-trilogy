@@ -51,7 +51,7 @@ uint32_t item_proto_item_id(ItemProto* proto);
 
 void item_proto_to_packet(ItemProto* proto, PC_Item* item);
 
-void item_proto_calc_stats(ItemProto* proto, CoreStats* stats, uint32_t* weight);
+void item_proto_calc_stats(ItemProto* proto, CoreStats* stats, uint32_t* weight, int* acFromItems);
 uint8_t item_proto_weight(ItemProto* proto);
 
 #endif/*ITEM_PROTO_H*/

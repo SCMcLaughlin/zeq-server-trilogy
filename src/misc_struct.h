@@ -8,7 +8,6 @@ typedef struct {
     int64_t     maxHp;
     int64_t     maxMana;
     int64_t     maxEndurance;
-    int         AC;
     int         STR;
     int         STA;
     int         DEX;

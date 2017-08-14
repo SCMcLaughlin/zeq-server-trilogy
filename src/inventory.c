@@ -180,7 +180,7 @@ void inv_send_all(Inventory* inv, Client* client, RingBuf* udpQueue)
     }
 }
 
-void inv_calc_stats(Inventory* inv, CoreStats* stats, uint32_t* weight)
+void inv_calc_stats(Inventory* inv, CoreStats* stats, uint32_t* weight, int* acFromItems)
 {
     InvSlot* slots = inv->slots;
     uint32_t n = inv->slotCount;
@@ -198,7 +198,7 @@ void inv_calc_stats(Inventory* inv, CoreStats* stats, uint32_t* weight)
         proto = slot->item->proto;
         
         if (slotId <= INV_SLOT_EquipForStatsEnd)
-            item_proto_calc_stats(proto, stats, weight);
+            item_proto_calc_stats(proto, stats, weight, acFromItems);
         else
             *weight += item_proto_weight(proto);
     }

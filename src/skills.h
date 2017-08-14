@@ -126,4 +126,6 @@ void skills_set_from_db(Skills* sk, uint32_t skillId, uint32_t value);
 void skills_write_pp(Skills* sk, Aligned* a);
 void skills_write_pp_languages(Skills* sk, Aligned* a);
 
+int skill_get(Skills* sk, int skillId);
+
 #endif/*SKILLS_H*/

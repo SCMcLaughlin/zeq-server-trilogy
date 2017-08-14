@@ -557,7 +557,7 @@ void item_proto_to_packet(ItemProto* proto, PC_Item* item)
     }
 }
 
-void item_proto_calc_stats(ItemProto* proto, CoreStats* stats, uint32_t* weight)
+void item_proto_calc_stats(ItemProto* proto, CoreStats* stats, uint32_t* weight, int* acFromItems)
 {
     uint32_t n = proto->fieldCount;
     uint32_t i;
@@ -570,7 +570,7 @@ void item_proto_calc_stats(ItemProto* proto, CoreStats* stats, uint32_t* weight)
         switch (fieldId)
         {
         case ITEM_STAT_AC:
-            stats->AC += cap_int8(value);
+            *acFromItems += cap_int8(value);
             break;
         
         case ITEM_STAT_STR:

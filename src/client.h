@@ -110,4 +110,6 @@ void client_set_zone_index(Client* client, int index);
 int client_mob_zone_index(Client* client);
 void client_set_mob_zone_index(Client* client, int index);
 
+int client_get_skill(Client* client, int skillId);
+
 #endif/*CLIENT_H*/
