@@ -11,6 +11,7 @@
 #include "util_alloc.h"
 #include "util_clock.h"
 #include "util_hash_tbl.h"
+#include "util_lua.h"
 #include "util_str.h"
 #include "util_thread.h"
 #include "zone.h"
@@ -78,6 +79,7 @@ struct ZoneThread {
     ClientExpected*         clientsExpected;
     ClientExpectedIpName*   clientsUnconfirmedLookup;
     ClientUnconfirmed*      clientsUnconfirmed;
+    lua_State*              lua;
     RingBuf*                ztQueue;
     RingBuf*                mainQueue;
     RingBuf*                udpQueue;
@@ -755,6 +757,12 @@ ZoneThread* zt_create(RingBuf* mainQueue, LogThread* log, RingBuf* dbQueue, int 
     rc = udp_open_port(udp, port, sizeof(ClientUnconfirmed), zt->ztQueue);
     if (rc) goto fail;
     
+    zt->lua = zlua_create(zt->ztQueue, zt->logId);
+    if (!zt->lua) goto fail;
+    
+    rc = zlua_init_zone_thread(zt->lua, zt);
+    if (rc) goto fail;
+    
     zt->timerUnconfirmedTimeouts = timer_new(&zt->timerPool, ZONE_THREAD_CHECK_UNCONFIRMED_TIMEOUTS_MS, zt_timer_check_unconfirmed_timeouts, zt, true);
 
     rc = thread_start(zt_thread_proc, zt);
@@ -807,6 +815,8 @@ ZoneThread* zt_destroy(ZoneThread* zt)
         
         zt->timerUnconfirmedTimeouts = timer_destroy(&zt->timerPool, zt->timerUnconfirmedTimeouts);
         
+        zt->lua = zlua_destroy(zt->lua);
+        
         zt_free_all_zones(zt);
         free_if_exists(zt->clients); /* ClientMgr owns the individual Client objects */
         free_if_exists(zt->zoneIds);
@@ -822,4 +832,14 @@ ZoneThread* zt_destroy(ZoneThread* zt)
 RingBuf* zt_get_queue(ZoneThread* zt)
 {
     return zt->ztQueue;
+}
+
+RingBuf* zt_get_log_queue(ZoneThread* zt)
+{
+    return zt->logQueue;
+}
+
+int zt_get_log_id(ZoneThread* zt)
+{
+    return zt->logId;
 }

@@ -14,5 +14,7 @@ ZoneThread* zt_create(RingBuf* mainQueue, LogThread* log, RingBuf* dbQueue, int 
 ZoneThread* zt_destroy(ZoneThread* zt);
 
 RingBuf* zt_get_queue(ZoneThread* zt);
+ZEQ_API RingBuf* zt_get_log_queue(ZoneThread* zt);
+ZEQ_API int zt_get_log_id(ZoneThread* zt);
 
 #endif/*ZONE_THREAD_H*/

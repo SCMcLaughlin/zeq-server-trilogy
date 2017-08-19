@@ -3,8 +3,12 @@
 #include "log_thread.h"
 #include "ringbuf.h"
 #include "util_clock.h"
+#include "zone_thread.h"
 
 #define LUA_TRACEBACK_INDEX 1
+#define LUA_ZONE_THREAD_SYSTEM_INDEX 2
+
+#define LUA_ZONE_THREAD_SYSTEM_SCRIPT_PATH "script/sys/zone_thread/system.lua"
 
 lua_State* zlua_create(RingBuf* logQueue, int logId)
 {
@@ -94,4 +98,31 @@ int zlua_run_string(lua_State* L, int numReturns, RingBuf* logQueue, int logId, 
     }
     
     return ERR_None;
+}
+
+static void zlua_pushfunc(lua_State* L, const char* funcName)
+{
+    lua_getfield(L, LUA_ZONE_THREAD_SYSTEM_INDEX, funcName);
+    
+    assert(lua_isfunction(L, -1));
+}
+
+int zlua_init_zone_thread(lua_State* L, ZoneThread* zt)
+{
+    RingBuf* queue = zt_get_queue(zt);
+    int logId = zt_get_log_id(zt);
+    int rc;
+    
+    /* Run the system script and keep its return value at LUA_ZONE_THREAD_SYSTEM_INDEX on the lua stack */
+    rc = zlua_script(L, LUA_ZONE_THREAD_SYSTEM_SCRIPT_PATH, 1, queue, logId);
+    if (rc) goto ret;
+    
+    /* Create the lua-side ZoneThread object */
+    zlua_pushfunc(L, "createZoneThread");
+    lua_pushlightuserdata(L, zt);
+    rc = zlua_call(L, 1, 0, queue, logId);
+    if (rc) goto ret;
+    
+ret:
+    return rc;
 }
