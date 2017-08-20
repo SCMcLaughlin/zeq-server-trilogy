@@ -12,6 +12,7 @@
 #include "zone_thread.h"
 
 struct Zone {
+    int             luaIndex;
     uint32_t        clientCount;
     uint32_t        clientBroadcastAllCount;
     uint32_t        mobCount;

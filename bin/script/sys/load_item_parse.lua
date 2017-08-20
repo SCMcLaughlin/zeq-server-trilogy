@@ -1,5 +1,5 @@
 
-local convert = require "sys/item/load_item_convert"
+local convert = require "sys/load_item_convert"
 local C = require "sys/log_cdef"
 
 local assert = assert

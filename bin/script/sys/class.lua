@@ -57,27 +57,17 @@ end
 --
 -- [object]
 --   -> personal environment (a table specifically for this one object)
---     -> shared environment (a table shared by objects of the same "prototype")
---       -> global environment (a table shared by all objects of a type, e.g. NPC)
---         -> specific class for the object
---           -> Class (as defined in this file)
+--     -> specific class for the object
+--       -> Class (as defined in this file)
 --
 -- Any writes made to fields on an object are stored in that object's personal
 -- environment table.
 --
--- The shared environment tables are mainly for shared scripts, e.g. NPCs of a
--- particular type that share the same events and perhaps have some central
--- shared state.
---
--- Not all objects have shared environment tables (ZoneThread, Timer), and
--- ZoneThread does not have a personal environment, since it would be
--- equivalent to the global table (_G).
---
 -- (Note for sake of sanity: each object/environment is its own metatable, and
 --  its __index points to the next environment in the heirarchy.)
 --------------------------------------------------------------------------------
-function Class.wrap(sharedEnv, ptr)
-    local personalEnv = {__index = sharedEnv}
+function Class.wrap(class, ptr)
+    local personalEnv = {__index = class}
     
     setmetatable(personalEnv, personalEnv)
     

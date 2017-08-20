@@ -37,7 +37,7 @@ lua_State* zlua_create(RingBuf* logQueue, int logId)
     
     /* Add the script directory to the package path */
     rc = zlua_run_string(L, 0, logQueue, logId,
-        "package.path = package.path .. ';script/?.lua'");
+        "package.path = package.path .. ';script/?.lua;'");
     if (rc) goto fail;
     
     return L;

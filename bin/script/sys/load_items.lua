@@ -1,6 +1,6 @@
 
 local lfs = require "lfs"
-local parse = require "sys/item/load_item_parse"
+local parse = require "sys/load_item_parse"
 
 local dir = lfs.dir
 local attributes = lfs.attributes

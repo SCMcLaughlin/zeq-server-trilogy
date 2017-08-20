@@ -2,7 +2,7 @@
 --------------------------------------------------------------------------------
 -- Imports
 --------------------------------------------------------------------------------
-local C = require "sys/zone_thread/cdef/ZoneThread_cdef"
+local C = require "sys/ZoneThread_cdef"
 local Class = require "sys/class"
 
 require "sys/log_cdef"
