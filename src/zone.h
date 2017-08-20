@@ -8,12 +8,13 @@
 #include "misc_struct.h"
 #include "packet_static.h"
 #include "tlg_packet.h"
+#include "util_lua.h"
 
 typedef struct Zone Zone;
 
 struct Client;
 
-Zone* zone_create(LogThread* log, RingBuf* udpQueue, int zoneId, int instId, StaticPackets* staticPackets);
+Zone* zone_create(LogThread* log, RingBuf* udpQueue, int zoneId, int instId, StaticPackets* staticPackets, lua_State* L);
 Zone* zone_destroy(Zone* zone);
 
 void zone_add_client_zoning_in(Zone* zone, struct Client* client);
@@ -43,5 +44,7 @@ float zone_max_clip_dist(Zone* zone);
 LocH* zone_safe_spot(Zone* zone);
 
 StaticPackets* zone_static_packets(Zone* zone);
+void zone_set_lua_index(Zone* zone, int index);
+int zone_lua_index(Zone* zone);
 
 #endif/*ZONE_H*/

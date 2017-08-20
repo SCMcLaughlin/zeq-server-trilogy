@@ -10,6 +10,8 @@ local Class = require "sys/class"
 --------------------------------------------------------------------------------
 local getmetatable = getmetatable
 local error = error
+local rawget = rawget
+local rawset = rawset
 --------------------------------------------------------------------------------
 
 local ScriptObject = Class("ScriptObject")
@@ -37,6 +39,26 @@ end
 
 function ScriptObject:getPersonalEnvironment()
     return getmetatable(self)
+end
+
+function ScriptObject:timer(logger, periodMs, func)
+    local timers = rawget(self, "_timers")
+    
+    if not timers then
+        timers = {}
+        rawset(self, "_timers", timers)
+    end
+    
+    local timer = Timer(logger, self, periodMs, func)
+    timers[timer] = true
+end
+
+function ScriptObject:_timerDestroyed(timer)
+    local timers = rawget(self, "_timers")
+    
+    if timers then
+        timers[timer] = nil
+    end
 end
 
 return ScriptObject

@@ -26,6 +26,18 @@ function Zone.new(ptr)
     local env = zone:getPersonalEnvironment()
     local shortname = zone:getShortName()
     
+    -- Create log function for this zone instance
+    local logQueue = C.zone_log_queue(ptr)
+    local logId = C.zone_log_id(ptr)
+    
+    env.log = function(self, fmt, ...)
+        local str = format(fmt, ...)
+        if str and #str > 0 then
+            C.log_write(logQueue, logId, str, #str)
+        end
+    end
+    
+    -- Run scripts
     local genv = {}
     Script.run(genv, "script/global/global_zone.lua", zone)
     
@@ -40,17 +52,6 @@ function Zone.new(ptr)
     
     for k, v in pairs(zenv) do
         env[k] = v
-    end
-    
-    -- Create log function for this zone instance
-    local logQueue = C.zone_log_queue(ptr)
-    local logId = C.zone_log_id(ptr)
-    
-    env.log = function(fmt, ...)
-        local str = format(fmt, ...)
-        if str and #str > 0 then
-            C.log_write(logQueue, logId, str, #str)
-        end
     end
     
     return zone
@@ -71,6 +72,10 @@ end
 
 function Zone:getLongName()
     return toLuaString(C.zone_long_name(self:ptr()))
+end
+
+function Zone:timer(periodMs, func)
+    return ScriptObject.timer(self, self, periodMs, func)
 end
 
 return Zone

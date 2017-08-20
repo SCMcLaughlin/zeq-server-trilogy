@@ -32,6 +32,7 @@ struct Zone {
     float           maxClippingDistance;
     LocH            safeSpot;
     int             logId;
+    lua_State*      lua;
     Mob**           mobs;
     Client**        clients;
     Client**        clientsBroadcastAll; /* Why does this exist? To ensure zone-wide packets are sent to clients that aren't fully zoned-in yet */
@@ -153,7 +154,7 @@ void zone_broadcast_to_all_clients(Zone* zone, TlgPacket* packet)
     packet_drop(packet);
 }
 
-Zone* zone_create(LogThread* log, RingBuf* udpQueue, int zoneId, int instId, StaticPackets* staticPackets)
+Zone* zone_create(LogThread* log, RingBuf* udpQueue, int zoneId, int instId, StaticPackets* staticPackets, lua_State* L)
 {
     Zone* zone = alloc_type(Zone);
     int rc;
@@ -178,11 +179,15 @@ Zone* zone_create(LogThread* log, RingBuf* udpQueue, int zoneId, int instId, Sta
     zone->minZ = -32000.0f;
     zone->minClippingDistance = 1000.0f;
     zone->maxClippingDistance = 20000.0f;
+    zone->lua = L;
     zone->udpQueue = udpQueue;
     zone->logQueue = log_get_queue(log);
     zone->staticPackets = staticPackets;
     
     rc = log_open_filef(log, &zone->logId, "log/zone_%s_inst_%i.txt", zone_short_name_by_id(zoneId), instId);
+    if (rc) goto fail;
+    
+    rc = zlua_init_zone(L, zone);
     if (rc) goto fail;
 
     return zone;
@@ -197,6 +202,7 @@ Zone* zone_destroy(Zone* zone)
 {
     if (zone)
     {
+        zlua_deinit_zone(zone->lua, zone);
         free_if_exists(zone->mobs);
         free_if_exists(zone->clients);
         free_if_exists(zone->clientsBroadcastAll); /*fixme: tell the clients they're being kicked? And that their Zone ptr is no longer valid*/
@@ -296,4 +302,14 @@ LocH* zone_safe_spot(Zone* zone)
 StaticPackets* zone_static_packets(Zone* zone)
 {
     return zone->staticPackets;
+}
+
+void zone_set_lua_index(Zone* zone, int index)
+{
+    zone->luaIndex = index;
+}
+
+int zone_lua_index(Zone* zone)
+{
+    return zone->luaIndex;
 }

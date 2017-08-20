@@ -95,8 +95,8 @@ static void zt_handle_create_zone(ZoneThread* zt, ZPacket* zpacket)
 {
     uint32_t index = zt->zoneCount;
     Zone* zone;
-    int zoneId;
-    int instId;
+    int zoneId = zpacket->zone.zCreateZone.zoneId;
+    int instId = zpacket->zone.zCreateZone.instId;
     
     if (bit_is_pow2_or_zero(index))
     {
@@ -113,10 +113,7 @@ static void zt_handle_create_zone(ZoneThread* zt, ZPacket* zpacket)
         zt->zoneIds = zoneIds;
     }
     
-    zoneId = zpacket->zone.zCreateZone.zoneId;
-    instId = zpacket->zone.zCreateZone.instId;
-    
-    zone = zone_create(zt->logThread, zt->udpQueue, zoneId, instId, zt->staticPackets);
+    zone = zone_create(zt->logThread, zt->udpQueue, zoneId, instId, zt->staticPackets, zt->lua);
     if (!zone) goto fail;
     
     zt->zones[index] = zone;
@@ -842,4 +839,14 @@ RingBuf* zt_get_log_queue(ZoneThread* zt)
 int zt_get_log_id(ZoneThread* zt)
 {
     return zt->logId;
+}
+
+TimerPool* zt_timer_pool(ZoneThread* zt)
+{
+    return &zt->timerPool;
+}
+
+lua_State* zt_lua(ZoneThread* zt)
+{
+    return zt->lua;
 }

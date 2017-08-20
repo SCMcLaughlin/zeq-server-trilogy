@@ -3,12 +3,14 @@
 #include "bit.h"
 #include "util_alloc.h"
 #include "util_clock.h"
+#include "zone_thread.h"
 
 #define TIMER_POOL_INVALID_INDEX 0xffffffff
 
 struct Timer {
     uint32_t        poolIndex;
     uint32_t        periodMs;
+    int             luaIndex;
     TimerCallback   callback;
     void*           userdata;
 };
@@ -126,6 +128,7 @@ Timer* timer_new(TimerPool* pool, uint32_t periodMs, TimerCallback callback, voi
     
     timer->poolIndex = TIMER_POOL_INVALID_INDEX;
     timer->periodMs = periodMs;
+    timer->luaIndex = 0;
     timer->callback = callback;
     timer->userdata = userdata;
     
@@ -147,6 +150,20 @@ Timer* timer_destroy(TimerPool* pool, Timer* timer)
     }
     
     return NULL;
+}
+
+static void timer_lua_callback(TimerPool* pool, Timer* timer)
+{
+    lua_State* L = timer_userdata_type(timer, lua_State);
+    
+    (void)pool;
+    
+    zlua_timer_callback(L, timer->luaIndex);
+}
+
+Timer* timer_new_lua(lua_State* L, TimerPool* pool, uint32_t periodMs)
+{
+    return timer_new(pool, periodMs, timer_lua_callback, L, true);
 }
 
 int timer_stop(TimerPool* pool, Timer* timer)
@@ -221,4 +238,14 @@ int timer_restart(TimerPool* pool, Timer* timer)
 void* timer_userdata(Timer* timer)
 {
     return timer->userdata;
+}
+
+void timer_set_lua_index(Timer* timer, int luaIndex)
+{
+    timer->luaIndex = luaIndex;
+}
+
+int timer_lua_index(Timer* timer)
+{
+    return timer->luaIndex;
 }

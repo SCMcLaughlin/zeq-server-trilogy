@@ -13,8 +13,6 @@ local rawget = rawget
 local xpcall = xpcall
 local loadfile = loadfile
 local setfenv = setfenv
-local setmetatable = setmetatable
-local package = package
 local traceback = debug.traceback
 --------------------------------------------------------------------------------
 
@@ -39,20 +37,6 @@ function script.run(env, path, logger)
             logger:log(err)
             resetEnv(env) -- Loading a script is all-or-nothing, ensure the env is not half-written
         end
-    end
-end
-
-function script.runGlobal(env, path)
-    local script = loadfile(path)
-    if script then
-        setfenv(script, env)
-        local s, err = xpcall(script, traceback)
-        if not s then
-            ZT:log(err)
-            resetEnv(env) -- Loading a script is all-or-nothing, ensure the env is not half-written
-        end
-    else
-        ZT:log("Global script '%s' not found, skipping", path)
     end
 end
 
