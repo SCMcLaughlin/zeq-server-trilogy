@@ -25,6 +25,14 @@ enum Opcode
     
     OP_SwapItem             = 0x212c,
     OP_MoveCoin             = 0x212d,
+    
+    OP_SpellCastBegin       = 0x20a9,   /* Spell casting particles */
+    OP_SpellCastEnd         = 0x2046,
+    OP_ClientSpellCast      = 0x217e,
+    OP_InterruptSpell       = 0x21d3,
+    OP_Buff                 = 0x2123,
+    OP_MemorizeSpell        = 0x2182,
+    OP_SwapSpell            = 0x21ce,
 };
 
 #endif/*ENUM_OPCODE_H*/

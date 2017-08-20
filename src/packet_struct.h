@@ -4,6 +4,11 @@
 
 #include "define.h"
 
+#ifdef PLATFORM_WINDOWS
+/* "nonstandard extension used: zero-sized array in struct/union" */
+# pragma warning(disable: 4200)
+#endif
+
 #pragma pack(1)
 
 typedef struct {
@@ -237,6 +242,17 @@ typedef struct {
         PS_ItemBook     book;
     };
 } PS_Item;
+
+typedef struct {
+    uint32_t    chatChannel;
+    char        message[0];
+} PS_CustomMessage;
+
+typedef struct {
+    uint32_t    casterId;
+    uint32_t    spellId;
+    uint32_t    castTimeMs;
+} PS_SpellCastBegin;
 
 #pragma pack()
 

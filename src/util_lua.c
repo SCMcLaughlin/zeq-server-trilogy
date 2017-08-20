@@ -1,6 +1,8 @@
 
 #include "util_lua.h"
+#include "client.h"
 #include "log_thread.h"
+#include "mob.h"
 #include "ringbuf.h"
 #include "util_clock.h"
 #include "zone.h"
@@ -126,6 +128,9 @@ int zlua_init_zone_thread(lua_State* L, ZoneThread* zt)
     rc = zlua_script(L, LUA_ZONE_THREAD_SYSTEM_SCRIPT_PATH, 1, logQueue, logId);
     if (rc) goto ret;
     
+    /* Push system.eventCall to keep it at LUA_ZONE_THREAD_SYSTEM_EVENT_FUNC_INDEX on the lua stack */
+    zlua_pushfunc(L, "eventCall");
+    
     /* Create the lua-side ZoneThread object */
     zlua_pushfunc(L, "createZoneThread");
     lua_pushlightuserdata(L, zt);
@@ -165,4 +170,94 @@ int zlua_deinit_zone(lua_State* L, Zone* zone)
     zlua_pushfunc(L, "removeZone");
     lua_pushinteger(L, zone_lua_index(zone));
     return zlua_call(L, 1, 0, logQueue, logId);
+}
+
+int zlua_init_client(Client* client, Zone* zone)
+{
+    lua_State* L = zone_lua(zone);
+    RingBuf* logQueue = zone_log_queue(zone);
+    int logId = zone_log_id(zone);
+    int luaIndex;
+    int rc;
+    
+    zlua_pushfunc(L, "createClient");
+    lua_pushlightuserdata(L, client);
+    rc = zlua_call(L, 1, 1, logQueue, logId);
+    if (rc) goto ret;
+    
+    luaIndex = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+    
+    client_set_lua_index(client, luaIndex);
+    
+ret:
+    return rc;
+}
+
+static int zlua_client_call(Client* client, Zone* zone, const char* funcName)
+{
+    lua_State* L = zone_lua(zone);
+    RingBuf* logQueue = zone_log_queue(zone);
+    int logId = zone_log_id(zone);
+    
+    zlua_pushfunc(L, funcName);
+    lua_pushinteger(L, client_lua_index(client));
+    return zlua_call(L, 1, 0, logQueue, logId);
+}
+
+int zlua_add_client_to_zone_lists(Client* client, Zone* zone)
+{
+    return zlua_client_call(client, zone, "addClientToZoneLists");
+}
+
+int zlua_deinit_client(Client* client)
+{
+    return zlua_client_call(client, client_get_zone(client), "removeClient");
+}
+
+void zlua_event_prolog(const char* eventName, int eventLen, lua_State* L, struct Mob* mob, struct Zone* zone)
+{
+    lua_pushvalue(L, LUA_ZONE_THREAD_SYSTEM_EVENT_FUNC_INDEX);
+    lua_pushlstring(L, eventName, eventLen);
+    lua_pushinteger(L, mob_lua_index(mob));
+    lua_pushinteger(L, zone_lua_index(zone));
+}
+
+int zlua_event_epilog(lua_State* L, struct Zone* zone, int* ret)
+{
+    RingBuf* logQueue = zone_log_queue(zone);
+    int logId = zone_log_id(zone);
+    int rc;
+    
+    rc = zlua_call(L, 4, 1, logQueue, logId);
+    if (rc) goto fail;
+    
+    if (ret)
+        *ret = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+    
+fail:
+    return rc;
+}
+
+int zlua_event(const char* eventName, int eventLen, Mob* mob, Zone* zone, int* ret)
+{
+    lua_State* L = zone_lua(zone);
+    RingBuf* logQueue = zone_log_queue(zone);
+    int logId = zone_log_id(zone);
+    int rc;
+    
+    lua_pushvalue(L, LUA_ZONE_THREAD_SYSTEM_EVENT_FUNC_INDEX);
+    lua_pushlstring(L, eventName, eventLen);
+    lua_pushinteger(L, mob_lua_index(mob));
+    lua_pushinteger(L, zone_lua_index(zone));
+    rc = zlua_call(L, 3, 1, logQueue, logId);
+    if (rc) goto fail;
+    
+    if (ret)
+        *ret = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+    
+fail:
+    return rc;
 }

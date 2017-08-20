@@ -5,6 +5,7 @@
 #include "misc_enum.h"
 #include "packet_create.h"
 #include "packet_static.h"
+#include "util_lua.h"
 #include "zone.h"
 #include "enum_opcode.h"
 
@@ -71,8 +72,15 @@ static void cpr_handle_op_enter_zone(Client* client)
     /*fixme: Send guild rank SpawnAppearance, if applicable */
     /*fixme: Send GM SpawnAppearance, if applicable */
     
-    /*fixme: calc the client's stats?*/
     /*fixme: send hp and mana updates*/
+    
+    /* Execute spawn events */
+    zlua_add_client_to_zone_lists(client, zone);
+    
+    if (client_increment_zone_in_count(client) == 0)
+        zlua_event_literal("event_connect", client_mob(client), zone, NULL);
+    
+    zlua_event_literal("event_spawn", client_mob(client), zone, NULL);
     
 fail:;
 }
@@ -105,6 +113,7 @@ void client_packet_recv(Client* client, ZPacket* zpacket)
         break;
     
     default:
+        client_on_unhandled_packet(client, &packet);
         cpr_warn_unknown_opcode(client, packet.opcode);
         break;
     }

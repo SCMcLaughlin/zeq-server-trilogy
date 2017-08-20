@@ -1,0 +1,21 @@
+
+return {
+    ["Default"] = 0,
+    ["DarkRed"] = 1,
+    ["DarkGreen"] = 2,
+    ["DarkYellow"] = 3,
+    ["DarkBlue"] = 4,
+    ["Purple"] = 5,
+    ["LightGrey"] = 6,
+    ["Grey"] = 7,
+    ["LightGreen"] = 8,
+    ["LightBlue"] = 9,
+    ["White"] = 10,
+    ["Grey2"] = 11,
+    ["Grey3"] = 12,
+    ["Red"] = 13,
+    ["Green"] = 14,
+    ["Yellow"] = 15,
+    ["Blue"] = 16,
+    ["Blue2"] = 18,
+}

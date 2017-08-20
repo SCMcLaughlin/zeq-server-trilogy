@@ -21,7 +21,7 @@ enum MobParentType
 
 struct Client;
 
-typedef struct {
+typedef struct Mob {
     uint8_t         parentType;
     uint8_t         level;
     uint8_t         classId;
@@ -33,6 +33,7 @@ typedef struct {
     uint16_t        deityId;    /*fixme: map this down to 8 bits?*/
     int16_t         entityId;
     int             zoneIndex;
+    int             luaIndex;
     LocH            loc;
     int16_t         headingRaw;
     StaticBuffer*   name;
@@ -111,6 +112,8 @@ int mob_calc_ac_from_factors(Mob* mob, int classId);
 
 #define mob_zone_index(mob) ((mob)->zoneIndex)
 #define mob_set_zone_index(mob, idx) ((mob)->zoneIndex = (idx))
+#define mob_lua_index(mob) ((mob)->luaIndex)
+#define mob_set_lua_index(mob, idx) ((mob)->luaIndex = (idx))
 
 #define mob_cur_size(mob) ((mob)->currentSize)
 

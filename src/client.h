@@ -11,6 +11,7 @@
 #include "mob.h"
 #include "skills.h"
 #include "spellbook.h"
+#include "udp_zpacket.h"
 #include "zone.h"
 
 typedef struct Client Client;
@@ -23,6 +24,8 @@ void client_load_character_data(Client* client, ClientLoadData_Character* data);
 void client_calc_stats_all(Client* client);
 int64_t client_calc_base_hp(uint8_t classId, int level, int sta);
 int64_t client_calc_base_mana(uint8_t classId, int level, int INT, int WIS);
+
+void client_on_unhandled_packet(Client* client, ToServerPacket* packet);
 
 Mob* client_mob(Client* client);
 StaticBuffer* client_name(Client* client);
@@ -105,11 +108,13 @@ float client_running_speed(Client* client);
 BindPoint* client_bind_point(Client* client, int n);
 
 int16_t client_entity_id(Client* client);
-int client_zone_index(Client* client);
 void client_set_zone_index(Client* client, int index);
-int client_mob_zone_index(Client* client);
-void client_set_mob_zone_index(Client* client, int index);
+int client_zone_index(Client* client);
+void client_set_lua_index(Client* client, int index);
+int client_lua_index(Client* client);
 
 int client_get_skill(Client* client, int skillId);
+/* Returns the previous zone-in count */
+uint32_t client_increment_zone_in_count(Client* client);
 
 #endif/*CLIENT_H*/

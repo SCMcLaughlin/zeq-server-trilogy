@@ -9,7 +9,7 @@
 #include "udp_zpacket.h"
 #include "zone.h"
 
-void client_schedule_packet(Client* client, TlgPacket* packet);
+ZEQ_API void client_schedule_packet(Client* client, TlgPacket* packet);
 void client_schedule_packet_with_zone(Client* client, Zone* zone, TlgPacket* packet);
 void client_schedule_packet_with_udp_queue(Client* client, RingBuf* udpQueue, TlgPacket* packet);
 void client_send_echo_copy(Client* client, ToServerPacket* packet);

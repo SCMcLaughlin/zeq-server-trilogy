@@ -35,6 +35,7 @@ TlgPacket* packet_create_weather(int type, int intensity)
     TlgPacket* packet = packet_init_type(OP_Weather, PS_Weather, &a);
     if (!packet) return NULL;
     
+    /* PS_Weather */
     /* type */
     aligned_write_int(&a, type);
     /* intensity */
@@ -51,6 +52,7 @@ TlgPacket* packet_create_zone_info(Zone* zone)
     TlgPacket* packet = packet_init_type(OP_ZoneInfo, PS_ZoneInfo, &a);
     if (!packet) return NULL;
     
+    /* PS_ZoneInfo */
     /* characterName */
     aligned_write_zeroes(&a, sizeof_field(PS_ZoneInfo, characterName)); /* Unused */
     /* zoneShortName */
@@ -146,6 +148,7 @@ TlgPacket* packet_create_spawn_appearance(int16_t entityId, int16_t typeId, int 
     TlgPacket* packet = packet_init_type(OP_SpawnAppearance, PS_SpawnAppearance, &a);
     if (!packet) return NULL;
     
+    /* PS_SpawnAppearance */
     /* entityId */
     aligned_write_int16(&a, entityId);
     /* unknownA */
@@ -189,6 +192,7 @@ TlgPacket* packet_create_spawn(Mob* mob)
     
     mobType = mob_parent_type(mob);
     
+    /* PS_Spawn */
     /* unknownA */
     aligned_write_uint32(&a, 0);
     /* size */
@@ -567,5 +571,59 @@ TlgPacket* packet_create_inv_item(Item* item, ItemProto* proto, uint16_t slotId,
         aligned_write_uint32(&a, 0); /*fixme*/
     }
 
+    return packet;
+}
+
+TlgPacket* packet_create_custom_message(uint32_t chatChannel, const char* str, uint32_t len)
+{
+    Aligned a;
+    TlgPacket* packet;
+    
+    len++; /* Include null terminator */
+    
+    packet = packet_init(OP_CustomMessage, sizeof(PS_CustomMessage) + len, &a);
+    if (!packet) return NULL;
+    
+    /* PS_CustomMessage */
+    /* chatChannel */
+    aligned_write_uint32(&a, chatChannel);
+    /* message */
+    aligned_write_buffer(&a, str, len);
+    
+    return packet;
+}
+
+TlgPacket* packet_create_custom_message_format(uint32_t chatChannel, const char* fmt, ...)
+{
+    char buf[4096];
+    int len;
+    va_list args;
+    
+    va_start(args, fmt);
+    len = vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+    
+    if (len <= 0) return NULL;
+    
+    if (len >= (int)sizeof(buf))
+        len = (int)(sizeof(buf) - 1);
+    
+    return packet_create_custom_message(chatChannel, buf, (uint32_t)len);
+}
+
+TlgPacket* packet_create_spell_cast_begin(Mob* mob, uint32_t spellId, uint32_t castTimeMs)
+{
+    Aligned a;
+    TlgPacket* packet = packet_init_type(OP_SpellCastBegin, PS_SpellCastBegin, &a);
+    if (!packet) return NULL;
+    
+    /* PS_SpellCastBegin */
+    /* casterId */
+    aligned_write_uint32(&a, (uint32_t)mob_entity_id(mob));
+    /* spellId */
+    aligned_write_uint32(&a, spellId);
+    /* castTimeMs */
+    aligned_write_uint32(&a, castTimeMs);
+    
     return packet;
 }

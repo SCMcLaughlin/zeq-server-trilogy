@@ -46,5 +46,6 @@ LocH* zone_safe_spot(Zone* zone);
 StaticPackets* zone_static_packets(Zone* zone);
 void zone_set_lua_index(Zone* zone, int index);
 int zone_lua_index(Zone* zone);
+lua_State* zone_lua(Zone* zone);
 
 #endif/*ZONE_H*/

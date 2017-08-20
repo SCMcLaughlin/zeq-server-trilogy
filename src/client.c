@@ -14,7 +14,6 @@
 
 struct Client {
     Mob             mob;
-    int             zoneIndex;
     StaticBuffer*   surname;
     int64_t         characterId;
     int64_t         accountId;
@@ -39,6 +38,7 @@ struct Client {
     uint16_t        drunkeness;
     uint32_t        weight;
     uint32_t        guildId;
+    uint32_t        zoneInCount;
     Coin            coin;
     Coin            coinCursor;
     Coin            coinBank;
@@ -60,7 +60,6 @@ Client* client_create_unloaded(StaticBuffer* name, int64_t accountId, IpAddr ipA
 
     mob_init_client_unloaded(&client->mob, name);
 
-    client->zoneIndex = -1;
     client->surname = NULL;
     client->characterId = -1;
     client->accountId = accountId;
@@ -74,6 +73,7 @@ Client* client_destroy(Client* client)
 {
     if (client)
     {
+        zlua_deinit_client(client);
         mob_deinit(&client->mob);
         inv_deinit(&client->inventory);
         spellbook_deinit(&client->spellbook);
@@ -311,6 +311,26 @@ int64_t client_calc_base_mana(uint8_t classId, int level, int INT, int WIS)
     return ret;
 }
 
+void client_on_unhandled_packet(Client* client, ToServerPacket* packet)
+{
+    Zone* zone = client_get_zone(client);
+    lua_State* L = zone_lua(zone);
+    
+    zlua_event_prolog_literal("event_unhandled_packet", L, client_mob(client), zone);
+    
+    lua_createtable(L, 0, 4);
+    lua_pushinteger(L, packet->opcode);
+    lua_setfield(L, -2, "opcode");
+    
+    if (packet->data && packet->length)
+    {
+        lua_pushlstring(L, (const char*)packet->data, packet->length);
+        lua_setfield(L, -2, "data");
+    }
+    
+    zlua_event_epilog(L, zone, NULL);
+}
+
 Mob* client_mob(Client* client)
 {
     return &client->mob;
@@ -507,7 +527,6 @@ void client_reset_for_zone(Client* client, Zone* zone)
     mob_set_entity_id(mob, -1);
     mob_set_zone_index(mob, -1);
     mob_set_upright_state(mob, UPRIGHT_STATE_Standing);
-    client_set_zone_index(client, -1);
 }
 
 bool client_is_local(Client* client)
@@ -680,27 +699,32 @@ int16_t client_entity_id(Client* client)
     return mob_entity_id(&client->mob);
 }
 
-int client_zone_index(Client* client)
-{
-    return client->zoneIndex;
-}
-
 void client_set_zone_index(Client* client, int index)
 {
-    client->zoneIndex = index;
+    mob_set_zone_index(&client->mob, index);
 }
 
-int client_mob_zone_index(Client* client)
+int client_zone_index(Client* client)
 {
     return mob_zone_index(&client->mob);
 }
 
-void client_set_mob_zone_index(Client* client, int index)
+void client_set_lua_index(Client* client, int index)
 {
-    mob_set_zone_index(&client->mob, index);
+    mob_set_lua_index(&client->mob, index);
+}
+
+int client_lua_index(Client* client)
+{
+    return mob_lua_index(&client->mob);
 }
 
 int client_get_skill(Client* client, int skillId)
 {
     return skill_get(&client->skills, skillId);
+}
+
+uint32_t client_increment_zone_in_count(Client* client)
+{
+    return client->zoneInCount++;
 }

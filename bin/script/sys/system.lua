@@ -130,4 +130,41 @@ function system.timerCallback(index)
     end
 end
 
+function system.createClient(ptr)
+
+end
+
+function system.addClientToZoneLists(index)
+
+end
+
+function system.removeClient(index)
+
+end
+
+function system.eventCall(eventName, objIndex, zoneIndex, e)
+    local obj = objects[objIndex]
+    if not obj then return end
+    
+    local func = obj[eventName]
+    if not func then return end
+    
+    local zone = objects[zoneIndex]
+    
+    e = e or {}
+    
+    e.self = obj
+    e.zone = zone
+    
+    setfenv(func, obj:getPersonalEnvironment())
+    
+    local s, errOrRet = xpcall(func, traceback, e)
+    
+    if not s then
+        zone:log(errOrRet)
+    else
+        return errOrRet
+    end
+end
+
 return system

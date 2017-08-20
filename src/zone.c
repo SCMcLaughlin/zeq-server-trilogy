@@ -61,6 +61,8 @@ void zone_add_client_zoning_in(Zone* zone, Client* client)
     log_writef(zone->logQueue, zone->logId, "Zoning in \"%s\"", sbuf_str(client_name(client)));
     
     client_reset_for_zone(client, zone);
+    zlua_init_client(client, zone);
+    zlua_event_literal("event_pre_spawn", client_mob(client), zone, NULL);
     
     /* Send first set of packets for the client to zone in */
     client_send_player_profile(client);
@@ -312,4 +314,9 @@ void zone_set_lua_index(Zone* zone, int index)
 int zone_lua_index(Zone* zone)
 {
     return zone->luaIndex;
+}
+
+lua_State* zone_lua(Zone* zone)
+{
+    return zone->lua;
 }
