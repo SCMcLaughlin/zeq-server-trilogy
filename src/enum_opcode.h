@@ -27,7 +27,7 @@ enum Opcode
     OP_Save                 = 0x202e,
     
     OP_CustomMessage        = 0x2180,
-    OP_ChannelMessage       = 0x2107,
+    OP_Message              = 0x2107,
     
     OP_SwapItem             = 0x212c,
     OP_MoveCoin             = 0x212d,

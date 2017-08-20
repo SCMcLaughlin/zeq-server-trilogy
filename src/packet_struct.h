@@ -249,6 +249,14 @@ typedef struct {
 } PS_CustomMessage;
 
 typedef struct {
+    char        targetName[32];
+    char        senderName[32];
+    uint16_t    languageId;
+    uint32_t    chatChannel;
+    char        message[0];
+} PS_Message;
+
+typedef struct {
     uint32_t    casterId;
     uint32_t    spellId;
     uint32_t    castTimeMs;

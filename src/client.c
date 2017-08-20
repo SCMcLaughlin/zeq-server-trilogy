@@ -331,6 +331,11 @@ void client_on_unhandled_packet(Client* client, ToServerPacket* packet)
     zlua_event_epilog(L, zone, NULL);
 }
 
+void client_on_msg_command(Client* client, const char* msg, int len)
+{
+    zlua_event_command(client, msg, len);
+}
+
 Mob* client_mob(Client* client)
 {
     return &client->mob;

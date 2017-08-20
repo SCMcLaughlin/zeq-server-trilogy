@@ -142,7 +142,7 @@ function system.removeClient(index)
 
 end
 
-function system.eventCall(eventName, objIndex, zoneIndex, e)
+local function eventCall(eventName, objIndex, zoneIndex, e)
     local obj = objects[objIndex]
     if not obj then return end
     
@@ -165,6 +165,30 @@ function system.eventCall(eventName, objIndex, zoneIndex, e)
     else
         return errOrRet
     end
+end
+
+system.eventCall = eventCall
+
+function system.eventCommand(str, objIndex, zoneIndex)
+    local cmd, args
+    
+    for word in str:gmatch("[^%s]+") do
+        if args then
+            args[#args + 1] = word
+        else
+            cmd = word
+            args = {}
+        end
+    end
+    
+    if not cmd then return end
+    
+    local e = {
+        cmd = cmd,
+        args = args or {},
+    }
+    
+    return eventCall("event_command", objIndex, zoneIndex, e)
 end
 
 return system

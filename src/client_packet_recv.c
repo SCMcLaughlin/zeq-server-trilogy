@@ -1,10 +1,12 @@
 
 #include "client_packet_recv.h"
+#include "chat_channel.h"
 #include "client_packet_send.h"
 #include "log_thread.h"
 #include "misc_enum.h"
 #include "packet_create.h"
 #include "packet_static.h"
+#include "packet_struct.h"
 #include "util_lua.h"
 #include "zone.h"
 #include "enum_opcode.h"
@@ -90,6 +92,53 @@ static void cpr_handle_op_enter_zone(Client* client)
 fail:;
 }
 
+static void cpr_handle_op_message(Client* client, ToServerPacket* packet)
+{
+    const char* targetName;
+    const char* senderName;
+    const char* msg;
+    int targetLen;
+    int senderLen;
+    int msgLen;
+    uint16_t langId;
+    uint32_t chatChannel;
+    uint32_t len;
+    Aligned a;
+    
+    len = packet->length;
+    
+    if (len < (sizeof(PS_Message) + 2))
+        return;
+    
+    aligned_init(&a, packet->data, len);
+    
+    /* PS_Message */
+    /* targetName */
+    targetName = aligned_read_string_bounded(&a, &targetLen, sizeof_field(PS_Message, targetName));
+    /* senderName */
+    senderName = aligned_read_string_bounded(&a, &senderLen, sizeof_field(PS_Message, senderName));
+    /* languageId */
+    langId = aligned_read_uint16(&a);
+    /* chatChannel */
+    chatChannel = aligned_read_uint32(&a);
+    /* message */
+    msg = aligned_read_string_bounded(&a, &msgLen, len - sizeof(PS_Message));
+    
+    switch (chatChannel)
+    {
+    case CHAT_CHANNEL_Say:
+        if (msg[0] == '#')
+        {
+            client_on_msg_command(client, msg, msgLen);
+            break;
+        }
+        break;
+    
+    default:
+        break;
+    }
+}
+
 void client_packet_recv(Client* client, ZPacket* zpacket)
 {
     ToServerPacket packet;
@@ -110,6 +159,10 @@ void client_packet_recv(Client* client, ZPacket* zpacket)
     
     case OP_EnterZone:
         cpr_handle_op_enter_zone(client);
+        break;
+    
+    case OP_Message:
+        cpr_handle_op_message(client, &packet);
         break;
     
     /* Packets to be echoed with all their content */

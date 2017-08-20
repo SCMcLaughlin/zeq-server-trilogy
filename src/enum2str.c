@@ -161,7 +161,7 @@ const char* enum2str_opcode(int e)
     case OP_CampStart: ret = "OP_CampStart"; break;
     case OP_Save: ret = "OP_Save"; break;
     case OP_CustomMessage: ret = "OP_CustomMessage"; break;
-    case OP_ChannelMessage: ret = "OP_ChannelMessage"; break;
+    case OP_Message: ret = "OP_Message"; break;
     case OP_SwapItem: ret = "OP_SwapItem"; break;
     case OP_MoveCoin: ret = "OP_MoveCoin"; break;
     case OP_SpellCastBegin: ret = "OP_SpellCastBegin"; break;

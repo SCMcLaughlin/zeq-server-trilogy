@@ -261,3 +261,17 @@ int zlua_event(const char* eventName, int eventLen, Mob* mob, Zone* zone, int* r
 fail:
     return rc;
 }
+
+int zlua_event_command(Client* client, const char* msg, int len)
+{
+    Zone* zone = client_get_zone(client);
+    lua_State* L = zone_lua(zone);
+    RingBuf* logQueue = zone_log_queue(zone);
+    int logId = zone_log_id(zone);
+    
+    zlua_pushfunc(L, "eventCommand");
+    lua_pushlstring(L, msg + 1, len - 1); /* Skip the leading '#' */
+    lua_pushinteger(L, mob_lua_index(client_mob(client)));
+    lua_pushinteger(L, zone_lua_index(zone));
+    return zlua_call(L, 3, 0, logQueue, logId);
+}

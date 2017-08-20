@@ -26,6 +26,7 @@ int64_t client_calc_base_hp(uint8_t classId, int level, int sta);
 int64_t client_calc_base_mana(uint8_t classId, int level, int INT, int WIS);
 
 void client_on_unhandled_packet(Client* client, ToServerPacket* packet);
+void client_on_msg_command(Client* client, const char* msg, int len);
 
 Mob* client_mob(Client* client);
 StaticBuffer* client_name(Client* client);

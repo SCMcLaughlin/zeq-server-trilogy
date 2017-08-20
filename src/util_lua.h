@@ -49,4 +49,6 @@ int zlua_event_epilog(lua_State* L, struct Zone* zone, int* ret);
 int zlua_event(const char* eventName, int eventLen, struct Mob* mob, struct Zone* zone, int* ret);
 #define zlua_event_literal(name, mob, zone, ret) zlua_event(name, sizeof(name) - 1, (mob), (zone), (ret))
 
+int zlua_event_command(struct Client* client, const char* msg, int len);
+
 #endif/*UTIL_LUA_H*/

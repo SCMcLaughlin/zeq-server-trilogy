@@ -1,6 +1,7 @@
 
 #include "aligned.h"
 #include "util_random.h"
+#include "util_str.h"
 
 void aligned_init(Aligned* a, void* ptr, uint32_t len)
 {
@@ -135,6 +136,17 @@ void aligned_read_buffer(Aligned* a, void* ptr, uint32_t len)
     {
         dst[i] = src[c + i];
     }
+}
+
+const char* aligned_read_string_bounded(Aligned* a, int* outLen, uint32_t fieldLen)
+{
+    uint32_t c = aligned_advance_by(a, fieldLen);
+    const char* str = (const char*)(a->buffer + c);
+    
+    if (outLen)
+        *outLen = str_len_bounded(str, (int)fieldLen);
+    
+    return str;
 }
 
 uint8_t aligned_peek_uint8(Aligned* a)
