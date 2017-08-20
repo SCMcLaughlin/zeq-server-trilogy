@@ -103,6 +103,7 @@ static int zone_add_entity_mob(Zone* zone, Mob* mob)
     }
     
     zone->mobs[index] = mob;
+    zone->mobCount = index + 1;
     mob_set_zone_index(mob, (int)index);
     mob_set_entity_id(mob, zone_get_free_entity_id(zone));
     
@@ -319,4 +320,14 @@ int zone_lua_index(Zone* zone)
 lua_State* zone_lua(Zone* zone)
 {
     return zone->lua;
+}
+
+Mob** zone_mob_list(Zone* zone)
+{
+    return zone->mobs;
+}
+
+uint32_t zone_mob_count(Zone* zone)
+{
+    return zone->mobCount;
 }

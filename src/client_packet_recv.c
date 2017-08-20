@@ -39,7 +39,12 @@ static void cpr_handle_op_zone_info_request(Client* client)
     staticPackets = zone_static_packets(zone);
     client_schedule_packet_with_udp_queue(client, udpQueue, staticPackets->packetEnterZone);
     
-    /*fixme: send spawns, doors, objects*/
+    /* Send OP_SpawnsCompressed */
+    packet = packet_create_spawns_compressed(zone); /* This may validly return NULL if there are zero spawned Mobs in the zone */
+    if (packet)
+        client_schedule_packet_with_udp_queue(client, udpQueue, packet);
+    
+    /*fixme: send doors, objects*/
 }
 
 static void cpr_handle_op_enter_zone(Client* client)

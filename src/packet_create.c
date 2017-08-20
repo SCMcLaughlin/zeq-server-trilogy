@@ -6,8 +6,10 @@
 #include "packet_convert.h"
 #include "packet_struct.h"
 #include "tlg_packet.h"
+#include "util_alloc.h"
 #include "zone.h"
 #include "enum_opcode.h"
+#include <zlib.h>
 
 TlgPacket* packet_create_zero_filled(uint16_t opcode, uint32_t size)
 {
@@ -181,72 +183,81 @@ static void packet_obfuscate_spawn(byte* data, uint32_t len)
     }
 }
 
-TlgPacket* packet_create_spawn(Mob* mob)
+static void packet_obfuscate_spawns_compressed(byte* data, uint32_t len)
 {
-    Aligned a;
+    uint32_t* ptr = (uint32_t*)data;
+    uint32_t swap;
+    
+    /* Extra hoop to jump through */
+    swap = ptr[0];
+    ptr[0] = ptr[len / 8];
+    ptr[len / 8] = swap;
+    
+    packet_obfuscate_spawn(data, len);
+}
+
+static void packet_fill_spawn(Mob* mob, Aligned* a)
+{
     int mobType;
     int temp;
-    TlgPacket* packet = packet_init_type(OP_Spawn, PS_Spawn, &a);
-    
-    if (!packet) return NULL;
     
     mobType = mob_parent_type(mob);
     
     /* PS_Spawn */
     /* unknownA */
-    aligned_write_uint32(&a, 0);
+    aligned_write_uint32(a, 0);
     /* size */
-    aligned_write_float(&a, mob_cur_size(mob));
+    aligned_write_float(a, mob_cur_size(mob));
     /* walkingSpeed */
-    aligned_write_float(&a, mob_cur_walking_speed(mob));
+    aligned_write_float(a, mob_cur_walking_speed(mob));
     /* runningSpeed */
-    aligned_write_float(&a, mob_cur_running_speed(mob));
+    aligned_write_float(a, mob_cur_running_speed(mob));
     
     /* tints[7] */
-    aligned_write_uint32(&a, mob_tint(mob, 0));
-    aligned_write_uint32(&a, mob_tint(mob, 1));
-    aligned_write_uint32(&a, mob_tint(mob, 2));
-    aligned_write_uint32(&a, mob_tint(mob, 3));
-    aligned_write_uint32(&a, mob_tint(mob, 4));
-    aligned_write_uint32(&a, mob_tint(mob, 5));
-    aligned_write_uint32(&a, mob_tint(mob, 6));
+    aligned_write_uint32(a, mob_tint(mob, 0));
+    aligned_write_uint32(a, mob_tint(mob, 1));
+    aligned_write_uint32(a, mob_tint(mob, 2));
+    aligned_write_uint32(a, mob_tint(mob, 3));
+    aligned_write_uint32(a, mob_tint(mob, 4));
+    aligned_write_uint32(a, mob_tint(mob, 5));
+    aligned_write_uint32(a, mob_tint(mob, 6));
     
     /* unknownB */
-    aligned_write_zeroes(&a, sizeof_field(PS_Spawn, unknownB));
+    aligned_write_zeroes(a, sizeof_field(PS_Spawn, unknownB));
     /* heading */
-    aligned_write_int8(&a, (int8_t)mob->headingRaw); /*fixme: decide how to deal with headings*/
+    aligned_write_int8(a, (int8_t)mob->headingRaw); /*fixme: decide how to deal with headings*/
     /* headingDelta */
-    aligned_write_int8(&a, 0); /*fixme: handle deltas*/
+    aligned_write_int8(a, 0); /*fixme: handle deltas*/
     /* y */
-    aligned_write_int16(&a, (int16_t)mob_y(mob));
+    aligned_write_int16(a, (int16_t)mob_y(mob));
     /* x */
-    aligned_write_int16(&a, (int16_t)mob_x(mob));
+    aligned_write_int16(a, (int16_t)mob_x(mob));
     /* z */
-    aligned_write_int16(&a, (int16_t)(mob_z(mob) * 10)); /* The client expects this for more accurate Z values after decimal truncation */
+    aligned_write_int16(a, (int16_t)(mob_z(mob) * 10)); /* The client expects this for more accurate Z values after decimal truncation */
     
     /* delta bitfield */
-    aligned_write_int(&a, 0); /*fixme: deal with this properly...*/
+    aligned_write_int(a, 0); /*fixme: deal with this properly...*/
     
     /* unknownC */
-    aligned_write_uint8(&a, 0);
+    aligned_write_uint8(a, 0);
     /* entityId */
-    aligned_write_int16(&a, mob_entity_id(mob));
+    aligned_write_int16(a, mob_entity_id(mob));
     /* bodyType */
-    aligned_write_uint16(&a, mob_body_type(mob));
+    aligned_write_uint16(a, mob_body_type(mob));
     /* ownerEntityId */
-    aligned_write_int16(&a, mob_owner_entity_id(mob));
+    aligned_write_int16(a, mob_owner_entity_id(mob));
     /* hpPercent */
-    aligned_write_int16(&a, mob_hp_ratio(mob));
+    aligned_write_int16(a, mob_hp_ratio(mob));
     
     /* guildId */
     if (mobType == MOB_PARENT_TYPE_Client)
-        aligned_write_uint16(&a, client_guild_id_or_ffff(mob_as_client(mob)));
+        aligned_write_uint16(a, client_guild_id_or_ffff(mob_as_client(mob)));
     else
-        aligned_write_uint16(&a, 0xffff);
+        aligned_write_uint16(a, 0xffff);
     
     /* raceId */
     temp = mob_race_id(mob);
-    aligned_write_uint8(&a, (temp > 0xff) ? 1 : temp); /* Seems like raceId is 16bit everywhere but here... */
+    aligned_write_uint8(a, (temp > 0xff) ? 1 : temp); /* Seems like raceId is 16bit everywhere but here... */
     
     switch (mobType)
     {
@@ -269,97 +280,176 @@ TlgPacket* packet_create_spawn(Mob* mob)
     }
     
     /* mobType */
-    aligned_write_uint8(&a, (uint8_t)temp);
+    aligned_write_uint8(a, (uint8_t)temp);
     /* classId */
-    aligned_write_uint8(&a, mob_class_id(mob));
+    aligned_write_uint8(a, mob_class_id(mob));
     /* genderId */
-    aligned_write_uint8(&a, mob_gender_id(mob));
+    aligned_write_uint8(a, mob_gender_id(mob));
     /* level */
-    aligned_write_uint8(&a, mob_level(mob));
+    aligned_write_uint8(a, mob_level(mob));
     /* isInvisible */
-    aligned_write_uint8(&a, 0); /*fixme: handle invisibility*/
+    aligned_write_uint8(a, 0); /*fixme: handle invisibility*/
     /* unknownD */
-    aligned_write_uint8(&a, 0);
+    aligned_write_uint8(a, 0);
     
     /* isPvP */
     if (mobType == MOB_PARENT_TYPE_Client)
-        aligned_write_uint8(&a, client_is_pvp(mob_as_client(mob)));
+        aligned_write_uint8(a, client_is_pvp(mob_as_client(mob)));
     else
-        aligned_write_uint8(&a, 0);
+        aligned_write_uint8(a, 0);
     
     /* uprightState */
-    aligned_write_uint8(&a, mob_upright_state(mob));
+    aligned_write_uint8(a, mob_upright_state(mob));
     /* lightLevel */
-    aligned_write_uint8(&a, mob_light_level(mob));
+    aligned_write_uint8(a, mob_light_level(mob));
     
     if (mobType == MOB_PARENT_TYPE_Client)
     {
         Client* client = mob_as_client(mob);
         
         /* anon */
-        aligned_write_uint8(&a, client_anon_setting(client));
+        aligned_write_uint8(a, client_anon_setting(client));
         /* isAfk */
-        aligned_write_uint8(&a, client_is_afk(client));
+        aligned_write_uint8(a, client_is_afk(client));
         /* unknownE */
-        aligned_write_uint8(&a, 0);
+        aligned_write_uint8(a, 0);
         /* isLinkdead */
-        aligned_write_uint8(&a, client_is_linkdead(client));
+        aligned_write_uint8(a, client_is_linkdead(client));
         /* isGM */
-        aligned_write_uint8(&a, client_is_gm(client));
+        aligned_write_uint8(a, client_is_gm(client));
     }
     else
     {
-        aligned_write_zeroes(&a, 5);
+        aligned_write_zeroes(a, 5);
     }
     
     /* unknownF */
-    aligned_write_uint8(&a, 0);
+    aligned_write_uint8(a, 0);
     /* textureId */
-    aligned_write_uint8(&a, mob_texture_id(mob));
+    aligned_write_uint8(a, mob_texture_id(mob));
     /* helmTextureId */
-    aligned_write_uint8(&a, mob_helm_texture_id(mob));
+    aligned_write_uint8(a, mob_helm_texture_id(mob));
     /* unknownG */
-    aligned_write_uint8(&a, 0);
+    aligned_write_uint8(a, 0);
     
     /* materialIds[9] */
-    aligned_write_uint8(&a, mob_material_id(mob, 0));
-    aligned_write_uint8(&a, mob_material_id(mob, 1));
-    aligned_write_uint8(&a, mob_material_id(mob, 2));
-    aligned_write_uint8(&a, mob_material_id(mob, 3));
-    aligned_write_uint8(&a, mob_material_id(mob, 4));
-    aligned_write_uint8(&a, mob_material_id(mob, 5));
-    aligned_write_uint8(&a, mob_material_id(mob, 6));
-    aligned_write_uint8(&a, mob_primary_weapon_model_id(mob));
-    aligned_write_uint8(&a, mob_secondary_weapon_model_id(mob));
+    aligned_write_uint8(a, mob_material_id(mob, 0));
+    aligned_write_uint8(a, mob_material_id(mob, 1));
+    aligned_write_uint8(a, mob_material_id(mob, 2));
+    aligned_write_uint8(a, mob_material_id(mob, 3));
+    aligned_write_uint8(a, mob_material_id(mob, 4));
+    aligned_write_uint8(a, mob_material_id(mob, 5));
+    aligned_write_uint8(a, mob_material_id(mob, 6));
+    aligned_write_uint8(a, mob_primary_weapon_model_id(mob));
+    aligned_write_uint8(a, mob_secondary_weapon_model_id(mob));
     
     /* name */
-    aligned_write_snprintf_and_advance_by(&a, sizeof_field(PS_Spawn, name), "%s", mob_name_str(mob));
+    aligned_write_snprintf_and_advance_by(a, sizeof_field(PS_Spawn, name), "%s", mob_name_str(mob));
     
     if (mobType == MOB_PARENT_TYPE_Client)
     {
         Client* client = mob_as_client(mob);
         
         /* surname */
-        aligned_write_snprintf_and_advance_by(&a, sizeof_field(PS_Spawn, surname), "%s", client_surname_str_no_null(client));
+        aligned_write_snprintf_and_advance_by(a, sizeof_field(PS_Spawn, surname), "%s", client_surname_str_no_null(client));
         /* guildRank */
-        aligned_write_uint8(&a, client_guild_rank_or_ff(client));
+        aligned_write_uint8(a, client_guild_rank_or_ff(client));
     }
     else
     {
         /* surname, guildRank */
-        aligned_write_zeroes(&a, sizeof_field(PS_Spawn, surname) + sizeof_field(PS_Spawn, guildRank));
+        aligned_write_zeroes(a, sizeof_field(PS_Spawn, surname) + sizeof_field(PS_Spawn, guildRank));
     }
     
     /* unknownH */
-    aligned_write_uint8(&a, 0);
+    aligned_write_uint8(a, 0);
     /* deityId */
-    aligned_write_uint16(&a, mob_deity_id(mob));
+    aligned_write_uint16(a, mob_deity_id(mob));
     /* unknownI */
-    aligned_write_zeroes(&a, sizeof_field(PS_Spawn, unknownI));
+    aligned_write_zeroes(a, sizeof_field(PS_Spawn, unknownI));
+}
+
+TlgPacket* packet_create_spawn(Mob* mob)
+{
+    Aligned a;
+    TlgPacket* packet = packet_init_type(OP_Spawn, PS_Spawn, &a);
+    if (!packet) return NULL;
     
+    packet_fill_spawn(mob, &a);
     packet_obfuscate_spawn(packet_data(packet), packet_length(packet));
     
     return packet;
+}
+
+TlgPacket* packet_spawns_compress_obfuscate(Zone* zone, byte* data, uint32_t len)
+{
+    byte* buffer = alloc_bytes(len);
+    unsigned long length = len;
+    TlgPacket* packet = NULL;
+    int rc;
+    
+    if (!buffer) 
+    {
+        log_writef(zone_log_queue(zone), zone_log_id(zone), "ERROR: packet_spawns_compress_obfuscate: allocation failed for %u byte buffer", len);
+        goto fail_alloc;
+    }
+    
+    rc = compress2(buffer, &length, data, len, Z_BEST_COMPRESSION);
+    
+    if (rc != Z_OK)
+    {
+        log_writef(zone_log_queue(zone), zone_log_id(zone), "ERROR: packet_spawns_compress_obfuscate: compress2() failed, errcode: %i", rc);
+        goto fail;
+    }
+    
+    packet_obfuscate_spawns_compressed(buffer, (uint32_t)length);
+    
+    packet = packet_create(OP_SpawnsCompressed, (uint32_t)length);
+    
+    if (packet)
+    {
+        memcpy(packet_data(packet), buffer, length);
+    }
+    else
+    {
+        log_writef(zone_log_queue(zone), zone_log_id(zone), "ERROR: packet_spawns_compress_obfuscate: packet_create() failed for %u byte compressed spawns buffer", length);
+    }
+    
+fail:
+    free(buffer);
+fail_alloc:
+    free(data);
+    return packet;
+}
+
+TlgPacket* packet_create_spawns_compressed(Zone* zone)
+{
+    Mob** mobs = zone_mob_list(zone);
+    uint32_t n = zone_mob_count(zone);
+    uint32_t len, i;
+    byte* data;
+    Aligned a;
+    
+    if (n == 0) return NULL;
+    
+    len = n * sizeof(PS_Spawn);
+    data = alloc_bytes(len);
+    
+    if (!data)
+    {
+        log_writef(zone_log_queue(zone), zone_log_id(zone), "ERROR: packet_create_spawns_compressed: allocation failed for %u byte buffer to contain %u spawns", len, n);
+        return NULL;
+    }
+    
+    aligned_init(&a, data, len);
+    
+    for (i = 0; i < n; i++)
+    {
+        /* No real good way of doing this, have to dereference every Mob */
+        packet_fill_spawn(mobs[i], &a);
+    }
+    
+    return packet_spawns_compress_obfuscate(zone, data, len);
 }
 
 TlgPacket* packet_create_inv_item(Item* item, ItemProto* proto, uint16_t slotId, uint16_t itemId)

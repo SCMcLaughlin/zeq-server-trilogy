@@ -13,6 +13,7 @@
 typedef struct Zone Zone;
 
 struct Client;
+struct Mob;
 
 Zone* zone_create(LogThread* log, RingBuf* udpQueue, int zoneId, int instId, StaticPackets* staticPackets, lua_State* L);
 Zone* zone_destroy(Zone* zone);
@@ -47,5 +48,8 @@ StaticPackets* zone_static_packets(Zone* zone);
 void zone_set_lua_index(Zone* zone, int index);
 int zone_lua_index(Zone* zone);
 lua_State* zone_lua(Zone* zone);
+
+struct Mob** zone_mob_list(Zone* zone);
+uint32_t zone_mob_count(Zone* zone);
 
 #endif/*ZONE_H*/

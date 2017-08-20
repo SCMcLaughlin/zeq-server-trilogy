@@ -156,7 +156,12 @@ const char* enum2str_opcode(int e)
     case OP_ClientPositionUpdate: ret = "OP_ClientPositionUpdate"; break;
     case OP_SpawnAppearance: ret = "OP_SpawnAppearance"; break;
     case OP_Spawn: ret = "OP_Spawn"; break;
+    case OP_SpawnsCompressed: ret = "OP_SpawnsCompressed"; break;
+    case OP_Unspawn: ret = "OP_Unspawn"; break;
+    case OP_CampStart: ret = "OP_CampStart"; break;
+    case OP_Save: ret = "OP_Save"; break;
     case OP_CustomMessage: ret = "OP_CustomMessage"; break;
+    case OP_ChannelMessage: ret = "OP_ChannelMessage"; break;
     case OP_SwapItem: ret = "OP_SwapItem"; break;
     case OP_MoveCoin: ret = "OP_MoveCoin"; break;
     case OP_SpellCastBegin: ret = "OP_SpellCastBegin"; break;

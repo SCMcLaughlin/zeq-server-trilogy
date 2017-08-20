@@ -21,7 +21,13 @@ enum Opcode
     OP_ClientPositionUpdate = 0x20f3,
     OP_SpawnAppearance      = 0x20f5,
     OP_Spawn                = 0x2149,
+    OP_SpawnsCompressed     = 0x2161,
+    OP_Unspawn              = 0x202b,
+    OP_CampStart            = 0x2207,
+    OP_Save                 = 0x202e,
+    
     OP_CustomMessage        = 0x2180,
+    OP_ChannelMessage       = 0x2107,
     
     OP_SwapItem             = 0x212c,
     OP_MoveCoin             = 0x212d,
