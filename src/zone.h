@@ -21,7 +21,9 @@ Zone* zone_destroy(Zone* zone);
 void zone_add_client_zoning_in(Zone* zone, struct Client* client);
 int zone_add_client_fully_zoned_in(Zone* zone, struct Client* client);
 
-void zone_broadcast_to_all_clients(Zone* zone, TlgPacket* packet);
+#define zone_broadcast_to_all_clients(zone, packet) zone_broadcast_to_all_clients_except((zone), (packet), NULL)
+void zone_broadcast_to_all_clients_except(Zone* zone, TlgPacket* packet, struct Client* except);
+void zone_broadcast_to_nearby_clients_except(Zone* zone, TlgPacket* packet, double x, double y, double z, double range, struct Mob* except);
 
 ZEQ_API const char* zone_short_name(Zone* zone);
 ZEQ_API const char* zone_long_name(Zone* zone);

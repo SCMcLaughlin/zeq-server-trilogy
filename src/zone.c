@@ -11,6 +11,13 @@
 #include "zone_id.h"
 #include "zone_thread.h"
 
+#define ZONE_MOB_LOC_CACHE_CLIENT_VALUE -1.0f
+
+typedef struct {
+    float   x, y, z;
+    float   aggroRange;
+} MobLocCache;
+
 struct Zone {
     int             luaIndex;
     uint32_t        clientCount;
@@ -34,6 +41,7 @@ struct Zone {
     int             logId;
     lua_State*      lua;
     Mob**           mobs;
+    MobLocCache*    mobLocs;
     Client**        clients;
     Client**        clientsBroadcastAll; /* Why does this exist? To ensure zone-wide packets are sent to clients that aren't fully zoned-in yet */
     int16_t*        freeEntityIds;
@@ -91,18 +99,40 @@ static int zone_add_entity_mob(Zone* zone, Mob* mob)
 {
     uint32_t index = zone->mobCount;
     int rc = ERR_OutOfMemory;
+    MobLocCache* loc;
     
     if (bit_is_pow2_or_zero(index))
     {
         uint32_t cap = (index == 0) ? 1 : index * 2;
-        Mob** mobs = realloc_array_type(zone->mobs, cap, Mob*);
+        Mob** mobs;
+        MobLocCache* locs;
         
+        mobs = realloc_array_type(zone->mobs, cap, Mob*);
         if (!mobs) goto oom;
-        
         zone->mobs = mobs;
+
+        locs = realloc_array_type(zone->mobLocs, cap, MobLocCache);
+        if (!locs) goto oom;
+        zone->mobLocs = locs;
     }
     
     zone->mobs[index] = mob;
+
+    loc = &zone->mobLocs[index];
+    loc->x = mob_x(mob);
+    loc->y = mob_y(mob);
+    loc->z = mob_z(mob);
+
+    switch (mob_parent_type(mob))
+    {
+    case MOB_PARENT_TYPE_Client:
+        loc->aggroRange = ZONE_MOB_LOC_CACHE_CLIENT_VALUE;
+        break;
+
+    default:
+        break;
+    }
+
     zone->mobCount = index + 1;
     mob_set_zone_index(mob, (int)index);
     mob_set_entity_id(mob, zone_get_free_entity_id(zone));
@@ -140,20 +170,61 @@ fail:
     return rc;
 }
 
-void zone_broadcast_to_all_clients(Zone* zone, TlgPacket* packet)
+void zone_broadcast_to_all_clients_except(Zone* zone, TlgPacket* packet, Client* except)
 {
     RingBuf* udpQueue = zone_udp_queue(zone);
     Client** clients = zone->clientsBroadcastAll;
     uint32_t n = zone->clientBroadcastAllCount;
     uint32_t i;
-    
+
     packet_grab(packet);
-    
+
     for (i = 0; i < n; i++)
     {
-        client_schedule_packet_with_udp_queue(clients[i], udpQueue, packet);
+        Client* client = clients[i];
+
+        if (client != except)
+            client_schedule_packet_with_udp_queue(client, udpQueue, packet);
     }
-    
+
+    packet_drop(packet);
+}
+
+void zone_broadcast_to_nearby_clients_except(Zone* zone, TlgPacket* packet, double x, double y, double z, double range, Mob* except)
+{
+    RingBuf* udpQueue = zone_udp_queue(zone);
+    Mob** mobs = zone->mobs;
+    MobLocCache* locs = zone->mobLocs;
+    uint32_t n = zone->mobCount;
+    double dx, dy, dz, dist;
+    uint32_t i;
+
+    range = range * range;
+
+    packet_grab(packet);
+
+    for (i = 0; i < n; i++)
+    {
+        MobLocCache* loc = &locs[i];
+
+        if (loc->aggroRange != ZONE_MOB_LOC_CACHE_CLIENT_VALUE)
+            continue;
+
+        dx = x - loc->x;
+        dy = y - loc->y;
+        dz = z - loc->z;
+
+        dist = dx*dx + dy*dy + dz*dz;
+
+        if (dist <= range)
+        {
+            Mob* mob = mobs[i];
+            
+            if (mob != except)
+                client_schedule_packet_with_udp_queue(mob_as_client(mob), udpQueue, packet);
+        }
+    }
+
     packet_drop(packet);
 }
 
