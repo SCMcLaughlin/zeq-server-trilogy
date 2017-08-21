@@ -628,6 +628,8 @@ int udp_schedule_packet(RingBuf* toClientQueue, IpAddr ipAddr, TlgPacket* packet
 {
     ZPacket cmd;
     int rc;
+    
+    if (!packet) return ERR_Invalid;
 
     cmd.udp.zToClientPacket.ipAddress = ipAddr;
     cmd.udp.zToClientPacket.packet = packet;

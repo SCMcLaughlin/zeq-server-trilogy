@@ -104,6 +104,8 @@ function system.removeZone(index)
     mobsByZone[zone] = nil
     clientsByZone[zone] = nil
     npcsByZone[zone] = nil
+    
+    zone:_timerStopAll()
 end
 
 function system.addTimer(timer)
@@ -130,8 +132,15 @@ function system.timerCallback(index)
     end
 end
 
-function system.createClient(ptr)
-
+function system.createClient(ptr, zoneIndex)
+    if not Client then
+        Client = require "sys/Client"
+    end
+    
+    local zone = objects[zoneIndex]
+    local client = Client(ptr, zone)
+    
+    return addObject(client)
 end
 
 function system.addClientToZoneLists(index)
@@ -139,7 +148,10 @@ function system.addClientToZoneLists(index)
 end
 
 function system.removeClient(index)
-
+    local client = removeObject(index)
+    if not client then return end
+    
+    client:_timerStopAll()
 end
 
 local function eventCall(eventName, objIndex, zoneIndex, e)
@@ -185,7 +197,7 @@ function system.eventCommand(str, objIndex, zoneIndex)
     
     local e = {
         cmd = cmd,
-        args = args or {},
+        args = args,
     }
     
     return eventCall("event_command", objIndex, zoneIndex, e)

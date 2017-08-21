@@ -182,7 +182,8 @@ int zlua_init_client(Client* client, Zone* zone)
     
     zlua_pushfunc(L, "createClient");
     lua_pushlightuserdata(L, client);
-    rc = zlua_call(L, 1, 1, logQueue, logId);
+    lua_pushinteger(L, zone_lua_index(zone));
+    rc = zlua_call(L, 2, 1, logQueue, logId);
     if (rc) goto ret;
     
     luaIndex = lua_tointeger(L, -1);

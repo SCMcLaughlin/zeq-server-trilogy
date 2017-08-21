@@ -12,6 +12,7 @@ local getmetatable = getmetatable
 local error = error
 local rawget = rawget
 local rawset = rawset
+local pairs = pairs
 --------------------------------------------------------------------------------
 
 local ScriptObject = Class("ScriptObject")
@@ -58,6 +59,16 @@ function ScriptObject:_timerDestroyed(timer)
     
     if timers then
         timers[timer] = nil
+    end
+end
+
+function ScriptObject:_timerStopAll()
+    local timers = rawget(self, "_timers")
+    
+    if timers then
+        for timer in pairs(timers) do
+            timer:stop()
+        end
     end
 end
 

@@ -1,5 +1,7 @@
 *
 !enum
+!global
 !item
 !sys
+!zone
 !.gitignore
