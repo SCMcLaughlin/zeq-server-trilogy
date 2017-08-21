@@ -10,12 +10,13 @@ local eChatColor = require "enum/chat_color"
 -- Caches
 --------------------------------------------------------------------------------
 local lower = string.lower
+local tonumber = tonumber
 --------------------------------------------------------------------------------
 
 local handers = {
     castfx = function(e)
-        local spellId = e.args[1] or 3
-        local castTimeMs = e.args[2]
+        local spellId = tonumber(e.args[1]) or 3
+        local castTimeMs = tonumber(e.args[2])
         
         e.self:castFx(spellId, castTimeMs)
     end,
