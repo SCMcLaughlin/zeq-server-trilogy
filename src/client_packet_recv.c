@@ -101,7 +101,7 @@ static void cpr_handle_op_message(Client* client, ToServerPacket* packet)
     int senderLen;
     int msgLen;
     uint16_t langId;
-    uint32_t chatChannel;
+    uint16_t chatChannel;
     uint32_t len;
     Aligned a;
     
@@ -120,7 +120,9 @@ static void cpr_handle_op_message(Client* client, ToServerPacket* packet)
     /* languageId */
     langId = aligned_read_uint16(&a);
     /* chatChannel */
-    chatChannel = aligned_read_uint32(&a);
+    chatChannel = aligned_read_uint16(&a);
+    /* unknown */
+    aligned_advance_by_sizeof(&a, uint16_t);
     /* message */
     msg = aligned_read_string_bounded(&a, &msgLen, len - sizeof(PS_Message));
     

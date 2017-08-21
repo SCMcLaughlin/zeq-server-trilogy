@@ -17,6 +17,7 @@
 typedef struct Client Client;
 
 Client* client_create_unloaded(StaticBuffer* name, int64_t accountId, IpAddr ipAddr, bool isLocal);
+Client* client_destroy_no_zone(Client* client);
 Client* client_destroy(Client* client);
 
 void client_load_character_data(Client* client, ClientLoadData_Character* data);

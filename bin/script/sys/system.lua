@@ -15,7 +15,6 @@
 -- Imports
 --------------------------------------------------------------------------------
 local ffi = require "ffi"
-local ZoneThread = require "sys/ZoneThread"
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
@@ -51,7 +50,7 @@ local system = {}
 function system.createZoneThread(ptr)
     local obj = {
         _ptr = ptr,
-        __index = ZoneThread,
+        __index = require("sys/ZoneThread"),
     }
     
     setmetatable(obj, obj)

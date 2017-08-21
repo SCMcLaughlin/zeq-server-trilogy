@@ -30,12 +30,10 @@ function Client.new(ptr, zone)
     rawset(client, "_zone", zone)
     
     -- Run scripts
-    local genv = {}
-    Script.run(genv, "script/global/global_client.lua", zone)
+    local genv = Script.run("script/global/global_client.lua", zone)
     
-    local zenv = {}
     local path = "script/zone/".. shortname .."/client.lua"
-    Script.run(zenv, path, zone)
+    local zenv = Script.run(path, zone)
     
     -- Merge environments
     for k, v in pairs(genv) do

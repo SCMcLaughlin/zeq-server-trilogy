@@ -2,7 +2,7 @@
 --------------------------------------------------------------------------------
 -- Imports
 --------------------------------------------------------------------------------
-local util = require "util"
+local util = require "sys/util"
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
@@ -31,10 +31,10 @@ function Class.new(name, superClass)
     
     local newClass = {
         __call = call,
+        __index = superClass or Class,
         [is] = util.trueFunc,
     }
     
-    newClass.__index = superClass or Class
     Class[name] = newClass
     
     return setmetatable(newClass, newClass)

@@ -167,7 +167,7 @@ static ZoneThreadWithQueue* zmgr_add_zt(MainThread* mt, ZoneMgr* zmgr, uint32_t 
     return ret;
     
 oom:
-    log_writef(mt_get_log_queue(mt), mt_get_log_id(mt), "ERROR: zmgr_add_zt: out of memory while allocating new ZoneThread");
+    log_writef(mt_get_log_queue(mt), mt_get_log_id(mt), "ERROR: zmgr_add_zt: error while allocating new ZoneThread");
     return NULL;
 }
 

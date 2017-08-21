@@ -12,7 +12,7 @@
 #define LUA_ZONE_THREAD_SYSTEM_INDEX 2
 #define LUA_ZONE_THREAD_SYSTEM_EVENT_FUNC_INDEX 3
 
-#define LUA_ZONE_THREAD_SYSTEM_SCRIPT_PATH "script/sys/zone_thread/system.lua"
+#define LUA_ZONE_THREAD_SYSTEM_SCRIPT_PATH "script/sys/system.lua"
 
 lua_State* zlua_create(RingBuf* logQueue, int logId)
 {

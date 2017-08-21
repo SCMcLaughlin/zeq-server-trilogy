@@ -38,12 +38,10 @@ function Zone.new(ptr)
     end
     
     -- Run scripts
-    local genv = {}
-    Script.run(genv, "script/global/global_zone.lua", zone)
+    local genv = Script.run("script/global/global_zone.lua", zone)
     
-    local zenv = {}
     local path = "script/zone/".. shortname .."/zone.lua"
-    Script.run(zenv, path, zone)
+    local zenv = Script.run(path, zone)
     
     -- Merge environments
     for k, v in pairs(genv) do

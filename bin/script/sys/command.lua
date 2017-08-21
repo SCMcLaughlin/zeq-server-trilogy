@@ -26,6 +26,8 @@ return function(e)
     local cmd = lower(e.cmd)
     local func = handlers[cmd]
     
+    e.self:getZone():log(e.cmd)
+    
     if func then
         func(e)
     else

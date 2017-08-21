@@ -69,15 +69,25 @@ Client* client_create_unloaded(StaticBuffer* name, int64_t accountId, IpAddr ipA
     return client;
 }
 
+Client* client_destroy_no_zone(Client* client)
+{
+    if (client)
+    {
+        mob_deinit(&client->mob);
+        inv_deinit(&client->inventory);
+        spellbook_deinit(&client->spellbook);
+        client->surname = sbuf_drop(client->surname);
+    }
+
+    return NULL;
+}
+
 Client* client_destroy(Client* client)
 {
     if (client)
     {
         zlua_deinit_client(client);
-        mob_deinit(&client->mob);
-        inv_deinit(&client->inventory);
-        spellbook_deinit(&client->spellbook);
-        client->surname = sbuf_drop(client->surname);
+        return client_destroy_no_zone(client);
     }
 
     return NULL;

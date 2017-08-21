@@ -4,7 +4,6 @@
 --------------------------------------------------------------------------------
 local C = require "sys/ZoneThread_cdef"
 local Class = require "sys/class"
-local Timer = require "sys/Timer"
 
 require "sys/log_cdef"
 --------------------------------------------------------------------------------
@@ -17,6 +16,7 @@ local rawset = rawset
 local rawget = rawget
 local logQueue
 local logId
+local Timer
 --------------------------------------------------------------------------------
 
 local ZoneThread = Class("ZoneThread")
@@ -45,6 +45,10 @@ function ZoneThread:timer(periodMs, func)
     if not timers then
         timers = {}
         rawset(self, "_timers", timers)
+    end
+    
+    if not Timer then
+        Timer = require "sys/Timer"
     end
     
     local timer = Timer(self, self, periodMs, func)

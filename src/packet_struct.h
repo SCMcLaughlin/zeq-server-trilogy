@@ -252,7 +252,8 @@ typedef struct {
     char        targetName[32];
     char        senderName[32];
     uint16_t    languageId;
-    uint32_t    chatChannel;
+    uint16_t    chatChannel;
+    uint16_t    unknown;
     char        message[0];
 } PS_Message;
 

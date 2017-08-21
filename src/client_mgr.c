@@ -226,7 +226,7 @@ static void cmgr_drop_loading_client(MainThread* mt, Client* client)
     {
         if (loading[i].client == client)
         {
-            client_destroy(client);
+            client_destroy_no_zone(client);
             cmgr_send_char_select_zone_unavailable(mt, loading[i].csClient);
 
             /* Swap and pop */
