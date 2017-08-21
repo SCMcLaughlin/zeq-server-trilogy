@@ -812,14 +812,13 @@ ZoneThread* zt_destroy(ZoneThread* zt)
         
         zt->timerUnconfirmedTimeouts = timer_destroy(&zt->timerPool, zt->timerUnconfirmedTimeouts);
         
-        zt->lua = zlua_destroy(zt->lua);
-        
         zt_free_all_zones(zt);
         free_if_exists(zt->clients); /* ClientMgr owns the individual Client objects */
         free_if_exists(zt->zoneIds);
         
         tbl_deinit(&zt->tblValidClientPtrs, NULL);
         log_close_file(zt->logQueue, zt->logId);
+        zt->lua = zlua_destroy(zt->lua);
         free(zt);
     }
     

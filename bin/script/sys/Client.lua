@@ -71,7 +71,7 @@ function Client:toMobPtr()
 end
 
 function Client:message(chatChannel, str, ...)
-    if not client:isValid() then return end
+    if not self:isValid() then return end
     
     local msg = format(str, ...)
     

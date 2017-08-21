@@ -13,7 +13,7 @@ local lower = string.lower
 local tonumber = tonumber
 --------------------------------------------------------------------------------
 
-local handers = {
+local handlers = {
     castfx = function(e)
         local spellId = tonumber(e.args[1]) or 3
         local castTimeMs = tonumber(e.args[2])
@@ -25,8 +25,6 @@ local handers = {
 return function(e)
     local cmd = lower(e.cmd)
     local func = handlers[cmd]
-    
-    e.self:getZone():log(e.cmd)
     
     if func then
         func(e)
