@@ -185,11 +185,11 @@ void client_calc_stats_all(Client* client)
     /* Step 7: use capped stats to calc max hp and max mana */
     base->maxHp = client_calc_base_hp(classId, level, capped->STA);
     total->maxHp += base->maxHp;
-    capped->maxHp = cap_min_max(total->maxHp, 1, INT16_MAX);
+    capped->maxHp = cap_min_max((int)total->maxHp, 1, INT16_MAX);
     
     base->maxMana = client_calc_base_mana(classId, level, capped->INT, capped->WIS);
     total->maxMana += base->maxMana;
-    capped->maxMana = cap_min_max(total->maxMana, 0, INT16_MAX);
+    capped->maxMana = cap_min_max((int)total->maxMana, 0, INT16_MAX);
 }
 
 int64_t client_calc_base_hp(uint8_t classId, int level, int sta)

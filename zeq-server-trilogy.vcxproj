@@ -164,6 +164,8 @@
     <ClInclude Include="src\char_select_packet_struct.h" />
     <ClInclude Include="src\char_select_thread.h" />
     <ClInclude Include="src\char_select_zpacket.h" />
+    <ClInclude Include="src\chat_channel.h" />
+    <ClInclude Include="src\chat_color.h" />
     <ClInclude Include="src\class_id.h" />
     <ClInclude Include="src\client.h" />
     <ClInclude Include="src\client_load_data.h" />
