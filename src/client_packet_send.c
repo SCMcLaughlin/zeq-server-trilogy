@@ -475,7 +475,12 @@ void client_send_weather(Client* client)
 
 void client_send_mana_update(Client* client)
 {
-    TlgPacket* packet = packet_create_mana_update((uint16_t)client_cur_mana(client), 0xffff);
+    client_send_mana_update_with_spellbar_enable(client, 0xffff);
+}
+
+void client_send_mana_update_with_spellbar_enable(Client* client, uint16_t lastSpellId)
+{
+    TlgPacket* packet = packet_create_mana_update((uint16_t)client_cur_mana(client), lastSpellId);
     
     if (packet)
         client_schedule_packet(client, packet);

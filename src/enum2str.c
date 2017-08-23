@@ -169,8 +169,10 @@ const char* enum2str_opcode(int e)
     case OP_ClientSpellCast: ret = "OP_ClientSpellCast"; break;
     case OP_InterruptSpell: ret = "OP_InterruptSpell"; break;
     case OP_Buff: ret = "OP_Buff"; break;
-    case OP_MemorizeSpell: ret = "OP_MemorizeSpell"; break;
+    case OP_SpellState: ret = "OP_SpellState"; break;
     case OP_SwapSpell: ret = "OP_SwapSpell"; break;
+    case OP_ManaUpdate: ret = "OP_ManaUpdate"; break;
+    case OP_Animation: ret = "OP_Animation"; break;
     default: ret = "UNKNOWN"; break;
     }
     return ret;

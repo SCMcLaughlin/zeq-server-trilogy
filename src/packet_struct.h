@@ -258,6 +258,12 @@ typedef struct {
 } PS_Message;
 
 typedef struct {
+    uint32_t    slot;
+    uint32_t    spellId;
+    uint32_t    type;   /* 0 = scribe to spellbook, 1 = memorize, 2 = delete from book or error, 3 = grey out spellbar */
+} PS_SpellState;
+
+typedef struct {
     uint32_t    casterId;
     uint32_t    spellId;
     uint32_t    castTimeMs;
@@ -267,6 +273,12 @@ typedef struct {
     uint16_t    mana;
     uint16_t    lastSpellId;
 } PS_ManaUpdate;
+
+typedef struct {
+    uint32_t    entityId;
+    uint32_t    animId;
+    uint32_t    unknown;
+} PS_Animation;
 
 #pragma pack()
 

@@ -17,5 +17,6 @@ void client_send_player_profile(Client* client);
 void client_send_zone_entry(Client* client);
 void client_send_weather(Client* client);
 void client_send_mana_update(Client* client);
+void client_send_mana_update_with_spellbar_enable(Client* client, uint16_t lastSpellId);
 
 #endif/*CLIENT_PACKET_SEND_H*/

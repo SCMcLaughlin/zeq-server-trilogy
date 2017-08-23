@@ -20,6 +20,29 @@ local handlers = {
         
         e.self:castFx(spellId, castTimeMs)
     end,
+    
+    colortest = function(e)
+        local colorId = tonumber(e.args[1])
+        local self = e.self
+        
+        if colorId then
+            self:message(colorId, "colortest")
+        else
+            self:message(eChatColor.Red, "Usage: colortext [colorId]")
+        end
+    end,
+    
+    size = function(e)
+        local size = tonumber(e.args[1])
+        local targ = e.self:getTargetOrSelf()
+        if not targ then return end
+        
+        if size then
+            targ:updateSize(size)
+        else
+            e.self:message(eChatColor.Default, "%s's size: %g", targ:getName(), targ:getSize())
+        end
+    end,
 }
 
 return function(e)

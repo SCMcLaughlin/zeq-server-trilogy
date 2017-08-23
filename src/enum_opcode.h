@@ -37,8 +37,11 @@ enum Opcode
     OP_ClientSpellCast      = 0x217e,
     OP_InterruptSpell       = 0x21d3,
     OP_Buff                 = 0x2123,
-    OP_MemorizeSpell        = 0x2182,
+    OP_SpellState           = 0x2182,
     OP_SwapSpell            = 0x21ce,
+    OP_ManaUpdate           = 0x217f,
+    
+    OP_Animation            = 0x209f,
 };
 
 #endif/*ENUM_OPCODE_H*/

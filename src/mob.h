@@ -84,7 +84,7 @@ int16_t mob_calc_ac_skill(int classId, int skillAmt);
 int16_t mob_calc_ac_skill2(int skillAmt);
 int mob_calc_ac_from_factors(Mob* mob, int classId);
 
-#define mob_name_str(mob) (sbuf_str((mob)->name))
+ZEQ_API const char* mob_name_str(Mob* mob);
 #define mob_set_name_sbuf(mob, sbuf) ((mob)->name = (sbuf))
 #define mob_set_cur_hp_no_cap_check(mob, hp) ((mob)->currentHp = (hp))
 #define mob_set_cur_mana_no_cap_check(mob, mana) ((mob)->currentMana = (mana))
@@ -114,10 +114,10 @@ int mob_calc_ac_from_factors(Mob* mob, int classId);
 
 #define mob_zone_index(mob) ((mob)->zoneIndex)
 #define mob_set_zone_index(mob, idx) ((mob)->zoneIndex = (idx))
-#define mob_lua_index(mob) ((mob)->luaIndex)
+ZEQ_API int mob_lua_index(Mob* mob);
 #define mob_set_lua_index(mob, idx) ((mob)->luaIndex = (idx))
 
-#define mob_cur_size(mob) ((mob)->currentSize)
+ZEQ_API double mob_cur_size(Mob* mob);
 
 #define mob_cur_walking_speed(mob) ((mob)->currentWalkingSpeed)
 #define mob_cur_running_speed(mob) ((mob)->currentRunningSpeed)
@@ -137,6 +137,9 @@ int mob_calc_ac_from_factors(Mob* mob, int classId);
 #define mob_as_client(mob) (struct Client*)(mob)
 
 #define mob_set_target(mob, targ) ((mob)->target = (targ))
-#define mob_target(mob) ((mob)->target)
+ZEQ_API Mob* mob_target(Mob* mob);
+Mob* mob_target_or_self(Mob* mob);
+
+ZEQ_API void mob_update_size(Mob* mob, double size);
 
 #endif/*MOB_H*/

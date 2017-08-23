@@ -721,7 +721,7 @@ TlgPacket* packet_create_spell_cast_begin(Mob* mob, uint32_t spellId, uint32_t c
 TlgPacket* packet_create_mana_update(uint16_t mana, uint16_t lastSpellId)
 {
     Aligned a;
-    TlgPacket* packet = packet_init_type(OP_SpellCastBegin, PS_SpellCastBegin, &a);
+    TlgPacket* packet = packet_init_type(OP_ManaUpdate, PS_ManaUpdate, &a);
     if (!packet) return NULL;
     
     /* PS_ManaUpdate */
@@ -729,6 +729,23 @@ TlgPacket* packet_create_mana_update(uint16_t mana, uint16_t lastSpellId)
     aligned_write_uint16(&a, mana);
     /* lastSpellId */
     aligned_write_uint16(&a, lastSpellId);
+    
+    return packet;
+}
+
+TlgPacket* packet_create_animation(uint32_t entityId, uint32_t animId)
+{
+    Aligned a;
+    TlgPacket* packet = packet_init_type(OP_Animation, PS_Animation, &a);
+    if (!packet) return NULL;
+    
+    /* PS_Animation */
+    /* entityId */
+    aligned_write_uint32(&a, entityId);
+    /* animId */
+    aligned_write_uint32(&a, animId);
+    /* unknown */
+    aligned_write_uint32(&a, 0x00003f80);
     
     return packet;
 }

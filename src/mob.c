@@ -6,6 +6,7 @@
 #include "loc.h"
 #include "misc_enum.h"
 #include "misc_struct.h"
+#include "packet_create.h"
 #include "race_id.h"
 #include "util_cap.h"
 #include "zone.h"
@@ -401,4 +402,43 @@ int mob_calc_ac_from_factors(Mob* mob, int classId)
         mitigation = 0;
     
     return ((avoidance + mitigation) * 1000 / 847) + mob->acFromBuffs;
+}
+
+const char* mob_name_str(Mob* mob)
+{
+    return sbuf_str((mob)->name);
+}
+
+int mob_lua_index(Mob* mob)
+{
+    return mob->luaIndex;
+}
+
+double mob_cur_size(Mob* mob)
+{
+    return mob->currentSize;
+}
+
+Mob* mob_target(Mob* mob)
+{
+    return mob->target;
+}
+
+Mob* mob_target_or_self(Mob* mob)
+{
+    Mob* targ = mob->target;
+    return (targ) ? targ : mob;
+}
+
+void mob_update_size(Mob* mob, double size)
+{
+    TlgPacket* packet;
+    Zone* zone;
+    
+    mob->currentSize = (float)size;
+    zone = mob_get_zone(mob);
+    packet = packet_create_spawn_appearance(mob_entity_id(mob), SPAWN_APPEARANCE_Size, (int)size);
+    
+    if (packet)
+        zone_broadcast_to_all_clients(zone, packet);
 }
