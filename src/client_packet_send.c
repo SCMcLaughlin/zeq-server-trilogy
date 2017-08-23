@@ -472,3 +472,11 @@ void client_send_weather(Client* client)
     if (packet)
         client_schedule_packet(client, packet);
 }
+
+void client_send_mana_update(Client* client)
+{
+    TlgPacket* packet = packet_create_mana_update((uint16_t)client_cur_mana(client), 0xffff);
+    
+    if (packet)
+        client_schedule_packet(client, packet);
+}

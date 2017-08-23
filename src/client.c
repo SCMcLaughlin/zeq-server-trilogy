@@ -542,6 +542,7 @@ void client_reset_for_zone(Client* client, Zone* zone)
     mob_set_entity_id(mob, -1);
     mob_set_zone_index(mob, -1);
     mob_set_upright_state(mob, UPRIGHT_STATE_Standing);
+    mob_set_target(mob, NULL);
 }
 
 bool client_is_local(Client* client)

@@ -717,3 +717,18 @@ TlgPacket* packet_create_spell_cast_begin(Mob* mob, uint32_t spellId, uint32_t c
     
     return packet;
 }
+
+TlgPacket* packet_create_mana_update(uint16_t mana, uint16_t lastSpellId)
+{
+    Aligned a;
+    TlgPacket* packet = packet_init_type(OP_SpellCastBegin, PS_SpellCastBegin, &a);
+    if (!packet) return NULL;
+    
+    /* PS_ManaUpdate */
+    /* mana */
+    aligned_write_uint16(&a, mana);
+    /* lastSpellId */
+    aligned_write_uint16(&a, lastSpellId);
+    
+    return packet;
+}

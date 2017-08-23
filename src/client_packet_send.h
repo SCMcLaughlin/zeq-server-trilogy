@@ -16,5 +16,6 @@ void client_send_echo_copy(Client* client, ToServerPacket* packet);
 void client_send_player_profile(Client* client);
 void client_send_zone_entry(Client* client);
 void client_send_weather(Client* client);
+void client_send_mana_update(Client* client);
 
 #endif/*CLIENT_PACKET_SEND_H*/

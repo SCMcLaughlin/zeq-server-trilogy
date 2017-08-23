@@ -20,5 +20,7 @@ TlgPacket* packet_create_inv_item(Item* item, ItemProto* proto, uint16_t slotId,
 ZEQ_API TlgPacket* packet_create_custom_message(uint32_t chatChannel, const char* str, uint32_t len);
 TlgPacket* packet_create_custom_message_format(uint32_t chatChannel, const char* fmt, ...);
 ZEQ_API TlgPacket* packet_create_spell_cast_begin(Mob* mob, uint32_t spellId, uint32_t castTimeMs);
+TlgPacket* packet_create_mana_update(uint16_t mana, uint16_t lastSpellId);
+
 
 #endif/*PACKET_CREATE_H*/

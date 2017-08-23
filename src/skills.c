@@ -208,3 +208,18 @@ int skill_get(Skills* sk, int skillId)
     
     return val;
 }
+
+int skill_get_language(Skills* sk, int langId)
+{
+    int val;
+
+    if (langId >= LANG_COUNT)
+        langId = LANG_COUNT - 1;
+
+    val = sk->language[langId];
+
+    if (val > SKILL_CAP)
+        val = 0;
+
+    return val;
+}

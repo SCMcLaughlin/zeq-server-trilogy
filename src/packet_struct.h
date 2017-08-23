@@ -263,6 +263,11 @@ typedef struct {
     uint32_t    castTimeMs;
 } PS_SpellCastBegin;
 
+typedef struct {
+    uint16_t    mana;
+    uint16_t    lastSpellId;
+} PS_ManaUpdate;
+
 #pragma pack()
 
 #endif/*PACKET_STRUCT_H*/

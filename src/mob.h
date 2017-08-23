@@ -20,6 +20,7 @@ enum MobParentType
 };
 
 struct Client;
+struct Mob;
 
 typedef struct Mob {
     uint8_t         parentType;
@@ -37,6 +38,7 @@ typedef struct Mob {
     LocH            loc;
     int16_t         headingRaw;
     StaticBuffer*   name;
+    struct Mob*     target;
     /* Core stats */
     int64_t         currentHp;
     int64_t         currentMana;
@@ -133,5 +135,8 @@ int mob_calc_ac_from_factors(Mob* mob, int classId);
 #define mob_owner_entity_id(mob) ((mob)->ownerEntityId)
 
 #define mob_as_client(mob) (struct Client*)(mob)
+
+#define mob_set_target(mob, targ) ((mob)->target = (targ))
+#define mob_target(mob) ((mob)->target)
 
 #endif/*MOB_H*/
