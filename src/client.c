@@ -1,12 +1,14 @@
 
 #include "client.h"
 #include "class_id.h"
+#include "client_packet_send.h"
 #include "define_netcode.h"
 #include "inventory.h"
 #include "loc.h"
 #include "misc_enum.h"
 #include "misc_struct.h"
 #include "mob.h"
+#include "packet_create.h"
 #include "skills.h"
 #include "spellbook.h"
 #include "util_alloc.h"
@@ -743,4 +745,24 @@ int client_get_skill(Client* client, int skillId)
 uint32_t client_increment_zone_in_count(Client* client)
 {
     return client->zoneInCount++;
+}
+
+void client_update_level(Client* client, uint8_t level)
+{
+    TlgPacket*  packet = packet_create_level_update(level);
+    if (packet)
+        client_schedule_packet(client, packet);
+
+    mob_update_level(client_mob(client), level);
+}
+
+void client_update_exp(Client* client, uint32_t exp)
+{
+    TlgPacket* packet;
+
+    client->experience = (int64_t)exp;
+
+    packet = packet_create_exp_update(exp);
+    if (packet)
+        client_schedule_packet(client, packet);
 }

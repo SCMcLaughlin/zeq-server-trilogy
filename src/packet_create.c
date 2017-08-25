@@ -749,3 +749,31 @@ TlgPacket* packet_create_animation(uint32_t entityId, uint32_t animId)
     
     return packet;
 }
+
+TlgPacket* packet_create_level_update(uint8_t level)
+{
+    Aligned a;
+    TlgPacket* packet = packet_init_type(OP_LevelUpdate, PS_LevelUpdate, &a);
+    if (!packet) return NULL;
+
+    /* PS_LevelUpdate */
+    /* level */
+    aligned_write_uint8(&a, level);
+    /* flagAlwaysOne */
+    aligned_write_uint8(&a, 1);
+
+    return packet;
+}
+
+TlgPacket* packet_create_exp_update(uint32_t currentExp)
+{
+    Aligned a;
+    TlgPacket* packet = packet_init_type(OP_ExpUpdate, PS_ExpUpdate, &a);
+    if (!packet) return NULL;
+
+    /* PS_ExpUpdate */
+    /* currentExp */
+    aligned_write_uint32(&a, currentExp);
+
+    return packet;
+}

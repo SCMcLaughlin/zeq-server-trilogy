@@ -81,6 +81,14 @@ function Client:message(chatChannel, str, ...)
     end
 end
 
+function Client:updateLevel(lvl)
+    C.client_update_level(self:ptr(), lvl)
+end
+
+function Client:updateExp(exp)
+    C.client_update_exp(self:ptr(), exp)
+end
+
 --fixme: remove when the Mob one is corrected
 function Client:castFx(spellId, castTimeMs)
     if not self:isValid() then return end

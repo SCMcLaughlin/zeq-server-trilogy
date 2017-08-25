@@ -39,7 +39,10 @@ enum Opcode
     OP_Buff                 = 0x2123,
     OP_SpellState           = 0x2182,
     OP_SwapSpell            = 0x21ce,
+
     OP_ManaUpdate           = 0x217f,
+    OP_LevelUpdate          = 0x2198,
+    OP_ExpUpdate            = 0x2199,
     
     OP_Animation            = 0x209f,
 };

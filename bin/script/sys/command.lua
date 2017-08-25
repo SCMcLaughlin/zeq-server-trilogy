@@ -31,7 +31,31 @@ local handlers = {
             self:message(eChatColor.Red, "Usage: colortext [colorId]")
         end
     end,
-    
+
+    exp = function(e)
+        local exp = tonumber(e.args[1])
+        local targ = e.self:getTargetOrSelf()
+
+        if not targ:isClient() then
+            e.self:message(eChatColor.Default, "NPCs don't have exp!")
+        elseif exp then
+            targ:updateExp(exp)
+        else
+            e.self:message(eChatColor.Default, "%s's exp: %llu", targ:getName(), targ:getExperience())
+        end
+    end,
+
+    level = function(e)
+        local lvl = tonumber(e.args[1])
+        local targ = e.self:getTargetOrSelf()
+        
+        if lvl then
+            targ:updateLevel(lvl)
+        else
+            e.self:message(eChatColor.Default, "%s's level: %u", targ:getName(), targ:getLeveL())
+        end
+    end, 
+   
     size = function(e)
         local size = tonumber(e.args[1])
         local targ = e.self:getTargetOrSelf()

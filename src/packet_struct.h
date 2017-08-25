@@ -275,6 +275,15 @@ typedef struct {
 } PS_ManaUpdate;
 
 typedef struct {
+    uint8_t     level;
+    uint8_t     flagAlwaysOne;
+} PS_LevelUpdate;
+
+typedef struct {
+    uint32_t    currentExp;
+} PS_ExpUpdate;
+
+typedef struct {
     uint32_t    entityId;
     uint32_t    animId;
     uint32_t    unknown;

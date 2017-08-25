@@ -442,3 +442,15 @@ void mob_update_size(Mob* mob, double size)
     if (packet)
         zone_broadcast_to_all_clients(zone, packet);
 }
+
+void mob_update_level(Mob* mob, uint8_t level)
+{
+    Zone* zone = mob_get_zone(mob);
+    TlgPacket* packet;
+
+    mob_set_level(mob, level);
+
+    packet = packet_create_spawn_appearance(mob_entity_id(mob), SPAWN_APPEARANCE_LevelChange, (int)level);
+    if (packet)
+        zone_broadcast_to_all_clients(zone, packet);
+}

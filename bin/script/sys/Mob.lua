@@ -44,6 +44,10 @@ function Mob:getSize()
     return C.mob_cur_size(self:toMobPtr())
 end
 
+function Mob:updateLevel(lvl)
+    C.mob_update_level(self:toMobPtr(), lvl)
+end
+
 function Mob:updateSize(size)
     C.mob_update_size(self:toMobPtr(), size)
 end

@@ -94,6 +94,7 @@ ZEQ_API const char* mob_name_str(Mob* mob);
 #define mob_total_stats(mob) (&((mob)->totalStats))
 #define mob_capped_stats(mob) (&((mob)->cappedStats))
 
+#define mob_set_level(mob, lvl) ((mob)->level = (lvl))
 #define mob_level(mob) ((mob)->level)
 #define mob_class_id(mob) ((mob)->classId)
 #define mob_gender_id(mob) ((mob)->genderId)
@@ -140,6 +141,7 @@ ZEQ_API double mob_cur_size(Mob* mob);
 ZEQ_API Mob* mob_target(Mob* mob);
 Mob* mob_target_or_self(Mob* mob);
 
+ZEQ_API void mob_update_level(Mob* mob, uint8_t level);
 ZEQ_API void mob_update_size(Mob* mob, double size);
 
 #endif/*MOB_H*/
