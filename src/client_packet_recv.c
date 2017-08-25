@@ -79,7 +79,9 @@ static void cpr_handle_op_enter_zone(Client* client)
     /*fixme: Send guild rank SpawnAppearance, if applicable */
     /*fixme: Send GM SpawnAppearance, if applicable */
     
-    /*fixme: send hp and mana updates*/
+    /* Send HP and Mana updates */
+    client_update_hp_with_current(client);
+    client_update_mana_with_current(client);
     
     /* Execute spawn events */
     zlua_add_client_to_zone_lists(client, zone);

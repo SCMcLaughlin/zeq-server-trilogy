@@ -270,6 +270,12 @@ typedef struct {
 } PS_SpellCastBegin;
 
 typedef struct {
+    uint32_t    entityId;
+    int         curHp;
+    int         maxHp;
+} PS_HpUpdate;
+
+typedef struct {
     uint16_t    mana;
     uint16_t    lastSpellId;
 } PS_ManaUpdate;

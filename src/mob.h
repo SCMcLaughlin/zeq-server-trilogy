@@ -87,7 +87,10 @@ int mob_calc_ac_from_factors(Mob* mob, int classId);
 ZEQ_API const char* mob_name_str(Mob* mob);
 #define mob_set_name_sbuf(mob, sbuf) ((mob)->name = (sbuf))
 #define mob_set_cur_hp_no_cap_check(mob, hp) ((mob)->currentHp = (hp))
+int64_t mob_cur_hp(Mob* mob);
+int64_t mob_max_hp(Mob* mob);
 #define mob_set_cur_mana_no_cap_check(mob, mana) ((mob)->currentMana = (mana))
+int64_t mob_cur_mana(Mob* mob);
 #define mob_set_cur_endurance_no_cap_check(mob, end) ((mob)->currentEndurance = (end))
 
 #define mob_base_stats(mob) (&((mob)->baseStats))
@@ -95,17 +98,17 @@ ZEQ_API const char* mob_name_str(Mob* mob);
 #define mob_capped_stats(mob) (&((mob)->cappedStats))
 
 #define mob_set_level(mob, lvl) ((mob)->level = (lvl))
-#define mob_level(mob) ((mob)->level)
+ZEQ_API uint8_t mob_level(Mob* mob);
 #define mob_class_id(mob) ((mob)->classId)
 #define mob_gender_id(mob) ((mob)->genderId)
 #define mob_race_id(mob) ((mob)->raceId)
 #define mob_deity_id(mob) ((mob)->deityId)
 
-#define mob_x(mob) ((mob)->loc.x)
-#define mob_y(mob) ((mob)->loc.y)
-#define mob_z(mob) ((mob)->loc.z)
+ZEQ_API float mob_x(Mob* mob);
+ZEQ_API float mob_y(Mob* mob);
+ZEQ_API float mob_z(Mob* mob);
 
-#define mob_get_zone(mob) ((mob)->zone)
+ZEQ_API Zone* mob_get_zone(Mob* mob);
 #define mob_set_zone(mob, zone) ((mob)->zone = (zone))
 
 #define mob_parent_type(mob) ((mob)->parentType)

@@ -171,6 +171,7 @@ const char* enum2str_opcode(int e)
     case OP_Buff: ret = "OP_Buff"; break;
     case OP_SpellState: ret = "OP_SpellState"; break;
     case OP_SwapSpell: ret = "OP_SwapSpell"; break;
+    case OP_HpUpdate: ret = "OP_HpUpdate"; break;
     case OP_ManaUpdate: ret = "OP_ManaUpdate"; break;
     case OP_LevelUpdate: ret = "OP_LevelUpdate"; break;
     case OP_ExpUpdate: ret = "OP_ExpUpdate"; break;

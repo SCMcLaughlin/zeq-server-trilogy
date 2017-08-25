@@ -72,6 +72,14 @@ function Zone:getLongName()
     return toLuaString(C.zone_long_name(self:ptr()))
 end
 
+function Zone:packetBroadcastToAll(packet, except)
+    C.zone_broadcast_to_all_clients_except(self:ptr(), packet, except and except:ptr() or nil)
+end
+
+function Zone:packetBroadcastAroundPoint(packet, x, y, z, range, except)
+    C.zone_broadcast_to_nearby_clients_except(self:ptr(), packet, x, y, z, range or 200, except and except:ptr() or nil)
+end
+
 function Zone:timer(periodMs, func)
     return ScriptObject.timer(self, self, periodMs, func)
 end

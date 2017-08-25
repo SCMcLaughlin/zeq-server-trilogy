@@ -38,7 +38,7 @@ uint16_t client_base_race_id(Client* client);
 uint8_t client_class_id(Client* client);
 uint16_t client_deity_id(Client* client);
 uint8_t client_level(Client* client);
-int64_t client_experience(Client* client);
+ZEQ_API int64_t client_experience(Client* client);
 uint16_t client_training_points(Client* client);
 int64_t client_cur_mana(Client* client);
 uint8_t client_face_id(Client* client);
@@ -62,6 +62,7 @@ uint32_t client_guild_id_or_ffff(Client* client);
 uint8_t client_guild_rank(Client* client);
 uint8_t client_guild_rank_or_ff(Client* client);
 uint8_t client_anon_setting(Client* client);
+int client_hp_from_items(Client* client);
 
 Inventory* client_inv(Client* client);
 Skills* client_skills(Client* client);
@@ -119,6 +120,10 @@ int client_get_skill(Client* client, int skillId);
 /* Returns the previous zone-in count */
 uint32_t client_increment_zone_in_count(Client* client);
 
+void client_update_hp(Client* client, int curHp);
+#define client_update_hp_with_current(client) client_update_hp((client), (int)mob_cur_hp(client_mob((client))))
+void client_update_mana(Client* client, uint16_t curMana);
+#define client_update_mana_with_current(client) client_update_mana((client), (uint16_t)mob_cur_mana(client_mob((client))))
 ZEQ_API void client_update_level(Client* client, uint8_t level);
 ZEQ_API void client_update_exp(Client* client, uint32_t exp);
 

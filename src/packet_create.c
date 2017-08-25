@@ -7,6 +7,7 @@
 #include "packet_struct.h"
 #include "tlg_packet.h"
 #include "util_alloc.h"
+#include "util_cap.h"
 #include "zone.h"
 #include "enum_opcode.h"
 #include <zlib.h>
@@ -714,6 +715,47 @@ TlgPacket* packet_create_spell_cast_begin(Mob* mob, uint32_t spellId, uint32_t c
     aligned_write_uint32(&a, spellId);
     /* castTimeMs */
     aligned_write_uint32(&a, castTimeMs);
+    
+    return packet;
+}
+
+TlgPacket* packet_create_hp_update_percentage(uint32_t entityId, int8_t hpRatio)
+{
+    Aligned a;
+    TlgPacket* packet = packet_init_type(OP_HpUpdate, PS_HpUpdate, &a);
+    if (!packet) return NULL;
+    
+    /* PS_HpUpdate */
+    /* entityId */
+    aligned_write_uint32(&a, entityId);
+    /* curHp */
+    aligned_write_int(&a, (int)hpRatio);
+    /* maxHp */
+    aligned_write_int(&a, 100);
+    
+    return packet;
+}
+
+TlgPacket* packet_create_hp_update_self(Client* client)
+{
+    Mob* mob;
+    int curHp, maxHp, hpFromItems;
+    Aligned a;
+    TlgPacket* packet = packet_init_type(OP_HpUpdate, PS_HpUpdate, &a);
+    if (!packet) return NULL;
+    
+    hpFromItems = client_hp_from_items(client);
+    mob = client_mob(client);
+    curHp = cap_max(mob_cur_hp(mob) - hpFromItems, 30000);
+    maxHp = cap_max(mob_max_hp(mob) - hpFromItems, 30000);
+    
+    /* PS_HpUpdate */
+    /* entityId */
+    aligned_write_uint32(&a, (uint32_t)mob_entity_id(mob));
+    /* curHp */
+    aligned_write_int(&a, curHp);
+    /* maxHp */
+    aligned_write_int(&a, maxHp);
     
     return packet;
 }

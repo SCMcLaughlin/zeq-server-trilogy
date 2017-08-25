@@ -18,6 +18,7 @@ require "sys/packet_cdef"
 local toLuaString = ffi.string
 local format = string.format
 local rawset = rawset
+local tonumber = tonumber
 --------------------------------------------------------------------------------
 
 local Client = Class("Client", Mob)
@@ -79,6 +80,10 @@ function Client:message(chatChannel, str, ...)
         local packet = C.packet_create_custom_message(chatChannel, msg, #msg)
         C.client_schedule_packet(self:ptr(), packet)
     end
+end
+
+function Client:getExperience()
+    return tonumber(C.client_experience(self:ptr()))
 end
 
 function Client:updateLevel(lvl)

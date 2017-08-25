@@ -409,6 +409,46 @@ const char* mob_name_str(Mob* mob)
     return sbuf_str((mob)->name);
 }
 
+int64_t mob_cur_hp(Mob* mob)
+{
+    return mob->currentHp;
+}
+
+int64_t mob_max_hp(Mob* mob)
+{
+    return mob->cappedStats.maxHp;
+}
+
+int64_t mob_cur_mana(Mob* mob)
+{
+    return mob->currentMana;
+}
+
+uint8_t mob_level(Mob* mob)
+{
+    return mob->level;
+}
+
+float mob_x(Mob* mob)
+{
+    return mob->loc.x;
+}
+
+float mob_y(Mob* mob)
+{
+    return mob->loc.y;
+}
+
+float mob_z(Mob* mob)
+{
+    return mob->loc.z;
+}
+
+Zone* mob_get_zone(Mob* mob)
+{
+    return mob->zone;
+}
+
 int mob_lua_index(Mob* mob)
 {
     return mob->luaIndex;

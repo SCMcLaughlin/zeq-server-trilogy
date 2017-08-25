@@ -52,7 +52,7 @@ local handlers = {
         if lvl then
             targ:updateLevel(lvl)
         else
-            e.self:message(eChatColor.Default, "%s's level: %u", targ:getName(), targ:getLeveL())
+            e.self:message(eChatColor.Default, "%s's level: %u", targ:getName(), targ:getLevel())
         end
     end, 
    

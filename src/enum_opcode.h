@@ -40,6 +40,7 @@ enum Opcode
     OP_SpellState           = 0x2182,
     OP_SwapSpell            = 0x21ce,
 
+    OP_HpUpdate             = 0x20b2,
     OP_ManaUpdate           = 0x217f,
     OP_LevelUpdate          = 0x2198,
     OP_ExpUpdate            = 0x2199,

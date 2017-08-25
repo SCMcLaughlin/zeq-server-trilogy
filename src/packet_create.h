@@ -3,6 +3,7 @@
 #define PACKET_CREATE_H
 
 #include "define.h"
+#include "client.h"
 #include "inventory.h"
 #include "item.h"
 #include "item_proto.h"
@@ -20,6 +21,8 @@ TlgPacket* packet_create_inv_item(Item* item, ItemProto* proto, uint16_t slotId,
 ZEQ_API TlgPacket* packet_create_custom_message(uint32_t chatChannel, const char* str, uint32_t len);
 TlgPacket* packet_create_custom_message_format(uint32_t chatChannel, const char* fmt, ...);
 ZEQ_API TlgPacket* packet_create_spell_cast_begin(Mob* mob, uint32_t spellId, uint32_t castTimeMs);
+TlgPacket* packet_create_hp_update_percentage(uint32_t entityId, int8_t hpRatio);
+TlgPacket* packet_create_hp_update_self(Client* client);
 TlgPacket* packet_create_mana_update(uint16_t mana, uint16_t lastSpellId);
 TlgPacket* packet_create_animation(uint32_t entityId, uint32_t animId);
 TlgPacket* packet_create_level_update(uint8_t level);

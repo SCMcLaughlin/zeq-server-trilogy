@@ -15,3 +15,8 @@ int cap_min_max(int v, int vMin, int vMax)
 {
     return (v > vMax) ? vMax : ((v < vMin) ? vMin : v);
 }
+
+int cap_max(int v, int vMax)
+{
+    return (v > vMax) ? vMax : v;
+}

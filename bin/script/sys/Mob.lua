@@ -9,6 +9,7 @@ local C = require "sys/Mob_cdef"
 local ffi = require "ffi"
 
 require "sys/packet_cdef"
+require "sys/Zone_cdef"
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
@@ -40,6 +41,33 @@ function Mob:getTargetOrSelf()
     return self:getTarget() or self
 end
 
+function Mob:getZone()
+    local ptr = C.mob_get_zone(self:toMobPtr())
+    if ptr == nil then return end
+    
+    return getObject(C.zone_lua_index(ptr))
+end
+
+function Mob:getLevel()
+    return C.mob_level(self:toMobPtr())
+end
+
+function Mob:X()
+    return C.mob_x(self:toMobPtr())
+end
+
+function Mob:Y()
+    return C.mob_y(self:toMobPtr())
+end
+
+function Mob:Z()
+    return C.mob_z(self:toMobPtr())
+end
+
+Mob.getX = Mob.X
+Mob.getY = Mob.Y
+Mob.getZ = Mob.Z
+
 function Mob:getSize()
     return C.mob_cur_size(self:toMobPtr())
 end
@@ -52,11 +80,25 @@ function Mob:updateSize(size)
     C.mob_update_size(self:toMobPtr(), size)
 end
 
+function Mob:packetBroadcastNearby(packet, range)
+    local zone = self:getZone()
+    if not zone then return end
+    
+    zone:packetBroadcastAroundPoint(packet, self:X(), self:Y(), self:Z(), range)
+end
+
+function Mob:packetBroadcastNearbyExceptSelf(packet, range)
+    local zone = self:getZone()
+    if not zone then return end
+    
+    zone:packetBroadcastAroundPoint(packet, self:X(), self:Y(), self:Z(), range, self)
+end
+
 function Mob:castFx(spellId, castTimeMs)
     if not self:isValid() then return end
     
     local packet = C.packet_create_spell_cast_begin(self:toMobPtr(), spellId, castTimeMs or 5000)
-    --fixme: broadcast to nearby clients
+    self:packetBroadcastNearby(packet)
 end
 
 return Mob

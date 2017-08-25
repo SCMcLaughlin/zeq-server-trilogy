@@ -41,6 +41,7 @@ struct Client {
     uint32_t        weight;
     uint32_t        guildId;
     uint32_t        zoneInCount;
+    int             hpFromItems;
     Coin            coin;
     Coin            coinCursor;
     Coin            coinBank;
@@ -154,6 +155,8 @@ void client_calc_stats_all(Client* client)
     
     /* Step 1: calc total stats from inventory items */
     inv_calc_stats(client_inv(client), total, &client->weight, &mob->acFromItems);
+    /* The client adds HP from items on its end, so we need to be able to subtract them when we do HP updates */
+    client->hpFromItems = total->maxHp;
     
     /* Step 2: calc total stats from buffs */
     
@@ -516,6 +519,11 @@ uint8_t client_anon_setting(Client* client)
     return client->anon;
 }
 
+int client_hp_from_items(Client* client)
+{
+    return client->hpFromItems;
+}
+
 Inventory* client_inv(Client* client)
 {
     return &client->inventory;
@@ -745,6 +753,35 @@ int client_get_skill(Client* client, int skillId)
 uint32_t client_increment_zone_in_count(Client* client)
 {
     return client->zoneInCount++;
+}
+
+void client_update_hp(Client* client, int curHp)
+{
+    TlgPacket* packet;
+    Mob* mob = client_mob(client);
+    Zone* zone = mob_get_zone(mob);
+    
+    mob_set_cur_hp_no_cap_check(mob, (int64_t)curHp);
+    
+    packet = packet_create_hp_update_percentage(mob_entity_id(mob), mob_hp_ratio(mob));
+    if (packet)
+        zone_broadcast_to_all_clients(zone, packet); /* fixme: should we limit this to nearby + group members + anyone with this client targetted? */
+    
+    packet = packet_create_hp_update_self(client);
+    if (packet)
+        client_schedule_packet_with_zone(client, zone, packet);
+}
+
+void client_update_mana(Client* client, uint16_t curMana)
+{
+    TlgPacket* packet;
+    Mob* mob = client_mob(client);
+    
+    mob_set_cur_mana_no_cap_check(mob, (int64_t)curMana);
+    
+    packet = packet_create_mana_update(curMana, 0xffff);
+    if (packet)
+        client_schedule_packet(client, packet);
 }
 
 void client_update_level(Client* client, uint8_t level)
