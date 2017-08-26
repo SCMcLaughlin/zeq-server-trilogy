@@ -46,6 +46,8 @@ enum Opcode
     OP_ExpUpdate            = 0x2199,
     
     OP_Animation            = 0x209f,
+
+    OP_Target               = 0x2162,
 };
 
 #endif/*ENUM_OPCODE_H*/

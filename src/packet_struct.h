@@ -148,6 +148,11 @@ typedef struct {
 } PS_Spawn;
 
 typedef struct {
+    int16_t     entityId;
+    uint32_t    unknown;
+} PS_Unspawn;
+
+typedef struct {
     int8_t      STR;
     int8_t      STA;
     int8_t      CHA;
@@ -270,6 +275,25 @@ typedef struct {
 } PS_SpellCastBegin;
 
 typedef struct {
+    uint16_t    spellSlotId;
+    uint16_t    spellId;
+    uint16_t    inventorySlotId;
+    uint16_t    unknownA;
+    uint32_t    targetId;
+    uint32_t    unknownB;
+} PS_SpellCastInfo;
+
+typedef struct { /*fixme: should have bardMod, duration, casterLevel*/
+    uint32_t    targetId;
+    uint32_t    unknownA;
+    uint16_t    spellId;
+    uint32_t    unknownB;
+    uint16_t    unknownC;
+    uint32_t    buffSlotId;
+    uint32_t    isRemove;
+} PS_Buff;
+
+typedef struct {
     uint32_t    entityId;
     int         curHp;
     int         maxHp;
@@ -294,6 +318,20 @@ typedef struct {
     uint32_t    animId;
     uint32_t    unknown;
 } PS_Animation;
+
+typedef struct {
+    uint32_t    entityId;
+} PS_Target;
+
+typedef struct {
+    char        name[32];
+    uint16_t    raceId;
+    uint16_t    classId;
+    uint16_t    levelMin;
+    uint16_t    levelMax;
+    uint16_t    findGMs;
+    byte        unknown[34];
+} PS_WholAll;
 
 #pragma pack()
 

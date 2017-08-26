@@ -17,6 +17,7 @@ TlgPacket* packet_create_zone_info(Zone* zone);
 ZEQ_API TlgPacket* packet_create_spawn_appearance(int16_t entityId, int16_t typeId, int value);
 TlgPacket* packet_create_spawn(Mob* mob);
 TlgPacket* packet_create_spawns_compressed(Zone* zone);
+TlgPacket* packet_create_unspawn(int16_t entityId);
 TlgPacket* packet_create_inv_item(Item* item, ItemProto* proto, uint16_t slotId, uint16_t itemId);
 ZEQ_API TlgPacket* packet_create_custom_message(uint32_t chatChannel, const char* str, uint32_t len);
 TlgPacket* packet_create_custom_message_format(uint32_t chatChannel, const char* fmt, ...);

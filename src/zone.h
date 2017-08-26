@@ -53,5 +53,6 @@ lua_State* zone_lua(Zone* zone);
 
 struct Mob** zone_mob_list(Zone* zone);
 uint32_t zone_mob_count(Zone* zone);
+struct Mob* zone_mob_by_entity_id(Zone* zone, int16_t entityId);
 
 #endif/*ZONE_H*/

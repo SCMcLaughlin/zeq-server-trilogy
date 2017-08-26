@@ -42,6 +42,7 @@ struct Zone {
     lua_State*      lua;
     Mob**           mobs;
     MobLocCache*    mobLocs;
+    int16_t*        mobEntityIds;
     Client**        clients;
     Client**        clientsBroadcastAll; /* Why does this exist? To ensure zone-wide packets are sent to clients that aren't fully zoned-in yet */
     int16_t*        freeEntityIds;
@@ -98,6 +99,7 @@ static int16_t zone_get_free_entity_id(Zone* zone)
 static int zone_add_entity_mob(Zone* zone, Mob* mob)
 {
     uint32_t index = zone->mobCount;
+    int16_t entityId;
     int rc = ERR_OutOfMemory;
     MobLocCache* loc;
     
@@ -106,6 +108,7 @@ static int zone_add_entity_mob(Zone* zone, Mob* mob)
         uint32_t cap = (index == 0) ? 1 : index * 2;
         Mob** mobs;
         MobLocCache* locs;
+        int16_t* entIds;
         
         mobs = realloc_array_type(zone->mobs, cap, Mob*);
         if (!mobs) goto oom;
@@ -114,6 +117,10 @@ static int zone_add_entity_mob(Zone* zone, Mob* mob)
         locs = realloc_array_type(zone->mobLocs, cap, MobLocCache);
         if (!locs) goto oom;
         zone->mobLocs = locs;
+
+        entIds = realloc_array_type(zone->mobEntityIds, cap, int16_t);
+        if (!entIds) goto oom;
+        zone->mobEntityIds = entIds;
     }
     
     zone->mobs[index] = mob;
@@ -134,8 +141,10 @@ static int zone_add_entity_mob(Zone* zone, Mob* mob)
     }
 
     zone->mobCount = index + 1;
+    entityId = zone_get_free_entity_id(zone);
+    zone->mobEntityIds[index] = entityId;
     mob_set_zone_index(mob, (int)index);
-    mob_set_entity_id(mob, zone_get_free_entity_id(zone));
+    mob_set_entity_id(mob, entityId);
     
     rc = ERR_None;
     
@@ -401,4 +410,21 @@ Mob** zone_mob_list(Zone* zone)
 uint32_t zone_mob_count(Zone* zone)
 {
     return zone->mobCount;
+}
+
+Mob* zone_mob_by_entity_id(Zone* zone, int16_t entityId)
+{
+    int16_t* entIds = zone->mobEntityIds;
+    uint32_t n = zone->mobCount;
+    uint32_t i;
+
+    for (i = 0; i < n; i++)
+    {
+        if (entIds[i] == entityId)
+        {
+            return zone->mobs[i];
+        }
+    }
+
+    return NULL;
 }

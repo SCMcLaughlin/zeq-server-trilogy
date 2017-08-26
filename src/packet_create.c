@@ -453,6 +453,22 @@ TlgPacket* packet_create_spawns_compressed(Zone* zone)
     return packet_spawns_compress_obfuscate(zone, data, len);
 }
 
+TlgPacket* packet_create_unspawn(int16_t entityId)
+{
+    Aligned a;
+    TlgPacket* packet = packet_init_type(OP_Inventory, PS_Item, &a);
+    
+    if (!packet) return NULL;
+
+    /* PS_Unspawn */
+    /* entityId */
+    aligned_write_int16(&a, entityId);
+    /* unknown */
+    aligned_write_uint32(&a, 0);
+
+    return packet;
+}
+
 TlgPacket* packet_create_inv_item(Item* item, ItemProto* proto, uint16_t slotId, uint16_t itemId)
 {
     Aligned a;

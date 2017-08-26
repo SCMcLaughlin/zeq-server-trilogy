@@ -351,6 +351,18 @@ void client_on_msg_command(Client* client, const char* msg, int len)
     zlua_event_command(client, msg, len);
 }
 
+void client_on_target_by_entity_id(Client* client, int16_t entityId)
+{
+    Zone* zone = client_get_zone(client);
+    Mob* target;
+
+    /*fixme: what id does the client pass to target nothing?*/
+    target = zone_mob_by_entity_id(zone, entityId);
+
+    /*fixme: validate that the client should be able to target this mob*/
+    mob_set_target(client_mob(client), target);
+}
+
 Mob* client_mob(Client* client)
 {
     return &client->mob;

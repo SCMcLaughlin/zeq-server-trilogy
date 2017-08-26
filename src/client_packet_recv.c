@@ -143,6 +143,24 @@ static void cpr_handle_op_message(Client* client, ToServerPacket* packet)
     }
 }
 
+static void cpr_handle_op_target(Client* client, ToServerPacket* packet)
+{
+    Aligned a;
+    uint32_t len = packet->length;
+    uint32_t entityId;
+
+    if (len != sizeof(PS_Target))
+        return;
+    
+    aligned_init(&a, packet->data, len);
+
+    /* PS_Target */
+    /* entityId */
+    entityId = aligned_read_uint32(&a);
+
+    client_on_target_by_entity_id(client, (int16_t)entityId);
+}
+
 void client_packet_recv(Client* client, ZPacket* zpacket)
 {
     ToServerPacket packet;
@@ -167,6 +185,10 @@ void client_packet_recv(Client* client, ZPacket* zpacket)
     
     case OP_Message:
         cpr_handle_op_message(client, &packet);
+        break;
+
+    case OP_Target:
+        cpr_handle_op_target(client, &packet);
         break;
     
     /* Packets to be echoed with all their content */

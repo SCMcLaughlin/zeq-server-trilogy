@@ -176,6 +176,7 @@ const char* enum2str_opcode(int e)
     case OP_LevelUpdate: ret = "OP_LevelUpdate"; break;
     case OP_ExpUpdate: ret = "OP_ExpUpdate"; break;
     case OP_Animation: ret = "OP_Animation"; break;
+    case OP_Target: ret = "OP_Target"; break;
     default: ret = "UNKNOWN"; break;
     }
     return ret;
