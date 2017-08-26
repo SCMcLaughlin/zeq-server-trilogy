@@ -66,4 +66,11 @@ enum FlyModeType
     FLY_MODE_Water,
 };
 
+enum BuffPacketType
+{
+    BUFF_PACKET_TYPE_Remove = 1,
+    BUFF_PACKET_TYPE_Add = 2,
+    BUFF_PACKET_TYPE_Update = 3,
+};
+
 #endif/*MISC_ENUM_H*/

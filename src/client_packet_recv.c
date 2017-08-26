@@ -161,6 +161,38 @@ static void cpr_handle_op_target(Client* client, ToServerPacket* packet)
     client_on_target_by_entity_id(client, (int16_t)entityId);
 }
 
+static void cpr_handle_op_spawn_appearance(Client* client, ToServerPacket* packet)
+{
+    Aligned a;
+    uint32_t len = packet->length;
+    uint32_t entityId;
+    uint32_t typeId;
+    int value;
+
+    if (len != sizeof(PS_SpawnAppearance))
+        return;
+
+    aligned_init(&a, packet->data, len);
+
+    /* PS_SpawnAppearance */
+    /* entityId */
+    entityId = aligned_read_uint32(&a);
+    /* typeId */
+    typeId = aligned_read_uint32(&a);
+    /* value */
+    value = aligned_read_int(&a);
+
+    switch (typeId)
+    {
+    /* Always ignored */
+    case SPAWN_APPEARANCE_HpRegenTick:
+        break;
+
+    default:
+        break;
+    }
+}
+
 void client_packet_recv(Client* client, ZPacket* zpacket)
 {
     ToServerPacket packet;
@@ -189,6 +221,10 @@ void client_packet_recv(Client* client, ZPacket* zpacket)
 
     case OP_Target:
         cpr_handle_op_target(client, &packet);
+        break;
+
+    case OP_SpawnAppearance:
+        cpr_handle_op_spawn_appearance(client, &packet);
         break;
     
     /* Packets to be echoed with all their content */

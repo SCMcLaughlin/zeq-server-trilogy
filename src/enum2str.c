@@ -165,7 +165,7 @@ const char* enum2str_opcode(int e)
     case OP_SwapItem: ret = "OP_SwapItem"; break;
     case OP_MoveCoin: ret = "OP_MoveCoin"; break;
     case OP_SpellCastBegin: ret = "OP_SpellCastBegin"; break;
-    case OP_SpellCastEnd: ret = "OP_SpellCastEnd"; break;
+    case OP_SpellCastFinish: ret = "OP_SpellCastFinish"; break;
     case OP_ClientSpellCast: ret = "OP_ClientSpellCast"; break;
     case OP_InterruptSpell: ret = "OP_InterruptSpell"; break;
     case OP_Buff: ret = "OP_Buff"; break;

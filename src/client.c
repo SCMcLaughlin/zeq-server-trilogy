@@ -156,7 +156,7 @@ void client_calc_stats_all(Client* client)
     /* Step 1: calc total stats from inventory items */
     inv_calc_stats(client_inv(client), total, &client->weight, &mob->acFromItems);
     /* The client adds HP from items on its end, so we need to be able to subtract them when we do HP updates */
-    client->hpFromItems = total->maxHp;
+    client->hpFromItems = (int)total->maxHp;
     
     /* Step 2: calc total stats from buffs */
     

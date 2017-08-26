@@ -145,7 +145,7 @@ TlgPacket* packet_create_zone_info(Zone* zone)
     return packet;
 }
 
-TlgPacket* packet_create_spawn_appearance(int16_t entityId, int16_t typeId, int value)
+TlgPacket* packet_create_spawn_appearance(int16_t entityId, uint32_t typeId, int value)
 {
     Aligned a;
     TlgPacket* packet = packet_init_type(OP_SpawnAppearance, PS_SpawnAppearance, &a);
@@ -153,13 +153,9 @@ TlgPacket* packet_create_spawn_appearance(int16_t entityId, int16_t typeId, int 
     
     /* PS_SpawnAppearance */
     /* entityId */
-    aligned_write_int16(&a, entityId);
-    /* unknownA */
-    aligned_write_uint16(&a, 0);
+    aligned_write_uint32(&a, (uint32_t)entityId);
     /* typeId */
-    aligned_write_int16(&a, typeId);
-    /* unknownB */
-    aligned_write_uint16(&a, 0);
+    aligned_write_uint32(&a, typeId);
     /* value */
     aligned_write_int(&a, value);
     
@@ -762,8 +758,8 @@ TlgPacket* packet_create_hp_update_self(Client* client)
     
     hpFromItems = client_hp_from_items(client);
     mob = client_mob(client);
-    curHp = cap_max(mob_cur_hp(mob) - hpFromItems, 30000);
-    maxHp = cap_max(mob_max_hp(mob) - hpFromItems, 30000);
+    curHp = cap_max((int)(mob_cur_hp(mob) - hpFromItems), 30000);
+    maxHp = cap_max((int)(mob_max_hp(mob) - hpFromItems), 30000);
     
     /* PS_HpUpdate */
     /* entityId */
@@ -832,6 +828,37 @@ TlgPacket* packet_create_exp_update(uint32_t currentExp)
     /* PS_ExpUpdate */
     /* currentExp */
     aligned_write_uint32(&a, currentExp);
+
+    return packet;
+}
+
+TlgPacket* packet_create_test(int16_t entityId, uint16_t spellId, uint32_t whichByte, uint8_t value)
+{
+    Aligned a;
+    TlgPacket* packet = packet_init_type(OP_SpellCastFinish, PS_SpellCastFinish, &a);
+    byte* ptr;
+    if (!packet) return NULL;
+
+    /* PS_SpellCastFinish */
+
+    aligned_write_uint32(&a, (uint32_t)entityId);
+    aligned_write_uint32(&a, (uint32_t)entityId);
+    aligned_write_uint8(&a, 1);
+    aligned_write_uint8(&a, 0);
+    aligned_write_uint8(&a, 65);
+    aligned_write_uint8(&a, 0);
+    aligned_write_uint8(&a, 10);
+    aligned_write_memset(&a, 0, 7);
+    aligned_write_float(&a, 0.0f);
+    aligned_write_uint32(&a, 0);
+    aligned_write_uint32(&a, 231);
+    aligned_write_uint16(&a, spellId);
+    aligned_write_uint8(&a, 0);
+    aligned_write_uint8(&a, 4);
+
+    ptr = aligned_all(&a);
+    if (whichByte >= 8 && whichByte < aligned_size(&a))
+        ptr[whichByte] = value;
 
     return packet;
 }

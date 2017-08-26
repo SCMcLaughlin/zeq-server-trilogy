@@ -48,6 +48,22 @@ function Mob:getZone()
     return getObject(C.zone_lua_index(ptr))
 end
 
+function Mob:getEntityId()
+    return C.mob_entity_id(self:toMobPtr())
+end
+
+function Mob:getHP()
+    return tonumber(C.mob_cur_hp(self:toMobPtr()))
+end
+
+function Mob:getMaxHP()
+    return tonumber(C.mob_max_hp(self:toMobPtr()))
+end
+
+function Mob:getMana()
+    return tonumber(C.mob_cur_mana(self:toMobPtr()))
+end
+
 function Mob:getLevel()
     return C.mob_level(self:toMobPtr())
 end

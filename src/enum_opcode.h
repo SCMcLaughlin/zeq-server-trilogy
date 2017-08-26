@@ -33,10 +33,10 @@ enum Opcode
     OP_MoveCoin             = 0x212d,
     
     OP_SpellCastBegin       = 0x20a9,   /* Spell casting particles */
-    OP_SpellCastEnd         = 0x2046,
+    OP_SpellCastFinish      = 0x2046,   /* Apply buff and particles on the target */
     OP_ClientSpellCast      = 0x217e,
     OP_InterruptSpell       = 0x21d3,
-    OP_Buff                 = 0x2123,
+    OP_Buff                 = 0x2132,
     OP_SpellState           = 0x2182,
     OP_SwapSpell            = 0x21ce,
 

@@ -87,10 +87,10 @@ int mob_calc_ac_from_factors(Mob* mob, int classId);
 ZEQ_API const char* mob_name_str(Mob* mob);
 #define mob_set_name_sbuf(mob, sbuf) ((mob)->name = (sbuf))
 #define mob_set_cur_hp_no_cap_check(mob, hp) ((mob)->currentHp = (hp))
-int64_t mob_cur_hp(Mob* mob);
-int64_t mob_max_hp(Mob* mob);
+ZEQ_API int64_t mob_cur_hp(Mob* mob);
+ZEQ_API int64_t mob_max_hp(Mob* mob);
 #define mob_set_cur_mana_no_cap_check(mob, mana) ((mob)->currentMana = (mana))
-int64_t mob_cur_mana(Mob* mob);
+ZEQ_API int64_t mob_cur_mana(Mob* mob);
 #define mob_set_cur_endurance_no_cap_check(mob, end) ((mob)->currentEndurance = (end))
 
 #define mob_base_stats(mob) (&((mob)->baseStats))
@@ -113,7 +113,7 @@ ZEQ_API Zone* mob_get_zone(Mob* mob);
 
 #define mob_parent_type(mob) ((mob)->parentType)
 
-#define mob_entity_id(mob) ((mob)->entityId)
+ZEQ_API int16_t mob_entity_id(Mob* mob);
 #define mob_set_entity_id(mob, id) ((mob)->entityId = (id))
 
 #define mob_zone_index(mob) ((mob)->zoneIndex)
@@ -121,7 +121,7 @@ ZEQ_API Zone* mob_get_zone(Mob* mob);
 ZEQ_API int mob_lua_index(Mob* mob);
 #define mob_set_lua_index(mob, idx) ((mob)->luaIndex = (idx))
 
-ZEQ_API double mob_cur_size(Mob* mob);
+ZEQ_API float mob_cur_size(Mob* mob);
 
 #define mob_cur_walking_speed(mob) ((mob)->currentWalkingSpeed)
 #define mob_cur_running_speed(mob) ((mob)->currentRunningSpeed)
@@ -145,6 +145,6 @@ ZEQ_API Mob* mob_target(Mob* mob);
 Mob* mob_target_or_self(Mob* mob);
 
 ZEQ_API void mob_update_level(Mob* mob, uint8_t level);
-ZEQ_API void mob_update_size(Mob* mob, double size);
+ZEQ_API void mob_update_size(Mob* mob, float size);
 
 #endif/*MOB_H*/

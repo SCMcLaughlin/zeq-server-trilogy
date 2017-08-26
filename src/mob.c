@@ -449,12 +449,17 @@ Zone* mob_get_zone(Mob* mob)
     return mob->zone;
 }
 
+int16_t mob_entity_id(Mob* mob)
+{
+    return mob->entityId;
+}
+
 int mob_lua_index(Mob* mob)
 {
     return mob->luaIndex;
 }
 
-double mob_cur_size(Mob* mob)
+float mob_cur_size(Mob* mob)
 {
     return mob->currentSize;
 }
@@ -470,12 +475,12 @@ Mob* mob_target_or_self(Mob* mob)
     return (targ) ? targ : mob;
 }
 
-void mob_update_size(Mob* mob, double size)
+void mob_update_size(Mob* mob, float size)
 {
     TlgPacket* packet;
     Zone* zone;
     
-    mob->currentSize = (float)size;
+    mob->currentSize = size;
     zone = mob_get_zone(mob);
     packet = packet_create_spawn_appearance(mob_entity_id(mob), SPAWN_APPEARANCE_Size, (int)size);
     

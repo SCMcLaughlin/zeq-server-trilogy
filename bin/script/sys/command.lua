@@ -14,6 +14,18 @@ local tonumber = tonumber
 --------------------------------------------------------------------------------
 
 local handlers = {
+    b = function(e)
+        local spellId = tonumber(e.args[1]) or 0xffffffff
+        local offset = tonumber(e.args[2]) or 0
+        local value = tonumber(e.args[3]) or 1
+        
+        local C = require "sys/packet_cdef"
+        require "sys/Client_cdef"
+        
+        local p = C.packet_create_test(e.self:getEntityId(), spellId, offset, value)
+        C.client_schedule_packet(e.self:ptr(), p)
+    end,
+    
     castfx = function(e)
         local spellId = tonumber(e.args[1]) or 3
         local castTimeMs = tonumber(e.args[2])
@@ -28,8 +40,13 @@ local handlers = {
         if colorId then
             self:message(colorId, "colortest")
         else
-            self:message(eChatColor.Red, "Usage: colortext [colorId]")
+            self:message(eChatColor.Red, "Usage: colortest [colorId]")
         end
+    end,
+    
+    entityid = function(e)
+        local targ = e.self:getTargetOrSelf()
+        e.self:message(e.ChatColor.Default, "%s's entityId: %i", targ:getName(), targ:getEntityId())
     end,
 
     exp = function(e)
@@ -41,7 +58,7 @@ local handlers = {
         elseif exp then
             targ:updateExp(exp)
         else
-            e.self:message(eChatColor.Default, "%s's exp: %llu", targ:getName(), targ:getExperience())
+            e.self:message(eChatColor.Default, "%s's exp: %u", targ:getName(), targ:getExperience())
         end
     end,
 
@@ -59,13 +76,38 @@ local handlers = {
     size = function(e)
         local size = tonumber(e.args[1])
         local targ = e.self:getTargetOrSelf()
-        if not targ then return end
         
         if size then
             targ:updateSize(size)
         else
             e.self:message(eChatColor.Default, "%s's size: %g", targ:getName(), targ:getSize())
         end
+    end,
+    
+    spawnappearance = function(e)
+        local type = tonumber(e.args[1])
+        local value = tonumber(e.args[2])
+        local targ = e.self:getTargetOrSelf()
+        
+        local C = require "sys/packet_cdef"
+        require "sys/Client_cdef"
+        
+        local p = C.packet_create_spawn_appearance(e.self:getEntityId(), type or 3, value or 0)
+        C.client_schedule_packet(e.self:ptr(), p)
+    end,
+    
+    updatehp = function(e)
+        local hp = tonumber(e.args[1])
+        local targ = e.self:getTargetOrSelf()
+        
+        targ:updateHP(hp)
+    end,
+    
+    updatemana = function(e)
+        local mana = tonumber(e.args[1])
+        local targ = e.self:getTargetOrSelf()
+        
+        targ:updateMana(mana)
     end,
 }
 

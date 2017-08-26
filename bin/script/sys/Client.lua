@@ -86,20 +86,20 @@ function Client:getExperience()
     return tonumber(C.client_experience(self:ptr()))
 end
 
+function Client:updateHP(hp)
+    C.client_update_hp(self:ptr(), hp or self:getHP())
+end
+
+function Client:updateMana(mana)
+    C.client_update_mana(self:ptr(), mana or self:getMana())
+end
+
 function Client:updateLevel(lvl)
     C.client_update_level(self:ptr(), lvl)
 end
 
 function Client:updateExp(exp)
     C.client_update_exp(self:ptr(), exp)
-end
-
---fixme: remove when the Mob one is corrected
-function Client:castFx(spellId, castTimeMs)
-    if not self:isValid() then return end
-    
-    local packet = C.packet_create_spell_cast_begin(self:toMobPtr(), spellId, castTimeMs or 5000)
-    C.client_schedule_packet(self:ptr(), packet)
 end
 
 return Client

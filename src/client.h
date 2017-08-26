@@ -121,9 +121,9 @@ int client_get_skill(Client* client, int skillId);
 /* Returns the previous zone-in count */
 uint32_t client_increment_zone_in_count(Client* client);
 
-void client_update_hp(Client* client, int curHp);
+ZEQ_API void client_update_hp(Client* client, int curHp);
 #define client_update_hp_with_current(client) client_update_hp((client), (int)mob_cur_hp(client_mob((client))))
-void client_update_mana(Client* client, uint16_t curMana);
+ZEQ_API void client_update_mana(Client* client, uint16_t curMana);
 #define client_update_mana_with_current(client) client_update_mana((client), (uint16_t)mob_cur_mana(client_mob((client))))
 ZEQ_API void client_update_level(Client* client, uint8_t level);
 ZEQ_API void client_update_exp(Client* client, uint32_t exp);

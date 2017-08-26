@@ -66,6 +66,7 @@ void zone_add_client_zoning_in(Zone* zone, Client* client)
     }
     
     zone->clientsBroadcastAll[index] = client;
+    zone->clientBroadcastAllCount = index + 1;
 
     log_writef(zone->logQueue, zone->logId, "Zoning in \"%s\"", sbuf_str(client_name(client)));
     

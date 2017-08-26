@@ -89,10 +89,8 @@ typedef struct {
 } PS_ZoneInfo;
 
 typedef struct {
-    int16_t     entityId;
-    uint16_t    unknownA;
-    int16_t     typeId;
-    uint16_t    unknownB;
+    uint32_t    entityId;
+    uint32_t    typeId;
     int         value;
 } PS_SpawnAppearance;
 
@@ -283,15 +281,34 @@ typedef struct {
     uint32_t    unknownB;
 } PS_SpellCastInfo;
 
-typedef struct { /*fixme: should have bardMod, duration, casterLevel*/
+typedef struct {
     uint32_t    targetId;
-    uint32_t    unknownA;
+    uint32_t    casterId;
+    uint8_t     casterLevel;
+    uint8_t     unknownA;
+    uint8_t     unknownAlways65;
+    uint8_t     unknownB;
+    uint8_t     instrumentMod;
+    uint8_t     unknownsAlwaysZero[7];  /* buff slot id? ticks? */
+    float       heading;
+    uint32_t    unknownC;
+    uint32_t    unknownAlways231;
     uint16_t    spellId;
-    uint32_t    unknownB;
-    uint16_t    unknownC;
+    uint8_t     unknownD;
+    uint8_t     type;   /* 4 = buff */
+} PS_SpellCastFinish;
+
+typedef struct {
+    uint32_t    entityId;
+    uint8_t     unknownAlways2;
+    uint8_t     casterLevel;
+    uint8_t     instrumentMod;
+    uint8_t     unknownA;
+    uint32_t    spellId;
+    uint32_t    ticksRemaining;
     uint32_t    buffSlotId;
-    uint32_t    isRemove;
-} PS_Buff;
+    uint32_t    type;   /* 1 = remove */
+} PS_BuffUpdate;
 
 typedef struct {
     uint32_t    entityId;
