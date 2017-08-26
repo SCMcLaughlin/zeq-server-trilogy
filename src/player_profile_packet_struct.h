@@ -29,7 +29,7 @@ typedef struct {
     uint8_t     unknown;
     uint16_t    spellId;
     uint32_t    tickDuration;
-} PS_Buff;
+} PS_PPBuff;
 
 typedef struct {
     uint32_t    pp;
@@ -77,7 +77,7 @@ typedef struct {
     uint16_t                mainInventoryItemIds[ZEQ_PP_MAIN_INVENTORY_SLOT_COUNT];                                     \
     uint32_t                mainInventoryInternalUnused[ZEQ_PP_MAIN_INVENTORY_SLOT_COUNT];                              \
     PS_PPItem               mainInventoryItemProperties[ZEQ_PP_MAIN_INVENTORY_SLOT_COUNT];                              \
-    PS_Buff                 buffs[ZEQ_PP_MAX_BUFFS];                                                                    \
+    PS_PPBuff               buffs[ZEQ_PP_MAX_BUFFS];                                                                    \
     uint16_t                baggedItemIds[ZEQ_PP_BAGGED_INVENTORY_SLOT_COUNT];  /* [80] to [89] are cursor bag slots */ \
     PS_PPItem               baggedItemProperties[ZEQ_PP_BAGGED_INVENTORY_SLOT_COUNT];                                   \
     uint16_t                spellbook[ZEQ_PP_SPELLBOOK_SLOT_COUNT];                                                     \
