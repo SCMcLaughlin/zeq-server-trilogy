@@ -348,7 +348,31 @@ typedef struct {
     uint16_t    levelMax;
     uint16_t    findGMs;
     byte        unknown[34];
-} PS_WholAll;
+} PS_WhoAll;
+
+typedef struct {
+    int deltaY : 10;
+    int paddingA : 1;
+    int deltaZ : 10;
+    int paddingB : 1;
+    int deltaX : 10;
+} PS_PositionDelta;
+
+typedef struct {
+    int16_t             entityId;
+    int8_t              forwardVelocity;
+    uint8_t             heading;
+    int8_t              deltaHeading;
+    int16_t             y;
+    int16_t             x;
+    int16_t             z;
+    PS_PositionDelta    deltas;
+} PS_PositionUpdate;
+
+typedef struct {
+    uint32_t            count;
+    PS_PositionUpdate   updates[0];
+} PS_MultiPositionUpdate;
 
 #pragma pack()
 

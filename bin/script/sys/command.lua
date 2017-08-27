@@ -29,8 +29,9 @@ local handlers = {
     castfx = function(e)
         local spellId = tonumber(e.args[1]) or 3
         local castTimeMs = tonumber(e.args[2])
+        local targ = e.self:getTargetOrSelf()
         
-        e.self:castFx(spellId, castTimeMs)
+        targ:castFx(spellId, castTimeMs)
     end,
     
     colortest = function(e)
@@ -46,7 +47,7 @@ local handlers = {
     
     entityid = function(e)
         local targ = e.self:getTargetOrSelf()
-        e.self:message(e.ChatColor.Default, "%s's entityId: %i", targ:getName(), targ:getEntityId())
+        e.self:message(eChatColor.Default, "%s's entityId: %i", targ:getName(), targ:getEntityId())
     end,
 
     exp = function(e)

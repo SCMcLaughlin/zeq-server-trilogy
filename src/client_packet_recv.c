@@ -1,5 +1,6 @@
 
 #include "client_packet_recv.h"
+#include "bit.h"
 #include "chat_channel.h"
 #include "client_packet_send.h"
 #include "log_thread.h"
@@ -92,6 +93,51 @@ static void cpr_handle_op_enter_zone(Client* client)
     zlua_event_literal("event_spawn", client_mob(client), zone, NULL);
     
 fail:;
+}
+
+static void cpr_handle_op_client_position_update(Client* client, ToServerPacket* packet)
+{
+    int8_t forwardVelocity, deltaHeading;
+    uint8_t heading;
+    int x, y, z, deltaX, deltaY, deltaZ;
+    PS_PositionDelta deltas;
+    uint32_t len;
+    Aligned a;
+
+    Zone* zone = client_get_zone(client);
+
+    len = packet->length;
+
+    if (len != sizeof(PS_PositionUpdate))
+        return;
+
+    aligned_init(&a, packet->data, len);
+
+    /* PS_PositionUpdate */
+    /* entityId */
+    aligned_advance_by_sizeof(&a, int16_t);
+    /* forwardVelocity */
+    forwardVelocity = aligned_read_int8(&a);
+    /* heading */
+    heading = aligned_read_uint8(&a);
+    /* deltaHeading */
+    deltaHeading = aligned_read_int8(&a);
+    /* y */
+    y = aligned_read_int16(&a);
+    /* x */
+    x = aligned_read_int16(&a);
+    /* z */
+    z = aligned_read_int16(&a);
+    /* deltas */
+    aligned_read_buffer(&a, &deltas, sizeof(deltas));
+
+    /* unpack deltas */
+    deltaX = deltas.deltaX;
+    deltaY = deltas.deltaY;
+    deltaZ = deltas.deltaZ;
+
+    log_writef(zone_log_queue(zone), zone_log_id(zone), "POS vel %i head %u dhead %i x %i y %i z %i dx %i dy %i dz %i",
+        forwardVelocity, heading, deltaHeading, x, y, z, deltaX, deltaY, deltaZ);
 }
 
 static void cpr_handle_op_message(Client* client, ToServerPacket* packet)
@@ -193,6 +239,27 @@ static void cpr_handle_op_spawn_appearance(Client* client, ToServerPacket* packe
     }
 }
 
+static void cpr_handle_op_buff(Client* client, ToServerPacket* packet)
+{
+    uint32_t len;
+    Aligned a;
+    uint32_t i;
+    char buf[1024];
+    char* ptr = buf;
+    TlgPacket* p;
+
+    len = packet->length;
+
+    for (i = 0; i < len; i++)
+    {
+        ptr += snprintf(ptr, (buf + sizeof(buf)) - ptr, "%02x ", packet->data[i]);
+    }
+
+    p = packet_create_custom_message(0, buf, (uint32_t)(ptr - buf));
+    if (p)
+        client_schedule_packet(client, p);
+}
+
 void client_packet_recv(Client* client, ZPacket* zpacket)
 {
     ToServerPacket packet;
@@ -214,6 +281,10 @@ void client_packet_recv(Client* client, ZPacket* zpacket)
     case OP_EnterZone:
         cpr_handle_op_enter_zone(client);
         break;
+
+    case OP_ClientPositionUpdate:
+        cpr_handle_op_client_position_update(client, &packet);
+        break;
     
     case OP_Message:
         cpr_handle_op_message(client, &packet);
@@ -225,6 +296,10 @@ void client_packet_recv(Client* client, ZPacket* zpacket)
 
     case OP_SpawnAppearance:
         cpr_handle_op_spawn_appearance(client, &packet);
+        break;
+
+    case OP_Buff:
+        cpr_handle_op_buff(client, &packet);
         break;
     
     /* Packets to be echoed with all their content */

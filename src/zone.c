@@ -415,6 +415,7 @@ uint32_t zone_mob_count(Zone* zone)
 
 Mob* zone_mob_by_entity_id(Zone* zone, int16_t entityId)
 {
+    Mob** mobs = zone->mobs;
     int16_t* entIds = zone->mobEntityIds;
     uint32_t n = zone->mobCount;
     uint32_t i;
@@ -422,9 +423,7 @@ Mob* zone_mob_by_entity_id(Zone* zone, int16_t entityId)
     for (i = 0; i < n; i++)
     {
         if (entIds[i] == entityId)
-        {
-            return zone->mobs[i];
-        }
+            return mobs[i];
     }
 
     return NULL;

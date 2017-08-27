@@ -857,7 +857,7 @@ TlgPacket* packet_create_test(int16_t entityId, uint16_t spellId, uint32_t which
     aligned_write_uint8(&a, 4);
 
     ptr = aligned_all(&a);
-    if (whichByte >= 8 && whichByte < aligned_size(&a))
+    if (whichByte < aligned_size(&a))
         ptr[whichByte] = value;
 
     return packet;
