@@ -73,6 +73,39 @@ local handlers = {
             e.self:message(eChatColor.Default, "%s's exp: %u", targ:getName(), targ:getExperience())
         end
     end,
+    
+    gender = function(e)
+        local id = tonumber(e.args[1])
+        local targ = e.self:getTargetOrSelf()
+        
+        if id then
+            targ:updateGenderId(id)
+        else
+            e.self:message(eChatColor.Default, "%s's gender: %u", targ:getName(), targ:getGenderId())
+        end
+    end,
+    
+    helmtexture = function(e)
+        local id = tonumber(e.args[1])
+        local targ = e.self:getTargetOrSelf()
+        
+        if id then
+            targ:updateHelmTextureId(id)
+        else
+            e.self:message(eChatColor.Default, "%s's helmtexture: %u", targ:getName(), targ:getHelmTextureId())
+        end
+    end,
+    
+    hp = function(e)
+        local hp = tonumber(e.args[1])
+        local targ = e.self:getTargetOrSelf()
+        
+        if hp then
+            targ:updateHP(hp)
+        else
+            e.self:message(eChatColor.Default, "%s's hp: %i / %i", targ:getName(), targ:getHP(), targ:getMaxHP())
+        end
+    end,
 
     level = function(e)
         local lvl = tonumber(e.args[1])
@@ -83,7 +116,29 @@ local handlers = {
         else
             e.self:message(eChatColor.Default, "%s's level: %u", targ:getName(), targ:getLevel())
         end
-    end, 
+    end,
+    
+    mana = function(e)
+        local mana = tonumber(e.args[1])
+        local targ = e.self:getTargetOrSelf()
+        
+        if mana then
+            targ:updateMana(mana)
+        else
+            e.self:message(eChatColor.Default, "%s's mana: %i / %i", targ:getName(), targ:getMana(), targ:getMaxMana())
+        end
+    end,
+    
+    race = function(e)
+        local id = tonumber(e.args[1])
+        local targ = e.self:getTargetOrSelf()
+        
+        if id then
+            targ:updateRaceId(id)
+        else
+            e.self:message(eChatColor.Default, "%s's race: %u", targ:getName(), targ:getRaceId())
+        end
+    end,
    
     size = function(e)
         local size = tonumber(e.args[1])
@@ -108,18 +163,15 @@ local handlers = {
         C.client_schedule_packet(e.self:ptr(), p)
     end,
     
-    updatehp = function(e)
-        local hp = tonumber(e.args[1])
+    texture = function(e)
+        local id = tonumber(e.args[1])
         local targ = e.self:getTargetOrSelf()
         
-        targ:updateHP(hp)
-    end,
-    
-    updatemana = function(e)
-        local mana = tonumber(e.args[1])
-        local targ = e.self:getTargetOrSelf()
-        
-        targ:updateMana(mana)
+        if id then
+            targ:updateTextureId(id)
+        else
+            e.self:message(eChatColor.Default, "%s's texture: %u", targ:getName(), targ:getTextureId())
+        end
     end,
 }
 

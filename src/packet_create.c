@@ -329,7 +329,7 @@ static void packet_fill_spawn(Mob* mob, Aligned* a)
     /* helmTextureId */
     aligned_write_uint8(a, mob_helm_texture_id(mob));
     /* unknownG */
-    aligned_write_uint8(a, 0);
+    aligned_write_uint8(a, 0);  /*fixme: may be faceId? confirm this. seems to be ignored for self*/
     
     /* materialIds[9] */
     aligned_write_uint8(a, mob_material_id(mob, 0));
@@ -830,6 +830,40 @@ TlgPacket* packet_create_exp_update(uint32_t currentExp)
     /* PS_ExpUpdate */
     /* currentExp */
     aligned_write_uint32(&a, currentExp);
+
+    return packet;
+}
+
+TlgPacket* packet_create_appearance_update(Mob* mob)
+{
+    Aligned a;
+    uint8_t texId;
+    TlgPacket* packet = packet_init_type(OP_AppearanceUpdate, PS_AppearanceUpdate, &a);
+    if (!packet) return NULL;
+
+    /* PS_AppearanceUpdate */
+    /* name */
+    aligned_write_snprintf_and_advance_by(&a, sizeof_field(PS_AppearanceUpdate, name), "%s", mob_name_str_no_null(mob));
+    /* target */
+    aligned_write_snprintf_and_advance_by(&a, sizeof_field(PS_AppearanceUpdate, target), "%s", mob_name_str_no_null(mob));
+    /* unknownA */
+    aligned_write_uint16(&a, 0);
+    /* unknownAlways24 */
+    aligned_write_uint16(&a, 24);
+    /* unknownB */
+    aligned_write_zeroes(&a, sizeof_field(PS_AppearanceUpdate, unknownB));
+    /* raceId */
+    aligned_write_uint16(&a, (uint16_t)mob_race_id(mob));
+    /* genderId */
+    aligned_write_uint16(&a, (uint16_t)mob_gender_id(mob));
+    /* textureId */
+    texId = mob_texture_id(mob);
+    aligned_write_uint16(&a, (texId == 0xff) ? 0 : (uint16_t)texId);
+    /* helmTextureId */
+    texId = mob_helm_texture_id(mob);
+    aligned_write_uint16(&a, (texId == 0xff) ? 0 : (uint16_t)texId);
+    /* faceId */
+    aligned_write_uint16(&a, (uint16_t)mob_face_id(mob));
 
     return packet;
 }

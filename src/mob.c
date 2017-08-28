@@ -9,6 +9,7 @@
 #include "packet_create.h"
 #include "race_id.h"
 #include "util_cap.h"
+#include "util_random.h"
 #include "zone.h"
 
 void mob_init_client_unloaded(Mob* mob, StaticBuffer* name)
@@ -412,7 +413,12 @@ int mob_calc_ac_from_factors(Mob* mob, int classId)
 
 const char* mob_name_str(Mob* mob)
 {
-    return sbuf_str((mob)->name);
+    return sbuf_str(mob->name);
+}
+
+const char* mob_name_str_no_null(Mob* mob)
+{
+    return sbuf_str_or_empty_string(mob->name);
 }
 
 int64_t mob_cur_hp(Mob* mob)
@@ -430,9 +436,53 @@ int64_t mob_cur_mana(Mob* mob)
     return mob->currentMana;
 }
 
+int64_t mob_max_mana(Mob* mob)
+{
+    return mob->cappedStats.maxMana;
+}
+
 uint8_t mob_level(Mob* mob)
 {
     return mob->level;
+}
+
+uint8_t mob_class_id(Mob* mob)
+{
+    return mob->classId;
+}
+
+static void mob_broadcast_appearance_update(Mob* mob)
+{
+    Zone* zone = mob_get_zone(mob);
+    TlgPacket* packet = packet_create_appearance_update(mob);
+
+    if (packet)
+        zone_broadcast_to_all_clients(zone, packet);
+}
+
+uint8_t mob_gender_id(Mob* mob)
+{
+    return mob->genderId;
+}
+
+void mob_update_gender_id(Mob* mob, uint8_t genderId)
+{
+    if (genderId >= 3)
+        genderId = random_uint8() & 0x01;
+
+    mob->genderId = genderId;
+    mob_broadcast_appearance_update(mob);
+}
+
+uint16_t mob_race_id(Mob* mob)
+{
+    return mob->raceId;
+}
+
+void mob_update_race_id(Mob* mob, uint16_t raceId)
+{
+    mob->raceId = raceId;
+    mob_broadcast_appearance_update(mob);
 }
 
 float mob_x(Mob* mob)
@@ -468,6 +518,28 @@ int mob_lua_index(Mob* mob)
 float mob_cur_size(Mob* mob)
 {
     return mob->currentSize;
+}
+
+uint8_t mob_texture_id(Mob* mob)
+{
+    return mob->textureId;
+}
+
+void mob_update_texture_id(Mob* mob, uint8_t textureId)
+{
+    mob->textureId = textureId;
+    mob_broadcast_appearance_update(mob);
+}
+
+uint8_t mob_helm_texture_id(Mob* mob)
+{
+    return mob->helmTextureId;
+}
+
+void mob_update_helm_texture_id(Mob* mob, uint8_t textureId)
+{
+    mob->helmTextureId = textureId;
+    mob_broadcast_appearance_update(mob);
 }
 
 Mob* mob_target(Mob* mob)

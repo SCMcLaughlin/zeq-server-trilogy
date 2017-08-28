@@ -56,16 +56,56 @@ function Mob:getHP()
     return tonumber(C.mob_cur_hp(self:toMobPtr()))
 end
 
+function Mob:getHP64()
+    return C.mob_cur_hp(self:toMobPtr())
+end
+
 function Mob:getMaxHP()
     return tonumber(C.mob_max_hp(self:toMobPtr()))
+end
+
+function Mob:getMaxHP64()
+    return C.mob_max_hp(self:toMobPtr())
 end
 
 function Mob:getMana()
     return tonumber(C.mob_cur_mana(self:toMobPtr()))
 end
 
+function Mob:getMana64()
+    return C.mob_cur_mana(self:toMobPtr())
+end
+
+function Mob:getMaxMana()
+    return tonumber(C.mob_max_mana(self:toMobPtr()))
+end
+
+function Mob:getMaxMana64()
+    return C.mob_max_mana(self:toMobPtr())
+end
+
 function Mob:getLevel()
     return C.mob_level(self:toMobPtr())
+end
+
+function Mob:getClassId()
+    return C.mob_class_id(self:toMobPtr())
+end
+
+function Mob:getGenderId()
+    return C.mob_gender_id(self:toMobPtr())
+end
+
+function Mob:updateGenderId(genderId)
+    C.mob_update_gender_id(self:toMobPtr(), genderId)
+end
+
+function Mob:getRaceId()
+    return C.mob_race_id(self:toMobPtr())
+end
+
+function Mob:updateRaceId(raceId)
+    C.mob_update_race_id(self:toMobPtr(), raceId)
 end
 
 function Mob:X()
@@ -86,6 +126,22 @@ Mob.getZ = Mob.Z
 
 function Mob:getSize()
     return C.mob_cur_size(self:toMobPtr())
+end
+
+function Mob:getTextureId()
+    return C.mob_texture_id(self:toMobPtr())
+end
+
+function Mob:updateTextureId(texId)
+    C.mob_update_texture_id(self:toMobPtr(), texId)
+end
+
+function Mob:getHelmTextureId()
+    return C.mob_helm_texture_id(self:toMobPtr())
+end
+
+function Mob:updateHelmTextureId(texId)
+    C.mob_update_helm_texture_id(self:toMobPtr(), texId)
 end
 
 function Mob:updateLevel(lvl)

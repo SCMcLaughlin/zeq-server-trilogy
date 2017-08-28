@@ -332,6 +332,19 @@ typedef struct {
 } PS_ExpUpdate;
 
 typedef struct {
+    char        name[30];
+    char        target[16]; /*fixme: seems unlikely*/
+    uint16_t    unknownA;
+    uint16_t    unknownAlways24;
+    byte        unknownB[12];
+    uint16_t    raceId;
+    uint16_t    genderId;
+    uint16_t    textureId;
+    uint16_t    helmTextureId;
+    uint16_t    faceId;
+} PS_AppearanceUpdate;
+
+typedef struct {
     uint32_t    entityId;
     uint32_t    animId;
     uint32_t    unknown;

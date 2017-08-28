@@ -85,12 +85,14 @@ int16_t mob_calc_ac_skill2(int skillAmt);
 int mob_calc_ac_from_factors(Mob* mob, int classId);
 
 ZEQ_API const char* mob_name_str(Mob* mob);
+const char* mob_name_str_no_null(Mob* mob);
 #define mob_set_name_sbuf(mob, sbuf) ((mob)->name = (sbuf))
 #define mob_set_cur_hp_no_cap_check(mob, hp) ((mob)->currentHp = (hp))
 ZEQ_API int64_t mob_cur_hp(Mob* mob);
 ZEQ_API int64_t mob_max_hp(Mob* mob);
 #define mob_set_cur_mana_no_cap_check(mob, mana) ((mob)->currentMana = (mana))
 ZEQ_API int64_t mob_cur_mana(Mob* mob);
+ZEQ_API int64_t mob_max_mana(Mob* mob);
 #define mob_set_cur_endurance_no_cap_check(mob, end) ((mob)->currentEndurance = (end))
 
 #define mob_base_stats(mob) (&((mob)->baseStats))
@@ -99,9 +101,11 @@ ZEQ_API int64_t mob_cur_mana(Mob* mob);
 
 #define mob_set_level(mob, lvl) ((mob)->level = (lvl))
 ZEQ_API uint8_t mob_level(Mob* mob);
-#define mob_class_id(mob) ((mob)->classId)
-#define mob_gender_id(mob) ((mob)->genderId)
-#define mob_race_id(mob) ((mob)->raceId)
+ZEQ_API uint8_t mob_class_id(Mob* mob);
+ZEQ_API uint8_t mob_gender_id(Mob* mob);
+ZEQ_API void mob_update_gender_id(Mob* mob, uint8_t genderId);
+ZEQ_API uint16_t mob_race_id(Mob* mob);
+ZEQ_API void mob_update_race_id(Mob* mob, uint16_t raceId);
 #define mob_deity_id(mob) ((mob)->deityId)
 
 ZEQ_API float mob_x(Mob* mob);
@@ -126,8 +130,11 @@ ZEQ_API float mob_cur_size(Mob* mob);
 #define mob_cur_walking_speed(mob) ((mob)->currentWalkingSpeed)
 #define mob_cur_running_speed(mob) ((mob)->currentRunningSpeed)
 
-#define mob_texture_id(mob) ((mob)->textureId)
-#define mob_helm_texture_id(mob) ((mob)->helmTextureId)
+ZEQ_API uint8_t mob_texture_id(Mob* mob);
+ZEQ_API void mob_update_texture_id(Mob* mob, uint8_t textureId);
+ZEQ_API uint8_t mob_helm_texture_id(Mob* mob);
+ZEQ_API void mob_update_helm_texture_id(Mob* mob, uint8_t textureId);
+#define mob_face_id(mob) ((mob)->faceId)
 #define mob_primary_weapon_model_id(mob) ((mob)->primaryWeaponModelId)
 #define mob_secondary_weapon_model_id(mob) ((mob)->secondaryWeaponModelId)
 #define mob_upright_state(mob) ((mob)->uprightState)
