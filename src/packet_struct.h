@@ -90,7 +90,8 @@ typedef struct {
 
 typedef struct {
     uint32_t    entityId;
-    uint32_t    typeId;
+    uint16_t    typeId;
+    uint16_t    unknown;
     int         value;
 } PS_SpawnAppearance;
 

@@ -14,6 +14,17 @@ local tonumber = tonumber
 --------------------------------------------------------------------------------
 
 local handlers = {
+    anim = function(e)
+        local animId = tonumber(e.args[1])
+        local targ = e.self:getTargetOrSelf()
+        
+        if animId then
+            targ:animate(animId)
+        else
+            e.self:message(eChatColor.Red, "Usage: anim [animId]")
+        end
+    end,
+    
     b = function(e)
         local spellId = tonumber(e.args[1]) or 0xffffffff
         local offset = tonumber(e.args[2]) or 0

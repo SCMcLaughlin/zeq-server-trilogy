@@ -145,7 +145,7 @@ TlgPacket* packet_create_zone_info(Zone* zone)
     return packet;
 }
 
-TlgPacket* packet_create_spawn_appearance(int16_t entityId, uint32_t typeId, int value)
+TlgPacket* packet_create_spawn_appearance(int16_t entityId, uint16_t typeId, int value)
 {
     Aligned a;
     TlgPacket* packet = packet_init_type(OP_SpawnAppearance, PS_SpawnAppearance, &a);
@@ -155,7 +155,9 @@ TlgPacket* packet_create_spawn_appearance(int16_t entityId, uint32_t typeId, int
     /* entityId */
     aligned_write_uint32(&a, (uint32_t)entityId);
     /* typeId */
-    aligned_write_uint32(&a, typeId);
+    aligned_write_uint16(&a, typeId);
+    /* unknown */
+    aligned_write_uint16(&a, 0);
     /* value */
     aligned_write_int(&a, value);
     
@@ -799,7 +801,7 @@ TlgPacket* packet_create_animation(uint32_t entityId, uint32_t animId)
     /* animId */
     aligned_write_uint32(&a, animId);
     /* unknown */
-    aligned_write_uint32(&a, 0x00003f80);
+    aligned_write_uint32(&a, 0x3f800000);
     
     return packet;
 }

@@ -25,27 +25,33 @@ static float mob_base_size_by_race_id(int raceId)
     switch (raceId)
     {
     case RACE_ID_Barbarian:
+        ret = 7.0f;
+        break;
+
     case RACE_ID_Ogre:
+        ret = 9.0f;
+        break;
+
     case RACE_ID_Troll:
-        ret = 6.0f;
+        ret = 8.0f;
         break;
     
     case RACE_ID_WoodElf:
     case RACE_ID_DarkElf:
-        ret = 4.0f;
+        ret = 5.0f;
         break;
     
     case RACE_ID_Dwarf:
     case RACE_ID_Halfling:
-        ret = 3.0f;
+        ret = 4.0f;
         break;
     
     case RACE_ID_Gnome:
-        ret = 2.5f;
+        ret = 3.0f;
         break;
     
     default:
-        ret = 5.0f;
+        ret = 6.0f;
         break;
     }
     
@@ -498,4 +504,19 @@ void mob_update_level(Mob* mob, uint8_t level)
     packet = packet_create_spawn_appearance(mob_entity_id(mob), SPAWN_APPEARANCE_LevelChange, (int)level);
     if (packet)
         zone_broadcast_to_all_clients(zone, packet);
+}
+
+void mob_animate_nearby(Mob* mob, uint32_t animId)
+{
+    mob_animate_range(mob, animId, (mob->currentSize) >= 25.0 ? 500.0 : 200.0);
+}
+
+void mob_animate_range(Mob* mob, uint32_t animId, double range)
+{
+    Zone* zone = mob_get_zone(mob);
+    TlgPacket* packet;
+
+    packet = packet_create_animation(mob_entity_id(mob), animId);
+    if (packet)
+        zone_broadcast_to_nearby_clients(zone, packet, mob->loc.x, mob->loc.y, mob->loc.z, range);
 }

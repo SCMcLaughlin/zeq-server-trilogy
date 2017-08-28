@@ -14,7 +14,7 @@
 TlgPacket* packet_create_zero_filled(uint16_t opcode, uint32_t size);
 ZEQ_API TlgPacket* packet_create_weather(int type, int intensity);
 TlgPacket* packet_create_zone_info(Zone* zone);
-ZEQ_API TlgPacket* packet_create_spawn_appearance(int16_t entityId, uint32_t typeId, int value);
+ZEQ_API TlgPacket* packet_create_spawn_appearance(int16_t entityId, uint16_t typeId, int value);
 TlgPacket* packet_create_spawn(Mob* mob);
 TlgPacket* packet_create_spawns_compressed(Zone* zone);
 TlgPacket* packet_create_unspawn(int16_t entityId);

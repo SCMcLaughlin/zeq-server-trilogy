@@ -62,6 +62,7 @@ uint32_t client_guild_id(Client* client);
 uint32_t client_guild_id_or_ffff(Client* client);
 uint8_t client_guild_rank(Client* client);
 uint8_t client_guild_rank_or_ff(Client* client);
+void client_set_anon(Client* client, int value);
 uint8_t client_anon_setting(Client* client);
 int client_hp_from_items(Client* client);
 
@@ -81,6 +82,7 @@ void client_set_port(Client* client, uint16_t port);
 bool client_is_auto_split_enabled(Client* client);
 bool client_is_pvp(Client* client);
 bool client_is_gm(Client* client);
+void client_set_afk(Client* client, bool isAfk);
 bool client_is_afk(Client* client);
 bool client_is_linkdead(Client* client);
 bool client_is_sneaking(Client* client);
@@ -127,5 +129,7 @@ ZEQ_API void client_update_mana(Client* client, uint16_t curMana);
 #define client_update_mana_with_current(client) client_update_mana((client), (uint16_t)mob_cur_mana(client_mob((client))))
 ZEQ_API void client_update_level(Client* client, uint8_t level);
 ZEQ_API void client_update_exp(Client* client, uint32_t exp);
+
+void client_broadcast_spawn_appearance(Client* client, uint16_t type, int value, bool skipSelf);
 
 #endif/*CLIENT_H*/

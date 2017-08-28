@@ -17,6 +17,8 @@ float mob_cur_size(void* mob);
 void* mob_target(void* mob);
 void mob_update_level(void* mob, uint8_t level);
 void mob_update_size(void* mob, float size);
+void mob_animate_nearby(void* mob, uint32_t animId);
+void mob_animate_range(void* mob, uint32_t animId, double range);
 ]]
 
 return ffi.C

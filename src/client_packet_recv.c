@@ -212,7 +212,7 @@ static void cpr_handle_op_spawn_appearance(Client* client, ToServerPacket* packe
     Aligned a;
     uint32_t len = packet->length;
     uint32_t entityId;
-    uint32_t typeId;
+    uint16_t typeId;
     int value;
 
     if (len != sizeof(PS_SpawnAppearance))
@@ -224,12 +224,22 @@ static void cpr_handle_op_spawn_appearance(Client* client, ToServerPacket* packe
     /* entityId */
     entityId = aligned_read_uint32(&a);
     /* typeId */
-    typeId = aligned_read_uint32(&a);
+    typeId = aligned_read_uint16(&a);
+    /* unknown */
+    aligned_advance_by_sizeof(&a, uint16_t);
     /* value */
     value = aligned_read_int(&a);
 
     switch (typeId)
     {
+    case SPAWN_APPEARANCE_Afk:
+        client_set_afk(client, (value != 0));
+        break;
+
+    case SPAWN_APPEARANCE_AnonSetting:
+        client_set_anon(client, value);
+        break;
+
     /* Always ignored */
     case SPAWN_APPEARANCE_HpRegenTick:
         break;
@@ -305,6 +315,10 @@ void client_packet_recv(Client* client, ZPacket* zpacket)
     /* Packets to be echoed with all their content */
     case OP_ZoneInUnknown:
         client_send_echo_copy(client, &packet);
+        break;
+
+    /* Packets we don't care about */
+    case OP_Save:
         break;
     
     default:

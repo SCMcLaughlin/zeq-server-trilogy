@@ -526,6 +526,18 @@ uint8_t client_guild_rank_or_ff(Client* client)
     return (rank) ? rank : 0xff;
 }
 
+void client_set_anon(Client* client, int value)
+{
+    uint8_t val;
+
+    /* 0 = none, 1 = anon, 2 = roleplay */
+    value = cap_max(value, 2);
+    val = (uint8_t)value;
+
+    client->anon = val;
+    client_broadcast_spawn_appearance(client, SPAWN_APPEARANCE_AnonSetting, value, true);
+}
+
 uint8_t client_anon_setting(Client* client)
 {
     return client->anon;
@@ -610,6 +622,14 @@ bool client_is_pvp(Client* client)
 bool client_is_gm(Client* client)
 {
     return client->isGM != 0;
+}
+
+void client_set_afk(Client* client, bool isAfk)
+{
+    uint16_t val = (isAfk) ? 1 : 0;
+
+    client->isAfk = val;
+    client_broadcast_spawn_appearance(client, SPAWN_APPEARANCE_Afk, (int)val, true);
 }
 
 bool client_is_afk(Client* client)
@@ -814,4 +834,14 @@ void client_update_exp(Client* client, uint32_t exp)
     packet = packet_create_exp_update(exp);
     if (packet)
         client_schedule_packet(client, packet);
+}
+
+void client_broadcast_spawn_appearance(Client* client, uint16_t type, int value, bool skipSelf)
+{
+    Zone* zone = client_get_zone(client);
+    TlgPacket* packet;
+
+    packet = packet_create_spawn_appearance(client_entity_id(client), type, value);
+    if (packet)
+        zone_broadcast_to_all_clients_except(zone, packet, (skipSelf) ? client : NULL);
 }

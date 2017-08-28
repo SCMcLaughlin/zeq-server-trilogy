@@ -147,4 +147,7 @@ Mob* mob_target_or_self(Mob* mob);
 ZEQ_API void mob_update_level(Mob* mob, uint8_t level);
 ZEQ_API void mob_update_size(Mob* mob, float size);
 
+ZEQ_API void mob_animate_nearby(Mob* mob, uint32_t animId);
+ZEQ_API void mob_animate_range(Mob* mob, uint32_t animId, double range);
+
 #endif/*MOB_H*/

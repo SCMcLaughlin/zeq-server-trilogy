@@ -96,6 +96,14 @@ function Mob:updateSize(size)
     C.mob_update_size(self:toMobPtr(), size)
 end
 
+function Mob:animate(animId)
+    C.mob_animate_nearby(self:toMobPtr(), animId)
+end
+
+function Mob:animateRangeOverride(animId, range)
+    C.mob_animate_range(self:toMobPtr(), animId, range)
+end
+
 function Mob:packetBroadcastNearby(packet, range)
     local zone = self:getZone()
     if not zone then return end
