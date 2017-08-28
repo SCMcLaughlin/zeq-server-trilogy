@@ -13,7 +13,6 @@ struct CharSelectClient {
     IpAddr      ipAddress;
     int64_t     accountId;
     char        sessionKey[16];
-    uint8_t     weaponMaterialIds[10][2];
 };
 
 CharSelectClient* csc_init(ZPacket* zpacket)
@@ -80,36 +79,6 @@ bool csc_check_auth(CharSelectClient* csc, int64_t accountId, uint32_t ip, const
 bool csc_is_authed(CharSelectClient* csc)
 {
     return csc->authed;
-}
-
-void csc_set_weapon_material_ids(CharSelectClient* csc, CharSelectData* data)
-{
-    /*fixme: make enum for the material ids */
-    csc->weaponMaterialIds[0][0] = data->materialIds[0][7];
-    csc->weaponMaterialIds[0][1] = data->materialIds[0][8];
-    csc->weaponMaterialIds[1][0] = data->materialIds[1][7];
-    csc->weaponMaterialIds[1][1] = data->materialIds[1][8];
-    csc->weaponMaterialIds[2][0] = data->materialIds[2][7];
-    csc->weaponMaterialIds[2][1] = data->materialIds[2][8];
-    csc->weaponMaterialIds[3][0] = data->materialIds[3][7];
-    csc->weaponMaterialIds[3][1] = data->materialIds[3][8];
-    csc->weaponMaterialIds[4][0] = data->materialIds[4][7];
-    csc->weaponMaterialIds[4][1] = data->materialIds[4][8];
-    csc->weaponMaterialIds[5][0] = data->materialIds[5][7];
-    csc->weaponMaterialIds[5][1] = data->materialIds[5][8];
-    csc->weaponMaterialIds[6][0] = data->materialIds[6][7];
-    csc->weaponMaterialIds[6][1] = data->materialIds[6][8];
-    csc->weaponMaterialIds[7][0] = data->materialIds[7][7];
-    csc->weaponMaterialIds[7][1] = data->materialIds[7][8];
-    csc->weaponMaterialIds[8][0] = data->materialIds[8][7];
-    csc->weaponMaterialIds[8][1] = data->materialIds[8][8];
-    csc->weaponMaterialIds[9][0] = data->materialIds[9][7];
-    csc->weaponMaterialIds[9][1] = data->materialIds[9][8];
-}
-
-uint8_t csc_get_weapon_material_id(CharSelectClient* csc, uint32_t index, uint32_t slot)
-{
-    return csc->weaponMaterialIds[index][slot - 7];
 }
 
 void csc_set_name_approved(CharSelectClient* csc, bool value)

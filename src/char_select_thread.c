@@ -249,7 +249,7 @@ static int cs_thread_add_authed_client(CharSelectThread* cs, CharSelectClient* c
     cs->clients[index] = client;
     cs->clientCount = index + 1;
     
-    /* Info the client that we have accepted them */
+    /* Inform the client that we have accepted them */
     rc = csc_schedule_packet(client, udpQueue, cs->packetLoginApproved);
     if (rc) goto fail;
     
@@ -485,24 +485,27 @@ static TlgPacket* cs_thread_write_char_info_packet(CharSelectData* data, uint32_
     
     /* unknownB */
     aligned_write_zeroes(&a, sizeof_field(PSCS_CharacterInfo, unknownB));
-    
-    /*
-        The weird fields:
-        We need to set these (probably not exactly as below, but close enough) to be able
-        to tell which character slot is being referred to when the client asks for which
-        weapon models to display in the characters' hands, via WearChange requests.
-    */
-    
-    /* weirdA */
-    for (i = 0; i < CHAR_SELECT_MAX_CHARS; i++)
+
+    /* primaryWeaponIds */
+    for (i = 0; i < count; i++)
     {
-        aligned_write_uint32(&a, i);
+        aligned_write_uint32(&a, (uint32_t)data->materialIds[i][7]);
     }
-    
-    /* weirdB */
-    for (i = 0; i < CHAR_SELECT_MAX_CHARS; i++)
+
+    for (; i < CHAR_SELECT_MAX_CHARS; i++)
     {
-        aligned_write_uint32(&a, i);
+        aligned_write_uint32(&a, 0);
+    }
+
+    /* secondaryWeaponIds */
+    for (i = 0; i < count; i++)
+    {
+        aligned_write_uint32(&a, (uint32_t)data->materialIds[i][8]);
+    }
+
+    for (; i < CHAR_SELECT_MAX_CHARS; i++)
+    {
+        aligned_write_uint32(&a, 0);
     }
     
     /* unknownC */
@@ -537,8 +540,6 @@ static void cs_thread_handle_db_character_info(CharSelectThread* cs, ZPacket* zp
     if (!csc_is_authed(client))
         goto drop_client;
 
-    csc_set_weapon_material_ids(client, data);
-    
     packet = cs_thread_write_char_info_packet(data, count);
     if (!packet) goto drop_client;
     
@@ -1053,6 +1054,7 @@ drop_client:
     cs_thread_drop_client(cs, client);
 }
 
+#if 0
 static int cs_thread_handle_op_wear_change(CharSelectThread* cs, CharSelectClient* client, ZPacket* zpacket)
 {
     Aligned a;
@@ -1105,6 +1107,7 @@ static int cs_thread_handle_op_wear_change(CharSelectThread* cs, CharSelectClien
 
     return ERR_None;
 }
+#endif
 
 static int cs_thread_handle_op_enter(CharSelectThread* cs, CharSelectClient* client, ZPacket* zpacket)
 {
@@ -1216,10 +1219,6 @@ static void cs_thread_handle_packet(CharSelectThread* cs, ZPacket* zpacket)
     case OP_CS_DeleteCharacter:
         rc = cs_thread_handle_op_delete_character(cs, client, zpacket);
         break;
-    
-    case OP_CS_WearChange:
-        rc = cs_thread_handle_op_wear_change(cs, client, zpacket);
-        break;
 
     case OP_CS_Enter:
         rc = cs_thread_handle_op_enter(cs, client, zpacket);
@@ -1235,6 +1234,7 @@ static void cs_thread_handle_packet(CharSelectThread* cs, ZPacket* zpacket)
 
     case OP_CS_Ignore1:
     case OP_CS_Ignore2:
+    case OP_CS_WearChange:
         break;
     
     default:

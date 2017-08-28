@@ -28,8 +28,8 @@ typedef struct {
     uint8_t     unknownA[2];
     uint32_t    materialTints[CHAR_SELECT_MAX_CHARS][CHAR_SELECT_MATERIAL_COUNT];
     uint8_t     unknownB[20];
-    uint8_t     weirdA[CHAR_SELECT_MAX_CHARS][4];
-    uint8_t     weirdB[CHAR_SELECT_MAX_CHARS][4];
+    uint32_t    primaryWeaponIds[CHAR_SELECT_MAX_CHARS];
+    uint32_t    secondaryWeaponIds[CHAR_SELECT_MAX_CHARS];
     uint8_t     unknownC[148];
 } PSCS_CharacterInfo;
 

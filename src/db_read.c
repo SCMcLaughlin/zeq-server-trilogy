@@ -186,22 +186,22 @@ static void dbr_cs_character_info(DbThread* db, sqlite3* sqlite, ZPacket* zpacke
             {
             case SQLITE_ROW:
                 data->name[index] = db_fetch_string_copy(stmt, 0);
-                data->level[index] = db_fetch_int(stmt, 1);
-                data->classId[index] = db_fetch_int(stmt, 2);
-                data->raceId[index] = db_fetch_int(stmt, 3);
+                data->level[index] = (uint8_t)db_fetch_int(stmt, 1);
+                data->classId[index] = (uint8_t)db_fetch_int(stmt, 2);
+                data->raceId[index] = (int16_t)db_fetch_int(stmt, 3);
                 data->zoneId[index] = db_fetch_int(stmt, 4);
-                data->genderId[index] = db_fetch_int(stmt, 5);
-                data->faceId[index] = db_fetch_int(stmt, 6);
+                data->genderId[index] = (uint8_t)db_fetch_int(stmt, 5);
+                data->faceId[index] = (uint8_t)db_fetch_int(stmt, 6);
             
-                data->materialIds[index][0] = db_fetch_int(stmt, 7);
-                data->materialIds[index][1] = db_fetch_int(stmt, 8);
-                data->materialIds[index][2] = db_fetch_int(stmt, 9);
-                data->materialIds[index][3] = db_fetch_int(stmt, 10);
-                data->materialIds[index][4] = db_fetch_int(stmt, 11);
-                data->materialIds[index][5] = db_fetch_int(stmt, 12);
-                data->materialIds[index][6] = db_fetch_int(stmt, 13);
-                data->materialIds[index][7] = db_fetch_int(stmt, 14);
-                data->materialIds[index][8] = db_fetch_int(stmt, 15);
+                data->materialIds[index][0] = (uint8_t)db_fetch_int(stmt, 7);
+                data->materialIds[index][1] = (uint8_t)db_fetch_int(stmt, 8);
+                data->materialIds[index][2] = (uint8_t)db_fetch_int(stmt, 9);
+                data->materialIds[index][3] = (uint8_t)db_fetch_int(stmt, 10);
+                data->materialIds[index][4] = (uint8_t)db_fetch_int(stmt, 11);
+                data->materialIds[index][5] = (uint8_t)db_fetch_int(stmt, 12);
+                data->materialIds[index][6] = (uint8_t)db_fetch_int(stmt, 13);
+                data->materialIds[index][7] = (uint8_t)db_fetch_int(stmt, 14);
+                data->materialIds[index][8] = (uint8_t)db_fetch_int(stmt, 15);
             
                 data->materialTints[index][0] = (uint32_t)db_fetch_int64(stmt, 16);
                 data->materialTints[index][1] = (uint32_t)db_fetch_int64(stmt, 17);
