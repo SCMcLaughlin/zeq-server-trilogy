@@ -6,12 +6,12 @@ CWARNIGNORE= -Wno-unused-result -Wno-strict-aliasing
 CINCLUDE= -Isrc/ -I/usr/include/luajit-2.0/
 CDEF=
 
-#ifdef debug
+ifdef debug
 CFLAGS+= -O0 -g -Wno-format -fno-omit-frame-pointer
-CDEF+= -DDEBUG -DZEQ_LOG_DUMP_ALL_TO_STDOUT -DZEQ_UDP_DUMP_PACKETS
-#else
-#CFLAGS+= -DNDEBUG
-#endif
+CDEF+= -DDEBUG -DZEQ_LOG_DUMP_ALL_TO_STDOUT
+else
+CFLAGS+= -DNDEBUG
+endif
 
 _OBJECTS=               \
  ack_mgr                \
