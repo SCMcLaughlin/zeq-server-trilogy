@@ -338,10 +338,10 @@ void client_on_unhandled_packet(Client* client, ToServerPacket* packet)
     lua_setfield(L, -2, "opcode");
     
     if (packet->data && packet->length)
-    {
         lua_pushlstring(L, (const char*)packet->data, packet->length);
-        lua_setfield(L, -2, "data");
-    }
+    else
+        lua_pushstring(L, "");
+    lua_setfield(L, -2, "data");
     
     zlua_event_epilog(L, zone, NULL);
 }

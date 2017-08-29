@@ -319,6 +319,7 @@ void client_packet_recv(Client* client, ZPacket* zpacket)
 
     /* Packets we don't care about */
     case OP_Save:
+    case OP_MaterialUpdate:
         break;
     
     default:

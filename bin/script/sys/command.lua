@@ -208,7 +208,7 @@ local handlers = {
         green = math.floor(math.ceil(green, 255), 0)
         blue = math.floor(math.ceil(blue, 255), 0)        
 
-        local color = bit.bor(bit.lshift(red, 24), bit.lshift(green, 16), bit.lshift(blue, 8))
+        local color = bit.bor(bit.lshift(red, 16), bit.lshift(green, 8), blue)
         targ:updateTint(slotId, color)
     end,
 

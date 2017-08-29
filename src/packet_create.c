@@ -882,7 +882,7 @@ TlgPacket* packet_create_material_update(int16_t entityId, uint8_t slotId, uint8
     /* materialId */
     aligned_write_uint8(&a, materialId);
     /* operationId */
-    aligned_write_uint16(&a, 0);
+    aligned_write_uint16(&a, (slotId < 7) ? 0x4d : 0);
     /* color */
     aligned_write_uint32(&a, color);
     /* uknownA */
