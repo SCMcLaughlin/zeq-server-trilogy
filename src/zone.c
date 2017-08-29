@@ -47,6 +47,7 @@ struct Zone {
     Client**        clientsBroadcastAll; /* Why does this exist? To ensure zone-wide packets are sent to clients that aren't fully zoned-in yet */
     int16_t*        freeEntityIds;
     RingBuf*        udpQueue;
+    RingBuf*        dbQueue;
     RingBuf*        logQueue;
     StaticPackets*  staticPackets;
 };
@@ -238,7 +239,7 @@ void zone_broadcast_to_nearby_clients_except(Zone* zone, TlgPacket* packet, doub
     packet_drop(packet);
 }
 
-Zone* zone_create(LogThread* log, RingBuf* udpQueue, int zoneId, int instId, StaticPackets* staticPackets, lua_State* L)
+Zone* zone_create(LogThread* log, RingBuf* udpQueue, RingBuf* dbQueue, int zoneId, int instId, StaticPackets* staticPackets, lua_State* L)
 {
     Zone* zone = alloc_type(Zone);
     int rc;
@@ -265,6 +266,7 @@ Zone* zone_create(LogThread* log, RingBuf* udpQueue, int zoneId, int instId, Sta
     zone->maxClippingDistance = 20000.0f;
     zone->lua = L;
     zone->udpQueue = udpQueue;
+    zone->dbQueue = dbQueue;
     zone->logQueue = log_get_queue(log);
     zone->staticPackets = staticPackets;
     

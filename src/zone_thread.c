@@ -113,7 +113,7 @@ static void zt_handle_create_zone(ZoneThread* zt, ZPacket* zpacket)
         zt->zoneIds = zoneIds;
     }
     
-    zone = zone_create(zt->logThread, zt->udpQueue, zoneId, instId, zt->staticPackets, zt->lua);
+    zone = zone_create(zt->logThread, zt->udpQueue, zt->dbQueue, zoneId, instId, zt->staticPackets, zt->lua);
     if (!zone) goto fail;
     
     zt->zones[index] = zone;

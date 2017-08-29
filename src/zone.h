@@ -15,7 +15,7 @@ typedef struct Zone Zone;
 struct Client;
 struct Mob;
 
-Zone* zone_create(LogThread* log, RingBuf* udpQueue, int zoneId, int instId, StaticPackets* staticPackets, lua_State* L);
+Zone* zone_create(LogThread* log, RingBuf* udpQueue, RingBuf* dbQueue, int zoneId, int instId, StaticPackets* staticPackets, lua_State* L);
 Zone* zone_destroy(Zone* zone);
 
 void zone_add_client_zoning_in(Zone* zone, struct Client* client);
