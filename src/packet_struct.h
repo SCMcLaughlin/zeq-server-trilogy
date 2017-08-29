@@ -345,6 +345,17 @@ typedef struct {
 } PS_AppearanceUpdate;
 
 typedef struct {
+    uint32_t    spawnId;
+    uint8_t     slotId;
+    uint8_t     materialId;
+    uint16_t    operationId;
+    uint32_t    color;
+    uint8_t     unknownA;
+    uint8_t     flag;
+    uint16_t    unknownB;
+} PS_MaterialUpdate;
+
+typedef struct {
     uint32_t    entityId;
     uint32_t    animId;
     uint32_t    unknown;

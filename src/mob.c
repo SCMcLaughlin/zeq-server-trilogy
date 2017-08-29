@@ -474,6 +474,11 @@ void mob_update_gender_id(Mob* mob, uint8_t genderId)
     mob_broadcast_appearance_update(mob);
 }
 
+uint8_t mob_base_gender_id(Mob* mob)
+{
+    return mob->baseGenderId;
+}
+
 uint16_t mob_race_id(Mob* mob)
 {
     return mob->raceId;
@@ -483,6 +488,11 @@ void mob_update_race_id(Mob* mob, uint16_t raceId)
 {
     mob->raceId = raceId;
     mob_broadcast_appearance_update(mob);
+}
+
+uint16_t mob_base_race_id(Mob* mob)
+{
+    return mob->baseRaceId;
 }
 
 float mob_x(Mob* mob)
@@ -540,6 +550,107 @@ void mob_update_helm_texture_id(Mob* mob, uint8_t textureId)
 {
     mob->helmTextureId = textureId;
     mob_broadcast_appearance_update(mob);
+}
+
+uint8_t mob_material_id(Mob* mob, int n)
+{
+    uint8_t ret;
+
+    switch (n)
+    {
+    case 7:
+        ret = mob->primaryWeaponModelId;
+        break;
+
+    case 8:
+        ret = mob->secondaryWeaponModelId;
+        break;
+
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:        
+        ret = mob->materialId[n];
+        break;
+
+    default:
+        ret = 0;
+        break;
+    }
+
+    return ret;
+}
+
+static void mob_broadcast_material_update(Mob* mob, int n)
+{
+    Zone* zone = mob_get_zone(mob);
+    TlgPacket* packet = packet_create_material_update(mob_entity_id(mob), (uint8_t)n, mob_material_id(mob, n), mob_tint(mob, n));
+
+    if (packet)
+        zone_broadcast_to_all_clients(zone, packet);
+}
+
+void mob_set_material_id(Mob* mob, int n, uint8_t matId)
+{
+    switch (n)
+    {
+    case 7:
+        mob->primaryWeaponModelId = matId;
+        break;
+
+    case 8:
+        mob->secondaryWeaponModelId = matId;
+        break;
+
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+        mob->materialId[n] = matId;
+        break;
+
+    default:
+        break;
+    }
+}
+
+void mob_update_material_id(Mob* mob, int n, uint8_t matId)
+{
+    mob_set_material_id(mob, n, matId);
+    mob_broadcast_material_update(mob, n);
+}
+
+uint32_t mob_tint(Mob* mob, int n)
+{
+    if (n > 6)
+        return 0;
+
+    return mob->tint[n];
+}
+
+void mob_set_tint(Mob* mob, int n, uint32_t color)
+{
+    if (n <= 6)
+        mob->tint[n] = color;
+}
+
+void mob_update_tint(Mob* mob, int n, uint32_t color)
+{
+    mob_set_tint(mob, n, color);
+    mob_broadcast_material_update(mob, n);
+}
+
+void mob_update_material_and_tint(Mob* mob, int n, uint8_t matId, uint32_t color)
+{
+    mob_set_material_id(mob, n, matId);
+    mob_set_tint(mob, n, color);
+    mob_broadcast_material_update(mob, n);
 }
 
 Mob* mob_target(Mob* mob)

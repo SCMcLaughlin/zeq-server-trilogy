@@ -104,8 +104,10 @@ ZEQ_API uint8_t mob_level(Mob* mob);
 ZEQ_API uint8_t mob_class_id(Mob* mob);
 ZEQ_API uint8_t mob_gender_id(Mob* mob);
 ZEQ_API void mob_update_gender_id(Mob* mob, uint8_t genderId);
+ZEQ_API uint8_t mob_base_gender_id(Mob* mob);
 ZEQ_API uint16_t mob_race_id(Mob* mob);
 ZEQ_API void mob_update_race_id(Mob* mob, uint16_t raceId);
+ZEQ_API uint16_t mob_base_race_id(Mob* mob);
 #define mob_deity_id(mob) ((mob)->deityId)
 
 ZEQ_API float mob_x(Mob* mob);
@@ -141,8 +143,13 @@ ZEQ_API void mob_update_helm_texture_id(Mob* mob, uint8_t textureId);
 #define mob_set_upright_state(mob, state) ((mob)->uprightState = (state))
 #define mob_light_level(mob) ((mob)->lightLevel)
 #define mob_body_type(mob) ((mob)->bodyType)
-#define mob_material_id(mob, n) ((mob)->materialId[(n)])
-#define mob_tint(mob, n) ((mob)->tint[(n)])
+ZEQ_API uint8_t mob_material_id(Mob* mob, int n);
+void mob_set_material_id(Mob* mob, int n, uint8_t matId);
+ZEQ_API void mob_update_material_id(Mob* mob, int n, uint8_t matId);
+ZEQ_API uint32_t mob_tint(Mob* mob, int n);
+void mob_set_tint(Mob* mob, int n, uint32_t color);
+ZEQ_API void mob_update_tint(Mob* mob, int n, uint32_t color);
+void mob_update_material_and_tint(Mob* mob, int n, uint8_t matId, uint32_t color);
 #define mob_owner_entity_id(mob) ((mob)->ownerEntityId)
 
 #define mob_as_client(mob) (struct Client*)(mob)

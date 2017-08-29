@@ -4,6 +4,7 @@
 --------------------------------------------------------------------------------
 local eChatChannel = require "enum/chat_channel"
 local eChatColor = require "enum/chat_color"
+local bit = require "bit"
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
@@ -11,7 +12,20 @@ local eChatColor = require "enum/chat_color"
 --------------------------------------------------------------------------------
 local lower = string.lower
 local tonumber = tonumber
+local math = math
 --------------------------------------------------------------------------------
+
+local function material(e)
+    local slotId = tonumber(e.args[1])
+    local matId = tonumber(e.args[2])
+    local targ = e.self:getTargetOrSelf()
+
+    if slotId and matId then
+        targ:updateMaterialId(slotId, matId)
+    else
+        e.self:message(eChatColor.Red, "Usage: %s [slotId] [materialId]", lower(e.cmd))
+    end
+end
 
 local handlers = {
     anim = function(e)
@@ -117,7 +131,9 @@ local handlers = {
             e.self:message(eChatColor.Default, "%s's level: %u", targ:getName(), targ:getLevel())
         end
     end,
-    
+
+    m = material,    
+
     mana = function(e)
         local mana = tonumber(e.args[1])
         local targ = e.self:getTargetOrSelf()
@@ -128,6 +144,8 @@ local handlers = {
             e.self:message(eChatColor.Default, "%s's mana: %i / %i", targ:getName(), targ:getMana(), targ:getMaxMana())
         end
     end,
+
+    material = material,
     
     race = function(e)
         local id = tonumber(e.args[1])
@@ -173,6 +191,28 @@ local handlers = {
             e.self:message(eChatColor.Default, "%s's texture: %u", targ:getName(), targ:getTextureId())
         end
     end,
+
+    tint = function(e)
+        local slotId = tonumber(e.args[1])
+        local red = tonumber(e.args[2]) or 0
+        local green = tonumber(e.args[3]) or 0
+        local blue = tonumber(e.args[4]) or 0
+        local targ = e.self:getTargetOrSelf()
+
+        if not slotId then
+            e.self:message(eChatColor.Red, "Usage: tint [red] [green] [blue]")
+            return
+        end
+        
+        red = math.floor(math.ceil(red, 255), 0)
+        green = math.floor(math.ceil(green, 255), 0)
+        blue = math.floor(math.ceil(blue, 255), 0)        
+
+        local color = bit.bor(bit.lshift(red, 24), bit.lshift(green, 16), bit.lshift(blue, 8))
+        targ:updateTint(slotId, color)
+    end,
+
+    wc = material,
 }
 
 return function(e)

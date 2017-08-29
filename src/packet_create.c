@@ -868,9 +868,36 @@ TlgPacket* packet_create_appearance_update(Mob* mob)
     return packet;
 }
 
-TlgPacket* packet_create_test(int16_t entityId, uint16_t spellId, uint32_t whichByte, uint8_t value)
+TlgPacket* packet_create_material_update(int16_t entityId, uint8_t slotId, uint8_t materialId, uint32_t color)
 {
     Aligned a;
+    TlgPacket* packet = packet_init_type(OP_MaterialUpdate, PS_MaterialUpdate, &a);
+    if (!packet) return NULL;
+
+    /* PS_MaterialUpdate */
+    /* spawnId */
+    aligned_write_uint32(&a, (uint32_t)entityId);
+    /* slotId */
+    aligned_write_uint8(&a, slotId);
+    /* materialId */
+    aligned_write_uint8(&a, materialId);
+    /* operationId */
+    aligned_write_uint16(&a, 0);
+    /* color */
+    aligned_write_uint32(&a, color);
+    /* uknownA */
+    aligned_write_uint8(&a, 0);
+    /* flag */
+    aligned_write_uint8(&a, 0);
+    /* unknownB */
+    aligned_write_uint16(&a, 0);
+
+    return packet;
+}
+
+TlgPacket* packet_create_test(int16_t entityId, uint16_t spellId, uint32_t whichByte, uint8_t value)
+{
+       Aligned a;
     TlgPacket* packet = packet_init_type(OP_SpellCastFinish, PS_SpellCastFinish, &a);
     byte* ptr;
     if (!packet) return NULL;

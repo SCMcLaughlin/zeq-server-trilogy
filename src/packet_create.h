@@ -29,6 +29,7 @@ TlgPacket* packet_create_animation(uint32_t entityId, uint32_t animId);
 TlgPacket* packet_create_level_update(uint8_t level);
 TlgPacket* packet_create_exp_update(uint32_t currentExp);
 TlgPacket* packet_create_appearance_update(Mob* mob);
+TlgPacket* packet_create_material_update(int16_t entityId, uint8_t slotId, uint8_t materialId, uint32_t color);
 
 ZEQ_API TlgPacket* packet_create_test(int16_t entityId, uint16_t spellId, uint32_t whichByte, uint8_t value);
 

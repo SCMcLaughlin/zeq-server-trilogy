@@ -144,6 +144,22 @@ function Mob:updateHelmTextureId(texId)
     C.mob_update_helm_texture_id(self:toMobPtr(), texId)
 end
 
+function Mob:getMaterialId(n)
+    return C.mob_material_id(self:toMobPtr(), n)
+end
+
+function Mob:updateMaterialId(n, matId)
+    C.mob_update_material_id(self:toMobPtr(), n, matId)
+end
+
+function Mob:getTint(n)
+    return C.mob_tint(self:toMobPtr(), n)
+end
+
+function Mob:updateTint(n, color)
+    C.mob_update_tint(self:toMobPtr(), n, color)
+end
+
 function Mob:updateLevel(lvl)
     C.mob_update_level(self:toMobPtr(), lvl)
 end

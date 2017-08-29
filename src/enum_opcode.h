@@ -45,7 +45,8 @@ enum Opcode
     OP_LevelUpdate          = 0x2198,
     OP_ExpUpdate            = 0x2199,
     OP_AppearanceUpdate     = 0x2091,
-    
+    OP_MaterialUpdate       = 0x2092,   
+ 
     OP_Animation            = 0x209f,
 
     OP_Target               = 0x2162,
