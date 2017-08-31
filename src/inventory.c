@@ -4,6 +4,7 @@
 #include "bit.h"
 #include "client.h"
 #include "client_packet_send.h"
+#include "client_save.h"
 #include "packet_create.h"
 #include "player_profile_packet_struct.h"
 #include "util_alloc.h"
@@ -178,6 +179,56 @@ void inv_send_all(Inventory* inv, Client* client, RingBuf* udpQueue)
         if (packet)
             client_schedule_packet_with_udp_queue(client, udpQueue, packet);
     }
+}
+
+static ClientSaveInvSlot* inv_save_slots(InvSlot* slots, uint32_t n)
+{
+    ClientSaveInvSlot* saveSlots;
+    uint32_t i;
+    
+    saveSlots = alloc_array_type(n, ClientSaveInvSlot);
+    if (!saveSlots) return NULL;
+
+    for (i = 0; i < n; i++)
+    {
+        InvSlot* slot = &slots[i];
+        Item* item = slot->item;
+        ClientSaveInvSlot* saveSlot = &saveSlots[i];
+
+        saveSlot->itemId = slot->itemId; 
+        saveSlot->slotId = slot->slotId;
+        saveSlot->charges = item->charges;
+        saveSlot->stackAmt = item->stackAmt;
+    }
+
+    return saveSlots;
+}
+
+int inv_save_all(Inventory* inv, ClientSave* save)
+{
+    uint32_t n = inv->slotCount;
+
+    save->itemCount = n;
+
+    if (n)
+    {
+        save->items = inv_save_slots(inv->slots, n);
+        if (!save->items) goto oom;
+    }
+
+    n = inv->cursorCount;
+    save->cursorQueueCount = n;
+
+    if (n)
+    {
+        save->cursorQueue = inv_save_slots(inv->cursorQueue, n);
+        if (!save->cursorQueue) goto oom;
+    }
+
+    return ERR_None;
+
+oom:
+    return ERR_OutOfMemory;
 }
 
 void inv_calc_stats(Inventory* inv, CoreStats* stats, uint32_t* weight, int* acFromItems)

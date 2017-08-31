@@ -7,6 +7,8 @@
 
 #define MEMMED_SPELL_SLOTS 8
 
+struct ClientSave;
+
 typedef struct {
     uint16_t    slotId;
     uint16_t    spellId;
@@ -25,6 +27,8 @@ typedef struct {
 } Spellbook;
 
 void spellbook_deinit(Spellbook* sb);
+#define spellbook_memmed_spells(sb) ((sb)->memmed)
+int spellbook_save_all(Spellbook* sb, struct ClientSave* save);
 void spellbook_write_pp(Spellbook* sb, Aligned* a);
 void spellbook_write_pp_gem_refresh(Spellbook* sb, Aligned* a, uint64_t time);
 

@@ -30,9 +30,11 @@ void client_on_unhandled_packet(Client* client, ToServerPacket* packet);
 void client_on_msg_command(Client* client, const char* msg, int len);
 void client_on_target_by_entity_id(Client* client, int16_t entityId);
 
+int64_t client_character_id(Client* client);
 ZEQ_API Mob* client_mob(Client* client);
 StaticBuffer* client_name(Client* client);
 const char* client_name_str(Client* client);
+StaticBuffer* client_surname(Client* client);
 const char* client_surname_str_no_null(Client* client);
 uint8_t client_base_gender_id(Client* client);
 uint16_t client_base_race_id(Client* client);

@@ -363,6 +363,11 @@ void client_on_target_by_entity_id(Client* client, int16_t entityId)
     mob_set_target(client_mob(client), target);
 }
 
+int64_t client_character_id(Client* client)
+{
+    return client->characterId;
+}
+
 Mob* client_mob(Client* client)
 {
     return &client->mob;
@@ -376,6 +381,11 @@ StaticBuffer* client_name(Client* client)
 const char* client_name_str(Client* client)
 {
     return sbuf_str(client->mob.name);
+}
+
+StaticBuffer* client_surname(Client* client)
+{
+    return client->surname;
 }
 
 const char* client_surname_str_no_null(Client* client)

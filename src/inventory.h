@@ -11,6 +11,7 @@
 #include "ringbuf.h"
 
 struct Client;
+struct ClientSave;
 
 typedef struct {
     uint32_t    realId;
@@ -47,6 +48,7 @@ int inv_from_db(Inventory* inv, ClientLoadData_Inventory* data, uint32_t count, 
 uint16_t inv_item_id_for_client(Inventory* inv, uint32_t itemIdReal);
 
 void inv_send_all(Inventory* inv, struct Client* client, RingBuf* udpQueue);
+int inv_save_all(Inventory* inv, struct ClientSave* save);
 
 void inv_calc_stats(Inventory* inv, CoreStats* stats, uint32_t* weight, int* acFromItems);
 

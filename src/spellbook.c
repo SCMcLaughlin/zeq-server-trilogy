@@ -1,11 +1,30 @@
 
 #include "spellbook.h"
 #include "aligned.h"
+#include "client_save.h"
 #include "player_profile_packet_struct.h"
+#include "util_alloc.h"
 
 void spellbook_deinit(Spellbook* sb)
 {
     free_if_exists(sb->knownSpells);
+}
+
+int spellbook_save_all(Spellbook* sb, ClientSave* save)
+{
+    SpellbookSlot* slots = sb->knownSpells;
+    uint32_t n = sb->count;
+
+    save->spellbookCount = n;
+
+    if (n == 0) return ERR_None;
+
+    save->spellbook = alloc_array_type(n, SpellbookSlot);
+
+    if (!save->spellbook) return ERR_OutOfMemory;
+
+    memcpy(save->spellbook, slots, sizeof(SpellbookSlot) * n);
+    return ERR_None;
 }
 
 void spellbook_write_pp(Spellbook* sb, Aligned* a)

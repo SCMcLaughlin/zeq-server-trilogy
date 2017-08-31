@@ -25,6 +25,7 @@ _OBJECTS=               \
  client_mgr             \
  client_packet_recv     \
  client_packet_send     \
+ client_save            \
  crc                    \
  db_read                \
  db_thread              \
