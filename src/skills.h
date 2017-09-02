@@ -128,4 +128,6 @@ void skills_write_pp_languages(Skills* sk, Aligned* a);
 
 int skill_get(Skills* sk, int skillId);
 
+bool skill_is_learned_value(int skillValue);
+
 #endif/*SKILLS_H*/

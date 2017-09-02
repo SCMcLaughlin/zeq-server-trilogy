@@ -37,12 +37,10 @@ void client_save(Client* client)
     save->experience = client_experience(client);
     save->harmtouchTimestamp = client_harmtouch_timestamp(client);
     save->disciplineTimestamp = client_disc_timestamp(client);
-    save->creationTimestamp = client_creation_timestamp(client);
     save->curHp = mob_cur_hp(mob);
     save->curMana = mob_cur_mana(mob);
     save->name = client_name(client);
     save->surname = client_surname(client);
-    save->ip = client_ip(client);
     save->level = mob_level(mob);
     save->classId = client_class_id(client);
     save->genderId = client_base_gender_id(client);

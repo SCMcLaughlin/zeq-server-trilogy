@@ -3,6 +3,8 @@
 #include "client_save.h"
 #include "item_proto.h"
 #include "login_crypto.h"
+#include "skills.h"
+#include "spellbook.h"
 #include "util_clock.h"
 #include "util_str.h"
 #include "enum_zop.h"
@@ -223,6 +225,7 @@ static void dbw_zone_client_save(DbThread* db, sqlite3* sqlite, ZPacket* zpacket
     bool run;
     ClientSave* save = zpacket->db.zQuery.qZoneClientSave.save;
     int64_t charId = save->characterId;
+    uint32_t n, i;
 
     reply.db.zResult.queryId = zpacket->db.zQuery.queryId;
     reply.db.zResult.hadError = true;
@@ -248,7 +251,8 @@ static void dbw_zone_client_save(DbThread* db, sqlite3* sqlite, ZPacket* zpacket
     /* UPDATE character */
     run = db_prepare_literal(db, sqlite, &stmt,
         "UPDATE character SET "
-            "surname = ?, name = ?, level = ?, class = ?, race = ?, zone_id = ?, inst_id = ?, gender = ?, face = ?, deity = ?, x = ?, y = ?, z = ?, heading = ?, "
+            "surname = ?, name = ?, level = ?, class = ?, race = ?, zone_id = ?, inst_id = ?, gender = ?, face = ?, deity = ?, "
+            "x = ?, y = ?, z = ?, heading = ?, "
             "current_hp = ?, current_mana = ?, experience = ?, training_points = ?, guild_id = ?, guild_rank = ?, "
             "harmtouch_timestamp = ?, discipline_timestamp = ?, pp = ?, gp = ?, sp = ?, cp = ?, "
             "pp_cursor = ?, gp_cursor = ?, sp_cursor = ?, cp_cursor = ?, pp_bank = ?, gp_bank = ?, sp_bank = ?, cp_bank = ?, "
@@ -273,12 +277,59 @@ static void dbw_zone_client_save(DbThread* db, sqlite3* sqlite, ZPacket* zpacket
             db_bind_int(db, stmt, 9, save->deityId) &&
             db_bind_double(db, stmt, 10, save->x) &&
             db_bind_double(db, stmt, 11, save->y) &&
-            db_bind_double(db, stmt, 12, save->z)
+            db_bind_double(db, stmt, 12, save->z) &&
+            db_bind_double(db, stmt, 13, save->heading) &&
+            db_bind_int64(db, stmt, 14, save->curHp) &&
+            db_bind_int64(db, stmt, 15, save->curMana) &&
+            db_bind_int64(db, stmt, 16, save->experience) &&
+            db_bind_int(db, stmt, 17, save->trainingPoints) &&
+            db_bind_int(db, stmt, 18, save->guildId) &&
+            db_bind_int(db, stmt, 19, save->guildRank) &&
+            db_bind_int64(db, stmt, 20, (int64_t)save->harmtouchTimestamp) &&
+            db_bind_int64(db, stmt, 21, (int64_t)save->disciplineTimestamp) &&
+            db_bind_int(db, stmt, 22, save->coin.pp) &&
+            db_bind_int(db, stmt, 23, save->coin.gp) &&
+            db_bind_int(db, stmt, 24, save->coin.sp) &&
+            db_bind_int(db, stmt, 25, save->coin.cp) &&
+            db_bind_int(db, stmt, 26, save->coinCursor.pp) &&
+            db_bind_int(db, stmt, 27, save->coinCursor.gp) &&
+            db_bind_int(db, stmt, 28, save->coinCursor.sp) &&
+            db_bind_int(db, stmt, 29, save->coinCursor.cp) &&
+            db_bind_int(db, stmt, 30, save->coinBank.pp) &&
+            db_bind_int(db, stmt, 31, save->coinBank.gp) &&
+            db_bind_int(db, stmt, 32, save->coinBank.sp) &&
+            db_bind_int(db, stmt, 33, save->coinBank.cp) &&
+            db_bind_int(db, stmt, 34, save->hunger) &&
+            db_bind_int(db, stmt, 35, save->thirst) &&
+            db_bind_int(db, stmt, 36, save->isGM) &&
+            db_bind_int(db, stmt, 37, save->isAutosplit) &&
+            db_bind_int(db, stmt, 38, save->isPvP) &&
+            db_bind_int(db, stmt, 39, save->anonSetting) &&
+            db_bind_int(db, stmt, 40, save->drunkeness) &&
+            db_bind_int(db, stmt, 41, save->materialIds[0]) &&
+            db_bind_int(db, stmt, 42, save->materialIds[1]) &&
+            db_bind_int(db, stmt, 43, save->materialIds[2]) &&
+            db_bind_int(db, stmt, 44, save->materialIds[3]) &&
+            db_bind_int(db, stmt, 45, save->materialIds[4]) &&
+            db_bind_int(db, stmt, 46, save->materialIds[5]) &&
+            db_bind_int(db, stmt, 47, save->materialIds[6]) &&
+            db_bind_int(db, stmt, 48, save->materialIds[7]) &&
+            db_bind_int(db, stmt, 49, save->materialIds[8]) &&
+            db_bind_int(db, stmt, 50, save->tints[0]) &&
+            db_bind_int(db, stmt, 51, save->tints[1]) &&
+            db_bind_int(db, stmt, 52, save->tints[2]) &&
+            db_bind_int(db, stmt, 53, save->tints[3]) &&
+            db_bind_int(db, stmt, 54, save->tints[4]) &&
+            db_bind_int(db, stmt, 55, save->tints[5]) &&
+            db_bind_int(db, stmt, 56, save->tints[6])
         )
         {
-
+            db_write(db, stmt);
         }
     }
+    
+    sqlite3_finalize(stmt);
+    stmt = NULL;
 
     /* DELETE skills */
     run = db_prepare_literal(db, sqlite, &stmt, "DELETE FROM skill WHERE character_id = ?");
@@ -293,6 +344,45 @@ static void dbw_zone_client_save(DbThread* db, sqlite3* sqlite, ZPacket* zpacket
     stmt = NULL;
 
     /* INSERT skills */
+    run = db_prepare_literal(db, sqlite, &stmt, "INSERT INTO skill (character_id, skill_id, value) VALUES (?, ?, ?)");
+    
+    if (run && db_bind_int64(db, stmt, 0, charId))
+    {
+        Skills* sk = &save->skills;
+        
+        for (i = 0; i < SKILL_COUNT; i++)
+        {
+            uint8_t val = sk->skill[i];
+            
+            if (!skill_is_learned_value(val))
+                continue;
+            
+            if (db_bind_int(db, stmt, 1, (int)i) && db_bind_int(db, stmt, 2, val))
+            {
+                db_write(db, stmt);
+            }
+            
+            sqlite3_reset(stmt);
+        }
+        
+        for (i = 0; i < LANG_COUNT; i++)
+        {
+            uint8_t val = sk->language[i];
+            
+            if (!skill_is_learned_value(val))
+                continue;
+            
+            if (db_bind_int(db, stmt, 1, (int)(i + SKILL_LANGUAGE_DB_OFFSET)) && db_bind_int(db, stmt, 2, val))
+            {
+                db_write(db, stmt);
+            }
+            
+            sqlite3_reset(stmt);
+        }
+    }
+    
+    sqlite3_finalize(stmt);
+    stmt = NULL;
 
     /* DELETE bind_point */
     run = db_prepare_literal(db, sqlite, &stmt, "DELETE FROM bind_point WHERE character_id = ?");
@@ -307,6 +397,39 @@ static void dbw_zone_client_save(DbThread* db, sqlite3* sqlite, ZPacket* zpacket
     stmt = NULL;
 
     /* INSERT bind_point */
+    run = db_prepare_literal(db, sqlite, &stmt, 
+        "INSERT INTO bind_point "
+            "(character_id, bind_id, zone_id, x, y, z, heading) "
+        "VALUES "
+            "(?, ?, ?, ?, ?, ?, ?)");
+    
+    if (run && db_bind_int64(db, stmt, 0, charId))
+    {
+        BindPoint* binds = save->bindPoints;
+        
+        for (i = 0; i < 5; i++)
+        {
+            BindPoint* bind = &binds[i];
+            
+            if (bind->zoneId == 0)
+                continue;
+            
+            if (db_bind_int(db, stmt, 1, i) &&
+                db_bind_int(db, stmt, 2, bind->zoneId) &&
+                db_bind_double(db, stmt, 3, bind->loc.x) &&
+                db_bind_double(db, stmt, 4, bind->loc.y) &&
+                db_bind_double(db, stmt, 5, bind->loc.z) &&
+                db_bind_double(db, stmt, 6, bind->loc.heading))
+            {
+                db_write(db, stmt);
+            }
+            
+            sqlite3_reset(stmt);
+        }
+    }
+    
+    sqlite3_finalize(stmt);
+    stmt = NULL;
 
     /* DELETE memmed_spells */
     run = db_prepare_literal(db, sqlite, &stmt, "DELETE FROM memmed_spells WHERE character_id = ?");
@@ -321,6 +444,31 @@ static void dbw_zone_client_save(DbThread* db, sqlite3* sqlite, ZPacket* zpacket
     stmt = NULL;
 
     /* INSERT memmed_spells */
+    run = db_prepare_literal(db, sqlite, &stmt,
+        "INSERT INTO memmed_spells "
+            "(character_id, slot_id, spell_id, recast_timestamp_ms) "
+        "VALUES "
+            "(?, ?, ?, ?)");
+    
+    if (run && db_bind_int64(db, stmt, 0, charId))
+    {
+        ClientSaveMemmedSpell* memmed = save->memmedSpells;
+        
+        for (i = 0; i < MEMMED_SPELL_SLOTS; i++)
+        {
+            ClientSaveMemmedSpell* mem = &memmed[i];
+            
+            if (db_bind_int(db, stmt, 1, i) && db_bind_int(db, stmt, 2, mem->spellId) && db_bind_int64(db, stmt, 3, (int64_t)mem->recastTimestamp))
+            {
+                db_write(db, stmt);
+            }
+            
+            sqlite3_reset(stmt);
+        }
+    }
+    
+    sqlite3_finalize(stmt);
+    stmt = NULL;
 
     /* DELETE spellbook */
     run = db_prepare_literal(db, sqlite, &stmt, "DELETE FROM spellbook WHERE character_id = ?");
@@ -335,6 +483,33 @@ static void dbw_zone_client_save(DbThread* db, sqlite3* sqlite, ZPacket* zpacket
     stmt = NULL;
 
     /* INSERT spellbook */
+    if (save->spellbook)
+    {
+        run = db_prepare_literal(db, sqlite, &stmt,
+            "INSERT INTO spellbook "
+                "(character_id, slot_id, spell_id) "
+            "VALUES "
+                "(?, ?, ?)");
+        
+        if (run && db_bind_int64(db, stmt, 0, charId))
+        {
+            SpellbookSlot* spellbook = save->spellbook;
+            
+            n = save->spellbookCount;
+            
+            for (i = 0; i < n; i++)
+            {
+                SpellbookSlot* spell = &spellbook[i];
+                
+                if (db_bind_int(db, stmt, 1, spell->slotId) && db_bind_int(db, stmt, 2, spell->spellId))
+                {
+                    db_write(db, stmt);
+                }
+                
+                sqlite3_reset(stmt);
+            }
+        }
+    }
 
     /* DELETE inventory */
     run = db_prepare_literal(db, sqlite, &stmt, "DELETE FROM inventory WHERE character_id = ?");
@@ -349,6 +524,36 @@ static void dbw_zone_client_save(DbThread* db, sqlite3* sqlite, ZPacket* zpacket
     stmt = NULL;
 
     /* INSERT inventory */
+    if (save->items)
+    {
+        run = db_prepare_literal(db, sqlite, &stmt,
+            "INSERT INTO inventory "
+                "(character_id, slot_id, item_id, stack_amount, charges) "
+            "VALUES "
+                "(?, ?, ?, ?, ?)");
+        
+        if (run && db_bind_int64(db, stmt, 0, charId))
+        {
+            ClientSaveInvSlot* items = save->items;
+            
+            n = save->itemCount;
+            
+            for (i = 0; i < n; i++)
+            {
+                ClientSaveInvSlot* item = &items[i];
+                
+                if (db_bind_int(db, stmt, 1, item->slotId) &&
+                    db_bind_int64(db, stmt, 2, item->itemId) &&
+                    db_bind_int(db, stmt, 3, item->stackAmt) &&
+                    db_bind_int(db, stmt, 4, item->charges))
+                {
+                    db_write(db, stmt);
+                }
+                
+                sqlite3_reset(stmt);
+            }
+        }
+    }
 
     /* DELETE cursor_queue */
     run = db_prepare_literal(db, sqlite, &stmt, "DELETE FROM cursor_queue WHERE character_id = ?");
@@ -363,6 +568,35 @@ static void dbw_zone_client_save(DbThread* db, sqlite3* sqlite, ZPacket* zpacket
     stmt = NULL;
 
     /* INSERT cursor_queue */
+    if (save->cursorQueue)
+    {
+        run = db_prepare_literal(db, sqlite, &stmt,
+            "INSERT INTO cursor_queue "
+                "(character_id, item_id, stack_amount, charges) "
+            "VALUES "
+                "(?, ?, ?, ?)");
+        
+        if (run && db_bind_int64(db, stmt, 0, charId))
+        {
+            ClientSaveInvSlot* items = save->cursorQueue;
+            
+            n = save->cursorQueueCount;
+            
+            for (i = 0; i < n; i++)
+            {
+                ClientSaveInvSlot* item = &items[i];
+                
+                if (db_bind_int64(db, stmt, 1, item->itemId) &&
+                    db_bind_int(db, stmt, 2, item->stackAmt) &&
+                    db_bind_int(db, stmt, 3, item->charges))
+                {
+                    db_write(db, stmt);
+                }
+                
+                sqlite3_reset(stmt);
+            }
+        }
+    }
 
     db_reply(db, zpacket, &reply);
     sqlite3_finalize(stmt);

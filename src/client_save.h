@@ -28,12 +28,10 @@ typedef struct ClientSave {
     int64_t                 experience;
     uint64_t                harmtouchTimestamp;
     uint64_t                disciplineTimestamp;
-    uint64_t                creationTimestamp;
     int64_t                 curHp;
     int64_t                 curMana;
     StaticBuffer*           name;
     StaticBuffer*           surname;
-    uint32_t                ip;
     uint8_t                 level;
     uint8_t                 classId;
     uint8_t                 genderId;

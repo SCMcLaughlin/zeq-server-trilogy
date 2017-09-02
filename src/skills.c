@@ -223,3 +223,8 @@ int skill_get_language(Skills* sk, int langId)
 
     return val;
 }
+
+bool skill_is_learned_value(int skillValue)
+{
+    return (skillValue <= SKILL_CAP);
+}
