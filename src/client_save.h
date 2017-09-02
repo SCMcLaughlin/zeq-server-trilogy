@@ -31,14 +31,20 @@ typedef struct ClientSave {
     uint64_t                creationTimestamp;
     int64_t                 curHp;
     int64_t                 curMana;
+    StaticBuffer*           name;
     StaticBuffer*           surname;
     uint32_t                ip;
     uint8_t                 level;
+    uint8_t                 classId;
+    uint8_t                 genderId;
+    uint8_t                 faceId;
     uint8_t                 guildRank;
     bool                    isGM;
     bool                    isAutosplit;
     bool                    isPvP;
     uint8_t                 anonSetting;
+    uint16_t                raceId;
+    uint16_t                deityId;
     int16_t                 zoneId;
     int16_t                 instId;
     uint16_t                trainingPoints;
@@ -67,5 +73,6 @@ typedef struct ClientSave {
 } ClientSave;
 
 void client_save(struct Client* client);
+void client_save_destroy(ClientSave* save);
 
 #endif/*CLIENT_SAVE_H*/

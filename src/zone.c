@@ -39,6 +39,7 @@ struct Zone {
     float           maxClippingDistance;
     LocH            safeSpot;
     int             logId;
+    int             dbId;
     lua_State*      lua;
     Mob**           mobs;
     MobLocCache*    mobLocs;
@@ -239,7 +240,7 @@ void zone_broadcast_to_nearby_clients_except(Zone* zone, TlgPacket* packet, doub
     packet_drop(packet);
 }
 
-Zone* zone_create(LogThread* log, RingBuf* udpQueue, RingBuf* dbQueue, int zoneId, int instId, StaticPackets* staticPackets, lua_State* L)
+Zone* zone_create(LogThread* log, RingBuf* udpQueue, RingBuf* dbQueue, int dbId, int zoneId, int instId, StaticPackets* staticPackets, lua_State* L)
 {
     Zone* zone = alloc_type(Zone);
     int rc;
@@ -264,6 +265,7 @@ Zone* zone_create(LogThread* log, RingBuf* udpQueue, RingBuf* dbQueue, int zoneI
     zone->minZ = -32000.0f;
     zone->minClippingDistance = 1000.0f;
     zone->maxClippingDistance = 20000.0f;
+    zone->dbId = dbId;
     zone->lua = L;
     zone->udpQueue = udpQueue;
     zone->dbQueue = dbQueue;
@@ -323,6 +325,16 @@ int16_t zone_inst_id(Zone* zone)
 RingBuf* zone_udp_queue(Zone* zone)
 {
     return zone->udpQueue;
+}
+
+RingBuf* zone_db_queue(Zone* zone)
+{
+    return zone->dbQueue;
+}
+
+int zone_db_id(Zone* zone)
+{
+    return zone->dbId;
 }
 
 RingBuf* zone_log_queue(Zone* zone)

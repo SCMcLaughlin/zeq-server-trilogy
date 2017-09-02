@@ -1,10 +1,13 @@
 
 #include "client_save.h"
 #include "client.h"
+#include "db_thread.h"
+#include "enum_zop.h"
 #include "inventory.h"
 #include "spellbook.h"
 #include "util_alloc.h"
 #include "zone.h"
+#include "zpacket.h"
 
 void client_save(Client* client)
 {
@@ -14,6 +17,7 @@ void client_save(Client* client)
     MemmedSpell* memmed;
     Zone* zone;
     Inventory* inv;
+    ZPacket query;
     uint32_t i;
     int rc;
 
@@ -36,14 +40,20 @@ void client_save(Client* client)
     save->creationTimestamp = client_creation_timestamp(client);
     save->curHp = mob_cur_hp(mob);
     save->curMana = mob_cur_mana(mob);
+    save->name = client_name(client);
     save->surname = client_surname(client);
     save->ip = client_ip(client);
     save->level = mob_level(mob);
+    save->classId = client_class_id(client);
+    save->genderId = client_base_gender_id(client);
+    save->faceId = client_face_id(client);
     save->guildRank = client_guild_rank(client);
     save->isGM = client_is_gm(client);
     save->isAutosplit = client_is_auto_split_enabled(client);
     save->isPvP = client_is_pvp(client);
     save->anonSetting = client_anon_setting(client);
+    save->raceId = client_base_race_id(client);
+    save->deityId = client_deity_id(client);
     save->trainingPoints = client_training_points(client);
     save->hunger = client_hunger(client);
     save->thirst = client_thirst(client);
@@ -85,6 +95,9 @@ void client_save(Client* client)
         save->memmedSpells[i].recastTimestamp = memmed[i].recastTimestamp;
     }
 
+    sbuf_grab(save->name);
+    sbuf_grab(save->surname);
+
     rc = inv_save_all(inv, save);
     if (rc) goto fail;
 
@@ -94,11 +107,24 @@ void client_save(Client* client)
     save->zoneId = zone_id(zone);
     save->instId = zone_inst_id(zone);
 
-    sbuf_grab(save->surname);
+    query.db.zQuery.qZoneClientSave.save = save;
+    rc = db_queue_query(zone_db_queue(zone), NULL, zone_db_id(zone), 0, ZOP_DB_QueryZoneClientSave, &query);
+    if (rc) goto fail;
+
+    return;
 
 fail:
-    free_if_exists(save->items);
-    free_if_exists(save->cursorQueue);
-    free_if_exists(save->spellbook);
-    free(save);
+    client_save_destroy(save);
+}
+
+void client_save_destroy(ClientSave* save)
+{
+    if (save)
+    {
+        sbuf_drop(save->surname);
+        free_if_exists(save->items);
+        free_if_exists(save->cursorQueue);
+        free_if_exists(save->spellbook);
+        free(save);
+    }
 }

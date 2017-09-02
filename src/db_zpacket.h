@@ -6,6 +6,7 @@
 #include "buffer.h"
 #include "char_select_data.h"
 #include "client_load_data.h"
+#include "client_save.h"
 #include "guild.h"
 #include "item_proto.h"
 #include "ringbuf.h"
@@ -64,6 +65,12 @@ typedef struct {
     StaticBuffer*   name;
 } DBQ_MainLoadCharacter;
 
+/* ZoneThread */
+
+typedef struct {
+    ClientSave* save;
+} DBQ_ZoneClientSave;
+
 typedef struct {
     int         dbId;
     int         queryId;    /* User-supplied tracking value, not used internally by the DB system */
@@ -79,6 +86,7 @@ typedef struct {
         ItemProtoDbChanges              qMainItemProtoChanges;
         DBQ_MainItemProtoDeletes        qMainItemProtoDeletes;
         DBQ_MainLoadCharacter           qMainLoadCharacter;
+        DBQ_ZoneClientSave              qZoneClientSave;
     };
 } DB_ZQuery;
 

@@ -169,6 +169,7 @@ static void db_thread_destruct_zpacket(DbThread* db, ZPacket* zpacket)
     case ZOP_DB_QueryCSCharacterDelete:
     case ZOP_DB_QueryMainItemProtoChanges:
     case ZOP_DB_QueryMainItemProtoDeletes:
+    case ZOP_DB_QueryZoneClientSave:
         dbw_destruct(db, zpacket, zop);
         break;
     
@@ -466,6 +467,7 @@ static void db_thread_proc(void* ptr)
             case ZOP_DB_QueryCSCharacterDelete:
             case ZOP_DB_QueryMainItemProtoChanges:
             case ZOP_DB_QueryMainItemProtoDeletes:
+            case ZOP_DB_QueryZoneClientSave:
                 db_thread_queue_query(db, &zpacket, zop, true);
                 break;
 
@@ -577,11 +579,16 @@ int db_get_log_id(DbThread* db)
 
 void db_reply(DbThread* db, ZPacket* zpacket, ZPacket* reply)
 {
-    int rc = ringbuf_push(zpacket->db.zQuery.replyQueue, zpacket->db.zQuery.zop, reply);
+    RingBuf* replyQueue = zpacket->db.zQuery.replyQueue;
+    int rc;
     
-    if (rc)
+    if (replyQueue)
     {
-        log_writef(db->logQueue, db->logId, "ERROR: db_reply: ringbuf_push() failed: %s", enum2str_err(rc));
+        rc = ringbuf_push(replyQueue, zpacket->db.zQuery.zop, reply);
+        if (rc)
+        {
+            log_writef(db->logQueue, db->logId, "ERROR: db_reply: ringbuf_push() failed: %s", enum2str_err(rc));
+        }
     }
 }
 

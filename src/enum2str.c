@@ -219,6 +219,7 @@ const char* enum2str_zop(int e)
     case ZOP_DB_QueryMainItemProtoDeletes: ret = "ZOP_DB_QueryMainItemProtoDeletes"; break;
     case ZOP_DB_QueryMainLoadCharacter: ret = "ZOP_DB_QueryMainLoadCharacter"; break;
     case ZOP_DB_QueryMainLoadInventory: ret = "ZOP_DB_QueryMainLoadInventory"; break;
+    case ZOP_DB_QueryZoneClientSave: ret = "ZOP_DB_QueryZoneClientSave"; break;
     case ZOP_LOGIN_TerminateThread: ret = "ZOP_LOGIN_TerminateThread"; break;
     case ZOP_LOGIN_NewServer: ret = "ZOP_LOGIN_NewServer"; break;
     case ZOP_LOGIN_RemoveServer: ret = "ZOP_LOGIN_RemoveServer"; break;
