@@ -29,6 +29,7 @@ int64_t client_calc_base_mana(uint8_t classId, int level, int INT, int WIS);
 void client_on_unhandled_packet(Client* client, ToServerPacket* packet);
 void client_on_msg_command(Client* client, const char* msg, int len);
 void client_on_target_by_entity_id(Client* client, int16_t entityId);
+void client_on_position_update(Client* client, int x, int y, int z, int heading, int deltaX, int deltaY, int deltaZ, int deltaHeading, int forwardVelocity);
 
 int64_t client_character_id(Client* client);
 ZEQ_API Mob* client_mob(Client* client);

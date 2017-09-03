@@ -138,6 +138,8 @@ static void cpr_handle_op_client_position_update(Client* client, ToServerPacket*
 
     log_writef(zone_log_queue(zone), zone_log_id(zone), "POS vel %i head %u dhead %i x %i y %i z %i dx %i dy %i dz %i",
         forwardVelocity, heading, deltaHeading, x, y, z, deltaX, deltaY, deltaZ);
+
+    client_on_position_update(client, x, y, z, heading, deltaX, deltaY, deltaZ, deltaHeading, forwardVelocity);
 }
 
 static void cpr_handle_op_message(Client* client, ToServerPacket* packet)

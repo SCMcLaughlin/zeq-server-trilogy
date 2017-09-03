@@ -164,8 +164,9 @@ fail:
     /* Drop the ref to the name that originally belonged to the CharSelect thread and was transferred to the MainThread */
     sbuf_drop(name);
 
+    /* Destroy the client we just created, which is not yet associated with any zone */
     if (client)
-        client_destroy(client);
+        client_destroy_no_zone(client);
 
     log_writef(mt_get_log_queue(mt), mt_get_log_id(mt), "ERROR: cmgr_handle_zone_from_char_select: error %s while allocating new client instance \"%s\"",
         enum2str_err(rc), sbuf_str(name));

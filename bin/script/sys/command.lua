@@ -157,6 +157,10 @@ local handlers = {
             e.self:message(eChatColor.Default, "%s's race: %u", targ:getName(), targ:getRaceId())
         end
     end,
+    
+    save = function(e)
+        e.self:save()
+    end,
    
     size = function(e)
         local size = tonumber(e.args[1])

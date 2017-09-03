@@ -70,7 +70,7 @@ typedef struct ClientSave {
     SpellbookSlot*          spellbook;
 } ClientSave;
 
-void client_save(struct Client* client);
+ZEQ_API void client_save(struct Client* client);
 void client_save_destroy(ClientSave* save);
 
 #endif/*CLIENT_SAVE_H*/

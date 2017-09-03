@@ -257,8 +257,8 @@ static void dbw_zone_client_save(DbThread* db, sqlite3* sqlite, ZPacket* zpacket
             "harmtouch_timestamp = ?, discipline_timestamp = ?, pp = ?, gp = ?, sp = ?, cp = ?, "
             "pp_cursor = ?, gp_cursor = ?, sp_cursor = ?, cp_cursor = ?, pp_bank = ?, gp_bank = ?, sp_bank = ?, cp_bank = ?, "
             "hunger = ?, thirst = ?, is_gm = ?, autosplit = ?, is_pvp = ?, anon = ?, drunkeness = ?, "
-            "material0 = ?, material1 = ?, material2 = ?, material3 = ?, material4 = ? material5 = ?, material6 = ?, "
-            "material7 = ?, material8 = ?, tint0 = ?, tint1 = ?, tint2 = ?, tint3 = ?, tint4 = ? tint5 = ?, tint 6 = ? "
+            "material0 = ?, material1 = ?, material2 = ?, material3 = ?, material4 = ?, material5 = ?, material6 = ?, "
+            "material7 = ?, material8 = ?, tint0 = ?, tint1 = ?, tint2 = ?, tint3 = ?, tint4 = ?, tint5 = ?, tint6 = ? "
         "WHERE character_id = ?");
 
     if (run)
@@ -321,8 +321,8 @@ static void dbw_zone_client_save(DbThread* db, sqlite3* sqlite, ZPacket* zpacket
             db_bind_int(db, stmt, 53, save->tints[3]) &&
             db_bind_int(db, stmt, 54, save->tints[4]) &&
             db_bind_int(db, stmt, 55, save->tints[5]) &&
-            db_bind_int(db, stmt, 56, save->tints[6])
-        )
+            db_bind_int(db, stmt, 56, save->tints[6]) &&
+            db_bind_int64(db, stmt, 57, save->characterId))
         {
             db_write(db, stmt);
         }

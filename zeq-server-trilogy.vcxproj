@@ -172,6 +172,7 @@
     <ClInclude Include="src\client_mgr.h" />
     <ClInclude Include="src\client_packet_recv.h" />
     <ClInclude Include="src\client_packet_send.h" />
+    <ClInclude Include="src\client_save.h" />
     <ClInclude Include="src\crc.h" />
     <ClInclude Include="src\db_read.h" />
     <ClInclude Include="src\db_thread.h" />
@@ -260,6 +261,7 @@
     <ClCompile Include="src\client_mgr.c" />
     <ClCompile Include="src\client_packet_recv.c" />
     <ClCompile Include="src\client_packet_send.c" />
+    <ClCompile Include="src\client_save.c" />
     <ClCompile Include="src\crc.c" />
     <ClCompile Include="src\db_read.c" />
     <ClCompile Include="src\db_thread.c" />

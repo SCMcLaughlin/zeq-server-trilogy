@@ -363,6 +363,21 @@ void client_on_target_by_entity_id(Client* client, int16_t entityId)
     mob_set_target(client_mob(client), target);
 }
 
+void client_on_position_update(Client* client, int x, int y, int z, int heading, int deltaX, int deltaY, int deltaZ, int deltaHeading, int forwardVelocity)
+{
+    Mob* mob = client_mob(client);
+    int realZ = z / 10;
+
+    /*fixme: validate distance covered since last update vs movement speed*/
+
+    mob->loc.x = (float)x;
+    mob->loc.y = (float)y;
+    mob->loc.z = (float)realZ;
+    mob->loc.heading = (float)heading;
+
+    /*fixme: broadcast update packet*/
+}
+
 int64_t client_character_id(Client* client)
 {
     return client->characterId;

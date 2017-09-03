@@ -102,4 +102,8 @@ function Client:updateExp(exp)
     C.client_update_exp(self:ptr(), exp)
 end
 
+function Client:save()
+    C.client_save(self:ptr())
+end
+
 return Client
