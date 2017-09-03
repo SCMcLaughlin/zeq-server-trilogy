@@ -164,4 +164,7 @@ ZEQ_API void mob_update_size(Mob* mob, float size);
 ZEQ_API void mob_animate_nearby(Mob* mob, uint32_t animId);
 ZEQ_API void mob_animate_range(Mob* mob, uint32_t animId, double range);
 
+Timer* mob_create_timer(Mob* mob, uint32_t periodMs, TimerCallback callback, void* userdata, bool start);
+Timer* mob_destroy_timer(Mob* mob, Timer* timer);
+
 #endif/*MOB_H*/

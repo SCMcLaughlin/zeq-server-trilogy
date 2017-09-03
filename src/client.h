@@ -30,6 +30,10 @@ void client_on_unhandled_packet(Client* client, ToServerPacket* packet);
 void client_on_msg_command(Client* client, const char* msg, int len);
 void client_on_target_by_entity_id(Client* client, int16_t entityId);
 void client_on_position_update(Client* client, int x, int y, int z, int heading, int deltaX, int deltaY, int deltaZ, int deltaHeading, int forwardVelocity);
+void client_on_camp_start(Client* client);
+
+void client_camp_complete(Client* client);
+void client_disconnect(Client* client);
 
 int64_t client_character_id(Client* client);
 ZEQ_API Mob* client_mob(Client* client);
@@ -134,5 +138,8 @@ ZEQ_API void client_update_level(Client* client, uint8_t level);
 ZEQ_API void client_update_exp(Client* client, uint32_t exp);
 
 void client_broadcast_spawn_appearance(Client* client, uint16_t type, int value, bool skipSelf);
+
+Timer* client_create_timer(Client* client, uint32_t periodMs, TimerCallback callback, void* userdata, bool start);
+Timer* client_destroy_timer(Client* client, Timer* timer);
 
 #endif/*CLIENT_H*/

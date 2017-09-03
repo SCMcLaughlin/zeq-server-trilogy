@@ -7,6 +7,7 @@
 #include "log_thread.h"
 #include "misc_struct.h"
 #include "packet_static.h"
+#include "timer.h"
 #include "tlg_packet.h"
 #include "util_lua.h"
 
@@ -14,8 +15,9 @@ typedef struct Zone Zone;
 
 struct Client;
 struct Mob;
+struct ZoneThread;
 
-Zone* zone_create(LogThread* log, RingBuf* udpQueue, RingBuf* dbQueue, int dbId, int zoneId, int instId, StaticPackets* staticPackets, lua_State* L);
+Zone* zone_create(LogThread* log, RingBuf* udpQueue, RingBuf* dbQueue, int dbId, int zoneId, int instId, StaticPackets* staticPackets, lua_State* L, struct ZoneThread* zt);
 Zone* zone_destroy(Zone* zone);
 
 void zone_add_client_zoning_in(Zone* zone, struct Client* client);
@@ -57,5 +59,8 @@ lua_State* zone_lua(Zone* zone);
 struct Mob** zone_mob_list(Zone* zone);
 uint32_t zone_mob_count(Zone* zone);
 struct Mob* zone_mob_by_entity_id(Zone* zone, int16_t entityId);
+
+Timer* zone_create_timer(Zone* zone, uint32_t periodMs, TimerCallback callback, void* userdata, bool start);
+Timer* zone_destroy_timer(Zone* zone, Timer* timer);
 
 #endif/*ZONE_H*/

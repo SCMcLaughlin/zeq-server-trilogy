@@ -12,10 +12,10 @@
 #include "zone.h"
 #include "enum_opcode.h"
 
-static void cpr_warn_unknown_opcode(Client* client, uint16_t opcode)
+static void cpr_warn_unknown_opcode(Client* client, ToServerPacket* packet)
 {
     Zone* zone = client_get_zone(client);
-    log_writef(zone_log_queue(zone), zone_log_id(zone), "WARNING: client_packet_recv: received unexpected opcode: 0x%04x", opcode);
+    log_writef(zone_log_queue(zone), zone_log_id(zone), "WARNING: client_packet_recv: received unexpected opcode 0x%04x with length %u", packet->opcode, packet->length);
 }
 
 static void cpr_handle_op_inventory_request(Client* client)
@@ -272,6 +272,16 @@ static void cpr_handle_op_buff(Client* client, ToServerPacket* packet)
         client_schedule_packet(client, p);
 }
 
+static void cpr_handle_op_unspawn(Client* client)
+{
+    TlgPacket* packet = packet_create_unspawn(client_entity_id(client));
+
+    if (packet)
+        client_schedule_packet(client, packet);
+
+    client_disconnect(client);
+}
+
 void client_packet_recv(Client* client, ZPacket* zpacket)
 {
     ToServerPacket packet;
@@ -310,8 +320,16 @@ void client_packet_recv(Client* client, ZPacket* zpacket)
         cpr_handle_op_spawn_appearance(client, &packet);
         break;
 
+    case OP_CampStart:
+        client_on_camp_start(client);
+        break;
+
     case OP_Buff:
         cpr_handle_op_buff(client, &packet);
+        break;
+
+    case OP_Unspawn:
+        cpr_handle_op_unspawn(client);
         break;
     
     /* Packets to be echoed with all their content */
@@ -326,7 +344,7 @@ void client_packet_recv(Client* client, ZPacket* zpacket)
     
     default:
         client_on_unhandled_packet(client, &packet);
-        cpr_warn_unknown_opcode(client, packet.opcode);
+        cpr_warn_unknown_opcode(client, &packet);
         break;
     }
     

@@ -454,8 +454,8 @@ TlgPacket* packet_create_spawns_compressed(Zone* zone)
 TlgPacket* packet_create_unspawn(int16_t entityId)
 {
     Aligned a;
-    TlgPacket* packet = packet_init_type(OP_Inventory, PS_Item, &a);
-    
+    TlgPacket* packet = packet_init_type(OP_Unspawn, PS_Unspawn, &a);
+
     if (!packet) return NULL;
 
     /* PS_Unspawn */

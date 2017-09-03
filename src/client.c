@@ -2,7 +2,9 @@
 #include "client.h"
 #include "class_id.h"
 #include "client_packet_send.h"
+#include "client_save.h"
 #include "define_netcode.h"
+#include "enum_zop.h"
 #include "inventory.h"
 #include "loc.h"
 #include "misc_enum.h"
@@ -11,8 +13,10 @@
 #include "packet_create.h"
 #include "skills.h"
 #include "spellbook.h"
+#include "timer.h"
 #include "util_alloc.h"
 #include "util_cap.h"
+#include "zpacket.h"
 
 struct Client {
     Mob             mob;
@@ -51,6 +55,7 @@ struct Client {
     Skills          skills;
     Spellbook       spellbook;
     BindPoint       bindPoint[5];
+    Timer*          timerCamp;
 };
 
 Client* client_create_unloaded(StaticBuffer* name, int64_t accountId, IpAddr ipAddr, bool isLocal)
@@ -376,6 +381,60 @@ void client_on_position_update(Client* client, int x, int y, int z, int heading,
     mob->loc.heading = (float)heading;
 
     /*fixme: broadcast update packet*/
+}
+
+static void client_camp_complete(Client* client)
+{
+    TlgPacket* packet;
+
+    client_save(client);
+    packet = packet_create_spawn_appearance(client_entity_id(client), SPAWN_APPEARANCE_SetEntityId, 0);
+    if (packet)
+        zone_broadcast_to_all_clients(client_get_zone(client), packet);
+}
+
+static void client_camp_callback(TimerPool* pool, Timer* timer)
+{
+    Client* client = timer_userdata_type(timer, Client);
+
+    client->timerCamp = timer_destroy(pool, timer);
+    client_camp_complete(client);
+}
+
+void client_on_camp_start(Client* client)
+{
+    if (client_is_gm(client))
+    {
+        client_disconnect(client);
+        return;
+    }
+
+    client->timerCamp = client_create_timer(client, 30000, client_camp_callback, client, true);
+}
+
+void client_disconnect(Client* client)
+{
+    Zone* zone = client_get_zone(client);
+    ZPacket zpacket;
+    uint32_t ip;
+    int rc;
+
+    zpacket.udp.zDropClient.ipAddress = client_ip_addr(client);
+    zpacket.udp.zDropClient.packet = NULL;
+
+    ip = zpacket.udp.zDropClient.ipAddress.ip;
+    rc = ringbuf_push(zone_udp_queue(zone), ZOP_UDP_ClientDisconnect, &zpacket);
+
+    if (rc)
+    {
+        log_writef(zone_log_queue(zone), zone_log_id(zone), "WARNING: client_disconnect: failed to inform UdpThread to drop client from %u.%u.%u.%u:%u, keeping client alive for now",
+            (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, to_host_uint16(zpacket.udp.zDropClient.ipAddress.port));
+    }
+    else
+    {
+        log_writef(zone_log_queue(zone), zone_log_id(zone), "Disconnecting client %s from %u.%u.%u.%u:%u", client_name_str(client),
+            (ip >> 0) & 0xff, (ip >> 8) & 0xff, (ip >> 16) & 0xff, (ip >> 24) & 0xff, to_host_uint16(zpacket.udp.zDropClient.ipAddress.port));
+    }
 }
 
 int64_t client_character_id(Client* client)
@@ -869,4 +928,16 @@ void client_broadcast_spawn_appearance(Client* client, uint16_t type, int value,
     packet = packet_create_spawn_appearance(client_entity_id(client), type, value);
     if (packet)
         zone_broadcast_to_all_clients_except(zone, packet, (skipSelf) ? client : NULL);
+}
+
+Timer* client_create_timer(Client* client, uint32_t periodMs, TimerCallback callback, void* userdata, bool start)
+{
+    Mob* mob = client_mob(client);
+    return mob_create_timer(mob, periodMs, callback, userdata, start);
+}
+
+Timer* client_destroy_timer(Client* client, Timer* timer)
+{
+    Mob* mob = client_mob(client);
+    return mob_destroy_timer(mob, timer);
 }

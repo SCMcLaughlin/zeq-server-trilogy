@@ -703,3 +703,15 @@ void mob_animate_range(Mob* mob, uint32_t animId, double range)
     if (packet)
         zone_broadcast_to_nearby_clients(zone, packet, mob->loc.x, mob->loc.y, mob->loc.z, range);
 }
+
+Timer* mob_create_timer(Mob* mob, uint32_t periodMs, TimerCallback callback, void* userdata, bool start)
+{
+    Zone* zone = mob_get_zone(mob);
+    return zone_create_timer(zone, periodMs, callback, userdata, start);
+}
+
+Timer* mob_destroy_timer(Mob* mob, Timer* timer)
+{
+    Zone* zone = mob_get_zone(mob);
+    return zone_destroy_timer(zone, timer);
+}

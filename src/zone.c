@@ -51,6 +51,7 @@ struct Zone {
     RingBuf*        dbQueue;
     RingBuf*        logQueue;
     StaticPackets*  staticPackets;
+    ZoneThread*     zoneThread;
 };
 
 void zone_add_client_zoning_in(Zone* zone, Client* client)
@@ -240,7 +241,7 @@ void zone_broadcast_to_nearby_clients_except(Zone* zone, TlgPacket* packet, doub
     packet_drop(packet);
 }
 
-Zone* zone_create(LogThread* log, RingBuf* udpQueue, RingBuf* dbQueue, int dbId, int zoneId, int instId, StaticPackets* staticPackets, lua_State* L)
+Zone* zone_create(LogThread* log, RingBuf* udpQueue, RingBuf* dbQueue, int dbId, int zoneId, int instId, StaticPackets* staticPackets, lua_State* L, ZoneThread* zt)
 {
     Zone* zone = alloc_type(Zone);
     int rc;
@@ -271,6 +272,7 @@ Zone* zone_create(LogThread* log, RingBuf* udpQueue, RingBuf* dbQueue, int dbId,
     zone->dbQueue = dbQueue;
     zone->logQueue = log_get_queue(log);
     zone->staticPackets = staticPackets;
+    zone->zoneThread = zt;
     
     rc = log_open_filef(log, &zone->logId, "log/zone_%s_inst_%i.txt", zone_short_name_by_id(zoneId), instId);
     if (rc) goto fail;
@@ -441,4 +443,16 @@ Mob* zone_mob_by_entity_id(Zone* zone, int16_t entityId)
     }
 
     return NULL;
+}
+
+Timer* zone_create_timer(Zone* zone, uint32_t periodMs, TimerCallback callback, void* userdata, bool start)
+{
+    ZoneThread* zt = zone->zoneThread;
+    return timer_new(zt_timer_pool(zt), periodMs, callback, userdata, start);
+}
+
+Timer* zone_destroy_timer(Zone* zone, Timer* timer)
+{
+    ZoneThread* zt = zone->zoneThread;
+    return timer_destroy(zt_timer_pool(zt), timer);
 }

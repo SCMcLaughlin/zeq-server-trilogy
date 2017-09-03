@@ -170,6 +170,18 @@ static void udp_thread_handle_drop_client(UdpThread* udp, ZPacket* cmd)
     }
 }
 
+static void udp_thread_handle_client_disconnect(UdpThread* udp, ZPacket* cmd)
+{
+    uint32_t index;
+    UdpClient* client = udp_thread_get_client_by_ip(udp, cmd->udp.zToClientPacket.ipAddress.ip, cmd->udp.zToClientPacket.ipAddress.port, &index);
+
+    if (client)
+    {
+        bit_set(udp->clientFlags[index], UDP_FLAG_IgnorePackets);
+        udpc_send_disconnect(udp, client);
+    }
+}
+
 static void udp_thread_handle_replace_client_object(UdpThread* udp, ZPacket* cmd)
 {
     UdpClient* client = udp_thread_get_client_by_ip(udp, cmd->udp.zReplaceClientObject.ipAddress.ip, cmd->udp.zReplaceClientObject.ipAddress.port, NULL);
@@ -211,6 +223,10 @@ static bool udp_thread_process_commands(UdpThread* udp)
         
         case ZOP_UDP_ReplaceClientObject:
             udp_thread_handle_replace_client_object(udp, &cmd);
+            break;
+
+        case ZOP_UDP_ClientDisconnect:
+            udp_thread_handle_client_disconnect(udp, &cmd);
             break;
 
         default:
